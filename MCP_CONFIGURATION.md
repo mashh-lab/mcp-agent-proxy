@@ -26,7 +26,7 @@ This guide shows how to configure the MCP Agent Proxy in your MCP client's confi
   "mcpServers": {
     "mastra-agent-proxy": {
       "command": "npx",
-      "args": ["mcp-agent-proxy"],
+      "args": ["@mashh/mcp-agent-proxy"],
       "env": {
         "MASTRA_SERVERS_CONFIG": "http://localhost:4111 http://localhost:4222"
       }
@@ -45,8 +45,10 @@ This guide shows how to configure the MCP Agent Proxy in your MCP client's confi
       "args": [
         "run",
         "--rm",
-        "-p", "3001:3001",
-        "-e", "MASTRA_SERVERS_CONFIG=http://host.docker.internal:4111 http://host.docker.internal:4222",
+        "-p",
+        "3001:3001",
+        "-e",
+        "MASTRA_SERVERS_CONFIG=http://host.docker.internal:4111 http://host.docker.internal:4222",
         "mashh/mcp-agent-proxy:latest"
       ]
     }
@@ -64,8 +66,10 @@ This guide shows how to configure the MCP Agent Proxy in your MCP client's confi
       "args": [
         "run",
         "--rm",
-        "--network", "host",
-        "-e", "MASTRA_SERVERS_CONFIG=http://localhost:4111 http://localhost:4222",
+        "--network",
+        "host",
+        "-e",
+        "MASTRA_SERVERS_CONFIG=http://localhost:4111 http://localhost:4222",
         "mashh/mcp-agent-proxy:latest"
       ]
     }
@@ -111,7 +115,7 @@ This guide shows how to configure the MCP Agent Proxy in your MCP client's confi
   "mcpServers": {
     "mastra-agent-proxy": {
       "command": "pnpm",
-      "args": ["exec", "mcp-agent-proxy"],
+      "args": ["exec", "@mashh/mcp-agent-proxy"],
       "cwd": "/path/to/your/project",
       "env": {
         "MASTRA_SERVERS_CONFIG": "http://localhost:4111 http://localhost:4222"
@@ -171,8 +175,12 @@ Connect to multiple local Mastra servers running on different ports:
     "mastra-agent-proxy": {
       "command": "docker",
       "args": [
-        "run", "--rm", "-p", "3001:3001",
-        "-e", "MASTRA_SERVERS_CONFIG=http://host.docker.internal:4111 http://host.docker.internal:4222 http://host.docker.internal:4333",
+        "run",
+        "--rm",
+        "-p",
+        "3001:3001",
+        "-e",
+        "MASTRA_SERVERS_CONFIG=http://host.docker.internal:4111 http://host.docker.internal:4222 http://host.docker.internal:4333",
         "mashh/mcp-agent-proxy:latest"
       ]
     }
@@ -248,51 +256,59 @@ You can also use comma-separated URLs if you prefer:
 
 ## Environment Variables Reference
 
-| Variable | Description | Default | Example |
-|----------|-------------|---------|---------|
-| `MASTRA_SERVERS_CONFIG` | **Required** - Mastra server URLs | None | `http://localhost:4111 http://localhost:4222` |
-| `MCP_SERVER_PORT` | Port for MCP proxy server | `3001` | `3001` |
-| `MASTRA_CLIENT_RETRIES` | Client retry attempts | `3` | `5` |
-| `MASTRA_CLIENT_BACKOFF_MS` | Initial backoff delay | `300` | `500` |
-| `MASTRA_CLIENT_MAX_BACKOFF_MS` | Maximum backoff delay | `5000` | `10000` |
-| `MCP_TRANSPORT` | Transport type | `http` | `http` |
-| `MCP_SSE_PATH` | SSE endpoint path | `/mcp/sse` | `/mcp/sse` |
-| `MCP_MESSAGE_PATH` | Message endpoint path | `/mcp/message` | `/mcp/message` |
+| Variable                       | Description                       | Default        | Example                                       |
+| ------------------------------ | --------------------------------- | -------------- | --------------------------------------------- |
+| `MASTRA_SERVERS_CONFIG`        | **Required** - Mastra server URLs | None           | `http://localhost:4111 http://localhost:4222` |
+| `MCP_SERVER_PORT`              | Port for MCP proxy server         | `3001`         | `3001`                                        |
+| `MASTRA_CLIENT_RETRIES`        | Client retry attempts             | `3`            | `5`                                           |
+| `MASTRA_CLIENT_BACKOFF_MS`     | Initial backoff delay             | `300`          | `500`                                         |
+| `MASTRA_CLIENT_MAX_BACKOFF_MS` | Maximum backoff delay             | `5000`         | `10000`                                       |
+| `MCP_TRANSPORT`                | Transport type                    | `http`         | `http`                                        |
+| `MCP_SSE_PATH`                 | SSE endpoint path                 | `/mcp/sse`     | `/mcp/sse`                                    |
+| `MCP_MESSAGE_PATH`             | Message endpoint path             | `/mcp/message` | `/mcp/message`                                |
 
 ## Configuration Best Practices
 
 ### 1. Use Absolute Paths
+
 Always use absolute paths for `command` and file arguments to avoid working directory issues:
 
 ✅ **Good:**
+
 ```json
 "command": "/usr/local/bin/mcp-agent-proxy"
 ```
 
 ❌ **Avoid:**
+
 ```json
 "command": "mcp-agent-proxy",
 "cwd": "/some/relative/path"
 ```
 
 ### 2. Multiple Mastra Servers
+
 Separate multiple server URLs with spaces or commas:
 
 **Space-separated (recommended):**
+
 ```json
 "MASTRA_SERVERS_CONFIG": "http://localhost:4111 http://localhost:4222 http://localhost:4333"
 ```
 
 **Comma-separated:**
+
 ```json
 "MASTRA_SERVERS_CONFIG": "http://localhost:4111,http://localhost:4222,http://localhost:4333"
 ```
 
 ### 3. Docker Networking
+
 - **macOS/Windows**: Use `host.docker.internal` to access host services
 - **Linux**: Use `--network host` or connect containers to same network
 
 ### 4. Port Configuration
+
 The proxy server uses port 3001 by default. Only change this if you have conflicts:
 
 ```json
@@ -307,14 +323,17 @@ The proxy server uses port 3001 by default. Only change this if you have conflic
 ### Common Issues
 
 1. **Command not found**
+
    - Ensure the command is in PATH or use absolute path
    - For global npm installs, check: `npm config get prefix`
 
 2. **Port conflicts**
+
    - Change `MCP_SERVER_PORT` if 3001 is in use
    - Check with: `lsof -i :3001`
 
 3. **Docker connection issues**
+
    - Use `host.docker.internal` on macOS/Windows
    - Use `--network host` on Linux
    - Ensure Docker daemon is running
@@ -345,11 +364,13 @@ Enable debug logging:
 ## Testing Your Configuration
 
 1. **Verify server starts:**
+
 ```bash
 mcp-agent-proxy --help
 ```
 
 2. **Test with environment:**
+
 ```bash
 MASTRA_SERVERS_CONFIG="http://localhost:4111 http://localhost:4222" mcp-agent-proxy
 ```
@@ -359,6 +380,7 @@ MASTRA_SERVERS_CONFIG="http://localhost:4111 http://localhost:4222" mcp-agent-pr
 ## Real-World Examples
 
 ### Single Mastra Server
+
 ```json
 {
   "mcpServers": {
@@ -373,6 +395,7 @@ MASTRA_SERVERS_CONFIG="http://localhost:4111 http://localhost:4222" mcp-agent-pr
 ```
 
 ### Multiple Mastra Servers
+
 ```json
 {
   "mcpServers": {
@@ -387,18 +410,24 @@ MASTRA_SERVERS_CONFIG="http://localhost:4111 http://localhost:4222" mcp-agent-pr
 ```
 
 ### Docker with Multiple Local Servers
+
 ```json
 {
   "mcpServers": {
     "mastra-agent-proxy": {
       "command": "docker",
       "args": [
-        "run", "--rm", "-p", "3001:3001",
-        "-e", "MASTRA_SERVERS_CONFIG=http://host.docker.internal:4111 http://host.docker.internal:4222",
-        "-e", "MASTRA_CLIENT_RETRIES=5",
+        "run",
+        "--rm",
+        "-p",
+        "3001:3001",
+        "-e",
+        "MASTRA_SERVERS_CONFIG=http://host.docker.internal:4111 http://host.docker.internal:4222",
+        "-e",
+        "MASTRA_CLIENT_RETRIES=5",
         "mashh/mcp-agent-proxy:latest"
       ]
     }
   }
 }
-``` 
+```
