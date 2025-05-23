@@ -1,0 +1,86 @@
+{
+  "name": "@mashh/mcp-agent-proxy",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "MCP proxy server that allows MCP clients to communicate with Mastra agent servers",
+  "main": "dist/mcp-server.js",
+  "bin": {
+    "mcp-agent-proxy": "dist/mcp-server.js"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist/",
+    "README.md",
+    "INSTALL.md",
+    "MCP_CONFIGURATION.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mashh-lab/mcp-agent-proxy.git"
+  },
+  "homepage": "https://github.com/mashh-lab/mcp-agent-proxy#readme",
+  "bugs": {
+    "url": "https://github.com/mashh-lab/mcp-agent-proxy/issues"
+  },
+  "scripts": {
+    "build": "tsup src/mcp-server.ts --format esm,cjs --out-dir dist --dts --clean",
+    "start": "pnpm build && node dist/mcp-server.js",
+    "dev": "pnpm build && node dist/mcp-server.js",
+    "test": "tsx src/test-client.ts",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prepublishOnly": "pnpm build && pnpm lint && pnpm format:check",
+    "prepack": "pnpm build",
+    "version": "pnpm build"
+  },
+  "keywords": [
+    "mcp",
+    "agent-proxy",
+    "mastra",
+    "proxy-server",
+    "model-context-protocol"
+  ],
+  "author": "mashh-lab",
+  "license": "MIT",
+  "packageManager": "pnpm@10.11.0",
+  "dependencies": {
+    "@aws-crypto/sha256-js": "^5.2.0",
+    "@aws-sdk/client-cloudformation": "^3.816.0",
+    "@aws-sdk/credential-providers": "^3.816.0",
+    "@aws-sdk/types": "^3.804.0",
+    "@mastra/client-js": "^0.10.0",
+    "@mastra/core": "^0.10.0",
+    "@mastra/mcp": "^0.10.0",
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "@smithy/protocol-http": "^5.1.1",
+    "@smithy/signature-v4": "^5.1.1",
+    "@types/node": "^22.15.21",
+    "dotenv": "^16.3.1",
+    "nanoid": "^5.1.5",
+    "zod": "^3.25.21",
+    "zod-to-json-schema": "^3.24.5"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "jest": "^29.7.0",
+    "tsup": "^8.0.1",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3",
+    "typescript-jest": "^0.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.32.1",
+    "@typescript-eslint/parser": "^8.32.1",
+    "eslint": "^9.27.0",
+    "eslint-config-prettier": "^10.1.5",
+    "eslint-plugin-prettier": "^5.4.0",
+    "typescript-eslint": "^8.32.1",
+    "prettier": "^3.5.3"
+  }
+}
