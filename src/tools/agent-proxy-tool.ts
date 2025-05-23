@@ -1,7 +1,8 @@
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { MastraClient } from '@mastra/client-js'
-import { loadServerMappings, getRetryConfig, logger } from '../config.js'
+import { getServersFromConfig, getRetryConfig, logger } from '../config.js'
+import { ServerConfig } from '../bgp/types.js'
 
 // Input schema with support for fully qualified agent IDs
 const agentProxyInputSchema = z.object({
@@ -30,7 +31,7 @@ const agentProxyInputSchema = z.object({
   agentOptions: z.record(z.any()).optional(),
 })
 
-// Output schema with enhanced information
+// Enhanced output schema with BGP routing information
 const agentProxyOutputSchema = z.object({
   success: z.literal(true),
   responseData: z.any(),
@@ -39,22 +40,30 @@ const agentProxyOutputSchema = z.object({
   agentIdUsed: z.string(), // Shows the actual agent ID used (without server prefix)
   fullyQualifiedId: z.string(), // Shows the full server:agentId format
   resolutionMethod: z.string(), // Shows how the server was resolved
+  // BGP routing information
+  routingInfo: z.object({
+    asn: z.number(), // AS number of chosen server
+    region: z.string().optional(), // Region of chosen server
+    priority: z.number().optional(), // Priority of chosen server
+    availableAlternatives: z.number(), // Number of other servers with this agent
+  }),
 })
 
 /**
- * Smart agent resolution: finds which server(s) contain the given agent ID
+ * BGP-aware agent resolution: finds which servers contain the given agent ID
+ * and provides intelligent routing based on AS numbers, priorities, and regions
  */
 async function findAgentServers(
   agentId: string,
-  serverMap: Map<string, string>,
-): Promise<Map<string, string>> {
-  const foundServers = new Map<string, string>() // serverName -> serverUrl
+  servers: ServerConfig[],
+): Promise<ServerConfig[]> {
+  const foundServers: ServerConfig[] = []
   const retryConfig = getRetryConfig()
 
-  for (const [serverName, serverUrl] of serverMap.entries()) {
+  for (const server of servers) {
     try {
       const clientConfig = {
-        baseUrl: serverUrl,
+        baseUrl: server.url,
         retries: retryConfig.discovery.retries,
         backoffMs: retryConfig.discovery.backoffMs,
         maxBackoffMs: retryConfig.discovery.maxBackoffMs,
@@ -64,7 +73,7 @@ async function findAgentServers(
       const agentsData = await mastraClient.getAgents()
 
       if (agentsData && Object.keys(agentsData).includes(agentId)) {
-        foundServers.set(serverName, serverUrl)
+        foundServers.push(server)
       }
     } catch {
       // Server offline or error - skip
@@ -75,10 +84,59 @@ async function findAgentServers(
   return foundServers
 }
 
+/**
+ * BGP-style server selection algorithm
+ * Uses BGP-like path selection criteria: priority (like local_pref), AS path length, etc.
+ */
+function selectBestServer(
+  servers: ServerConfig[],
+  preferredRegion?: string,
+): ServerConfig {
+  if (servers.length === 0) {
+    throw new Error('No servers available for selection')
+  }
+
+  if (servers.length === 1) {
+    return servers[0]
+  }
+
+  // BGP-style path selection algorithm:
+  // 1. Highest priority (like BGP local preference)
+  // 2. Preferred region (like BGP communities for region preference)
+  // 3. Lowest AS number (like BGP router ID tie-breaking)
+
+  let candidates = [...servers]
+
+  // Step 1: Filter by highest priority
+  const maxPriority = Math.max(...candidates.map((s) => s.priority || 0))
+  candidates = candidates.filter((s) => (s.priority || 0) === maxPriority)
+
+  if (candidates.length === 1) {
+    return candidates[0]
+  }
+
+  // Step 2: Prefer region if specified
+  if (preferredRegion) {
+    const regionMatches = candidates.filter((s) => s.region === preferredRegion)
+    if (regionMatches.length > 0) {
+      candidates = regionMatches
+    }
+  }
+
+  if (candidates.length === 1) {
+    return candidates[0]
+  }
+
+  // Step 3: Use lowest AS number as tie-breaker (like BGP router ID)
+  candidates.sort((a, b) => a.asn - b.asn)
+
+  return candidates[0]
+}
+
 export const agentProxyTool = createTool({
   id: 'callMastraAgent',
   description:
-    "Proxies requests to a target Mastra agent using @mastra/client-js. Supports 'generate' and 'stream' interactions. Stream responses collect chunks in real-time with timestamps for optimal streaming experience within MCP constraints. Use 'server:agentId' format for multi-server environments with agent name conflicts.",
+    "BGP-aware proxy for Mastra agents with intelligent routing. Supports 'generate' and 'stream' interactions with automatic server selection based on AS numbers, priorities, and regions. Use 'server:agentId' format for multi-server environments with agent conflicts.",
   inputSchema: agentProxyInputSchema,
   outputSchema: agentProxyOutputSchema,
   execute: async (context: {
@@ -95,14 +153,16 @@ export const agentProxyTool = createTool({
     } = context.context
 
     try {
-      // Load configurable server mappings
-      const SERVER_MAP = loadServerMappings()
+      // Load BGP-aware server configuration
+      const servers = getServersFromConfig()
+      const serverMap = new Map(servers.map((s) => [s.name, s]))
 
       // Parse targetAgentId to extract server and agent ID
-      let serverToUse: string
+      let serverToUse: ServerConfig
       let actualAgentId: string
       let fullyQualifiedId: string
       let resolutionMethod: string
+      let availableAlternatives = 0
 
       if (targetAgentId.includes(':')) {
         // Handle fully qualified ID (server:agentId)
@@ -111,64 +171,58 @@ export const agentProxyTool = createTool({
         fullyQualifiedId = targetAgentId
         resolutionMethod = 'explicit_qualification'
 
-        // Resolve server URL from name
-        if (SERVER_MAP.has(serverName)) {
-          serverToUse = SERVER_MAP.get(serverName)!
+        // Resolve server from name
+        if (serverMap.has(serverName)) {
+          serverToUse = serverMap.get(serverName)!
         } else if (serverUrl) {
-          serverToUse = serverUrl
+          // Create temporary server config for explicit URL
+          serverToUse = {
+            name: 'custom',
+            url: serverUrl,
+            asn: 0, // Unknown AS
+            description: 'Custom URL override',
+          }
           resolutionMethod = 'explicit_url_override'
         } else {
           throw new Error(
-            `Unknown server '${serverName}'. Available servers: ${Array.from(SERVER_MAP.keys()).join(', ')}. Or provide serverUrl parameter.`,
+            `Unknown server '${serverName}'. Available servers: ${Array.from(serverMap.keys()).join(', ')}. Or provide serverUrl parameter.`,
           )
         }
       } else {
-        // Handle plain agent ID - use smart resolution
+        // Handle plain agent ID - use BGP-aware smart resolution
         actualAgentId = targetAgentId
 
         if (serverUrl) {
           // Explicit server URL override
-          serverToUse = serverUrl
+          serverToUse = {
+            name: 'custom',
+            url: serverUrl,
+            asn: 0, // Unknown AS
+            description: 'Custom URL override',
+          }
           resolutionMethod = 'explicit_url_override'
-          const serverName =
-            Array.from(SERVER_MAP.entries()).find(
-              ([, url]) => url === serverToUse,
-            )?.[0] || 'custom'
-          fullyQualifiedId = `${serverName}:${actualAgentId}`
+          fullyQualifiedId = `custom:${actualAgentId}`
         } else {
-          // Smart resolution: find which server(s) contain this agent
-          const foundServers = await findAgentServers(actualAgentId, SERVER_MAP)
+          // BGP-aware resolution: find which servers contain this agent
+          const foundServers = await findAgentServers(actualAgentId, servers)
+          availableAlternatives = foundServers.length - 1
 
-          if (foundServers.size === 0) {
+          if (foundServers.length === 0) {
             // Agent not found on any server
-            const availableServers = Array.from(SERVER_MAP.keys()).join(', ')
+            const availableServers = servers.map((s) => s.name).join(', ')
             throw new Error(
               `Agent '${actualAgentId}' not found on any configured server. Available servers: ${availableServers}. Use 'server:agentId' format or check agent name.`,
             )
-          } else if (foundServers.size === 1) {
+          } else if (foundServers.length === 1) {
             // Agent found on exactly one server - use it automatically
-            const [serverName, serverUrl] = Array.from(
-              foundServers.entries(),
-            )[0]
-            serverToUse = serverUrl
-            fullyQualifiedId = `${serverName}:${actualAgentId}`
+            serverToUse = foundServers[0]
+            fullyQualifiedId = `${serverToUse.name}:${actualAgentId}`
             resolutionMethod = 'unique_auto_resolution'
           } else {
-            // Agent found on multiple servers - use default server (server0)
-            const defaultServerName = 'server0'
-            if (foundServers.has(defaultServerName)) {
-              serverToUse = foundServers.get(defaultServerName)!
-              fullyQualifiedId = `${defaultServerName}:${actualAgentId}`
-              resolutionMethod = 'conflict_default_server'
-            } else {
-              // Default server doesn't have the agent, use first found server
-              const [firstServerName, firstServerUrl] = Array.from(
-                foundServers.entries(),
-              )[0]
-              serverToUse = firstServerUrl
-              fullyQualifiedId = `${firstServerName}:${actualAgentId}`
-              resolutionMethod = 'conflict_first_available'
-            }
+            // Agent found on multiple servers - use BGP-style selection
+            serverToUse = selectBestServer(foundServers)
+            fullyQualifiedId = `${serverToUse.name}:${actualAgentId}`
+            resolutionMethod = 'bgp_path_selection'
           }
         }
       }
@@ -176,7 +230,7 @@ export const agentProxyTool = createTool({
       const retryConfig = getRetryConfig()
 
       const clientConfig = {
-        baseUrl: serverToUse,
+        baseUrl: serverToUse.url,
         retries: retryConfig.interaction.retries,
         backoffMs: retryConfig.interaction.backoffMs,
         maxBackoffMs: retryConfig.interaction.maxBackoffMs,
@@ -276,10 +330,17 @@ export const agentProxyTool = createTool({
         success: true as const,
         responseData,
         interactionType,
-        serverUsed: serverToUse,
+        serverUsed: serverToUse.url,
         agentIdUsed: actualAgentId,
         fullyQualifiedId,
         resolutionMethod,
+        // BGP routing information
+        routingInfo: {
+          asn: serverToUse.asn,
+          region: serverToUse.region,
+          priority: serverToUse.priority,
+          availableAlternatives,
+        },
       }
     } catch (error: unknown) {
       logger.error(

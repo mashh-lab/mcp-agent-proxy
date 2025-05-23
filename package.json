@@ -33,6 +33,10 @@
     "build": "tsup src/mcp-server.ts --format esm,cjs --out-dir dist --dts --clean",
     "start": "pnpm build && node dist/mcp-server.js",
     "dev": "pnpm build && node dist/mcp-server.js",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
@@ -72,6 +76,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.15.21",
+    "@vitest/ui": "^3.1.4",
     "depcheck": "^1.4.7",
     "eslint": "^9.27.0",
     "eslint-config-prettier": "^10.1.5",
@@ -81,6 +86,7 @@
     "tsup": "^8.0.1",
     "tsx": "^4.19.4",
     "typescript": "^5.8.3",
-    "typescript-eslint": "^8.32.1"
+    "typescript-eslint": "^8.32.1",
+    "vitest": "^3.1.4"
   }
 }

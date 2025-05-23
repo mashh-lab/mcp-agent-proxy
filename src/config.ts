@@ -1,4 +1,5 @@
 import dotenv from 'dotenv'
+import { ServerConfig, PRIVATE_ASN_RANGES } from './bgp/types.js'
 
 dotenv.config() // Load environment variables from .env file
 
@@ -56,14 +57,18 @@ export function getRetryConfig() {
 }
 
 /**
- * Load server mappings from environment configuration
+ * Load server mappings with BGP AS numbers for agent routing
+ *
  * Supports multiple string formats:
  * - Space separated: "http://localhost:4111 http://localhost:4222"
  * - Comma separated: "http://localhost:4111,http://localhost:4222"
  * - Comma+space separated: "http://localhost:4111, http://localhost:4222"
- * Auto-generates names: server0, server1, server2, etc.
+ *
+ * Auto-generates:
+ * - Server names: server0, server1, server2, etc.
+ * - AS numbers: 65001, 65002, 65003, etc. (private AS range)
  */
-export function loadServerMappings(): Map<string, string> {
+export function loadServerMappings(): Map<string, ServerConfig> {
   // Check if custom server configuration is provided
   const serversConfig = process.env.MASTRA_SERVERS
 
@@ -75,12 +80,32 @@ export function loadServerMappings(): Map<string, string> {
         .map((url) => url.trim())
         .filter((url) => url.length > 0) // Remove empty strings
 
-      const serverMap = new Map()
+      const serverMap = new Map<string, ServerConfig>()
 
-      // Auto-generate server names: server0, server1, server2, etc.
+      // Auto-generate server names and AS numbers
       serverUrls.forEach((url, index) => {
         if (typeof url === 'string' && url.trim()) {
-          serverMap.set(`server${index}`, url.trim())
+          const serverName = `server${index}`
+          const asn = PRIVATE_ASN_RANGES.TWO_BYTE.min + index // Start from 65001
+
+          // Validate AS number is within private range
+          if (asn > PRIVATE_ASN_RANGES.TWO_BYTE.max) {
+            logger.warn(
+              `Server ${serverName} would get ASN ${asn} which exceeds private AS range. ` +
+                `Consider using fewer servers or implementing 4-byte AS numbers.`,
+            )
+          }
+
+          const serverConfig: ServerConfig = {
+            name: serverName,
+            url: url.trim(),
+            asn: asn,
+            description: `Mastra Server (${serverName})`,
+            region: 'default', // Could be enhanced with region detection
+            priority: 100 + index, // Lower priority for higher indices
+          }
+
+          serverMap.set(serverName, serverConfig)
         }
       })
 
@@ -91,8 +116,10 @@ export function loadServerMappings(): Map<string, string> {
       }
 
       logger.log(
-        `Loaded ${serverMap.size} server mappings:`,
-        Array.from(serverMap.entries()),
+        `Loaded ${serverMap.size} server mappings with AS numbers:`,
+        Array.from(serverMap.entries()).map(
+          ([name, config]) => `${name} (AS${config.asn}): ${config.url}`,
+        ),
       )
       return serverMap
     } catch (error) {
@@ -117,11 +144,137 @@ export function loadServerMappings(): Map<string, string> {
 }
 
 /**
- * Get default server mappings
+ * Get default server mappings with BGP AS numbers
  * Uses the standard Mastra default port (4111) for single-server setup
  */
-function getDefaultMappings(): Map<string, string> {
-  return new Map([['server0', 'http://localhost:4111']])
+function getDefaultMappings(): Map<string, ServerConfig> {
+  const defaultConfig: ServerConfig = {
+    name: 'server0',
+    url: 'http://localhost:4111',
+    asn: PRIVATE_ASN_RANGES.TWO_BYTE.min, // 65001
+    description: 'Default Mastra Server',
+    region: 'local',
+    priority: 100,
+  }
+
+  return new Map([['server0', defaultConfig]])
+}
+
+/**
+ * Legacy function for backwards compatibility
+ * Returns just the URL mapping for existing code
+ * @deprecated Use loadServerMappings() for BGP-aware configuration
+ */
+export function loadServerMappingsLegacy(): Map<string, string> {
+  const serverConfigs = loadServerMappings()
+  const legacyMap = new Map<string, string>()
+
+  for (const [name, config] of serverConfigs.entries()) {
+    legacyMap.set(name, config.url)
+  }
+
+  return legacyMap
+}
+
+/**
+ * Get BGP configuration for the proxy itself
+ */
+export function getBGPConfig() {
+  return {
+    localASN: parseInt(process.env.BGP_ASN || '65000', 10), // Our proxy's AS number
+    routerId: process.env.BGP_ROUTER_ID || generateRouterID(),
+    holdTime: parseInt(process.env.BGP_HOLD_TIME || '90', 10), // seconds
+    keepAliveInterval: parseInt(process.env.BGP_KEEPALIVE_INTERVAL || '30', 10), // seconds
+    connectRetryTime: parseInt(process.env.BGP_CONNECT_RETRY_TIME || '30', 10), // seconds
+  }
+}
+
+/**
+ * Generate a router ID based on local configuration
+ * In real BGP, this is typically an IP address, but we'll use a hash-based approach
+ */
+function generateRouterID(): string {
+  // Use hostname or a default identifier
+  const hostname = process.env.HOSTNAME || 'mcp-agent-proxy'
+  const port = getMCPServerPort()
+  return `${hostname}:${port}`
+}
+
+/**
+ * Load routing policy configuration
+ */
+export function loadRoutingPolicy() {
+  const policyFile = process.env.AGENT_ROUTING_POLICY
+
+  if (policyFile) {
+    try {
+      const fs = require('fs')
+      const policyData = JSON.parse(fs.readFileSync(policyFile, 'utf8'))
+      return policyData
+    } catch (error) {
+      logger.error('Failed to load routing policy:', error)
+    }
+  }
+
+  // Default policy - allow everything for now
+  return {
+    import: [
+      {
+        name: 'default-import',
+        match: {},
+        action: { action: 'accept' },
+      },
+    ],
+    export: [
+      {
+        name: 'default-export',
+        match: {},
+        action: { action: 'accept' },
+      },
+    ],
+  }
+}
+
+/**
+ * Validate server configuration
+ */
+export function validateServerConfig(config: ServerConfig): string[] {
+  const issues: string[] = []
+
+  // Validate URL
+  try {
+    new URL(config.url)
+  } catch {
+    issues.push(`Invalid URL: ${config.url}`)
+  }
+
+  // Validate AS number
+  if (config.asn <= 0 || config.asn > 4294967295) {
+    issues.push(`Invalid AS number: ${config.asn}`)
+  }
+
+  // Check if AS number is in private range (recommended)
+  const isPrivateASN =
+    (config.asn >= PRIVATE_ASN_RANGES.TWO_BYTE.min &&
+      config.asn <= PRIVATE_ASN_RANGES.TWO_BYTE.max) ||
+    (config.asn >= PRIVATE_ASN_RANGES.FOUR_BYTE.min &&
+      config.asn <= PRIVATE_ASN_RANGES.FOUR_BYTE.max)
+
+  if (!isPrivateASN) {
+    issues.push(
+      `AS number ${config.asn} is not in private range. Consider using private AS numbers for agent networks.`,
+    )
+  }
+
+  return issues
+}
+
+/**
+ * Get servers from configuration as array for convenience
+ */
+export function getServersFromConfig(): ServerConfig[] {
+  const serverMappings = loadServerMappings()
+  return Array.from(serverMappings.values())
 }
 
 /**
