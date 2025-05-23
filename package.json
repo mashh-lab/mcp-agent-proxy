@@ -13,6 +13,8 @@
   "files": [
     "dist/",
     "README.md",
+    "INSTALL.md",
+    "MCP_CONFIGURATION.md",
     "LICENSE"
   ],
   "engines": {

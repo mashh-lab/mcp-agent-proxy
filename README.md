@@ -259,22 +259,16 @@ const result = await tools.mastraProxy
   })
 ```
 
-#### Integration with AI IDEs:
+### 6. MCP Client Configuration
 
-- **Cursor**: Configure MCP server connection
-- **Windsurf**: Add as MCP tool provider
-- **Other MCP clients**: Use HTTP/SSE endpoint
+For comprehensive MCP client configuration examples covering all installation methods, see **[MCP_CONFIGURATION.md](MCP_CONFIGURATION.md)**.
 
-#### MCP Client Configuration
-
-For Cursor IDE and other MCP clients, configure the proxy server in your `mcp.json` file. **Important**: Use absolute paths in the `args` field rather than relative paths with `cwd`, as this is the format that works reliably:
-
+#### Quick Example (NPM Global Install):
 ```json
 {
   "mcpServers": {
     "mastra-agent-proxy": {
-      "command": "node",
-      "args": ["/absolute/path/to/your/mcp-agent-proxy/dist/mcp-server.js"],
+      "command": "mcp-agent-proxy",
       "env": {
         "MASTRA_SERVERS_CONFIG": "http://localhost:4111 http://localhost:4222"
       }
@@ -283,11 +277,32 @@ For Cursor IDE and other MCP clients, configure the proxy server in your `mcp.js
 }
 ```
 
-**Configuration Notes:**
+#### Quick Example (Docker):
+```json
+{
+  "mcpServers": {
+    "mastra-agent-proxy": {
+      "command": "docker",
+      "args": [
+        "run", "--rm", "-p", "3001:3001",
+        "-e", "MASTRA_SERVERS_CONFIG=http://host.docker.internal:4111",
+        "mashh/mcp-agent-proxy:latest"
+      ]
+    }
+  }
+}
+```
 
-- Replace `/absolute/path/to/your/mcp-agent-proxy` with your actual project path
-- The absolute path format avoids issues with working directory resolution
-- Environment variables in the `env` section configure server URLs and multi-server setup
+**📖 For detailed configuration examples including:**
+- NPM/PNPM installations (global & local)
+- Docker containers (standard & host network)
+- Standalone binaries
+- Source builds
+- Platform-specific configurations
+- Multi-environment setups
+- Troubleshooting tips
+
+**→ See [MCP_CONFIGURATION.md](MCP_CONFIGURATION.md)**
 
 ## Development
 
