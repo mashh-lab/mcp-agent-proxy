@@ -26,6 +26,41 @@ The proxy server acts as an intermediary layer that:
 3. Handles agent name conflicts using smart resolution
 4. Returns responses in MCP-compliant format
 
+## Quick Start
+
+Install the MCP Agent Proxy globally and add it to your MCP client configuration:
+
+### 1. Install
+
+```bash
+# Using pnpm (recommended)
+pnpm add -g @mashh/mcp-agent-proxy
+
+# Or using npm
+npm install -g @mashh/mcp-agent-proxy
+```
+
+### 2. Configure
+
+Add to your MCP client's `mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "mastra-agent-proxy": {
+      "command": "mcp-agent-proxy",
+      "env": {
+        "MASTRA_SERVERS_CONFIG": "http://localhost:4111"
+      }
+    }
+  }
+}
+```
+
+That's it! The proxy will connect to your Mastra server and expose all agents as MCP tools.
+
+For detailed installation options (Docker, binaries, etc.), see [INSTALL.md](INSTALL.md).
+
 ## Installation
 
 1. Clone the repository:
@@ -41,10 +76,10 @@ cd mcp-agent-proxy
 pnpm install
 ```
 
-3. Configure environment (copy and edit):
+3. Build the project:
 
 ```bash
-cp .env .env.local  # Edit the values as needed
+pnpm build
 ```
 
 ## Clean Project Structure
@@ -59,34 +94,41 @@ This repository has been cleaned up to include only production-ready files:
 
 ## Configuration
 
-Set the following environment variables in your `.env` file:
+Configure the proxy server by setting environment variables in your MCP client's configuration file (typically `mcp.json`).
 
-```env
-# Multi-server configuration (space or comma separated URLs)
-MASTRA_SERVERS_CONFIG=http://localhost:4111 http://localhost:4222
+### Required Environment Variable
 
-# Client configuration
-MASTRA_CLIENT_RETRIES=3
-MASTRA_CLIENT_BACKOFF_MS=300
-MASTRA_CLIENT_MAX_BACKOFF_MS=5000
-
-# MCP server configuration (optional)
-# MCP_SERVER_PORT=3001  # Default: 3001
-MCP_SSE_PATH=/mcp/sse
-MCP_MESSAGE_PATH=/mcp/message
-
-# Transport type
-MCP_TRANSPORT=http
-```
-
-### Key Configuration Options
-
-- **`MASTRA_SERVERS_CONFIG`**: Mastra server URLs to monitor and proxy to. Supports multiple formats:
+- **`MASTRA_SERVERS_CONFIG`** - **Required** - Mastra server URLs to monitor and proxy to. Supports multiple formats:
   - Space separated: `http://localhost:4111 http://localhost:4222`
   - Comma separated: `http://localhost:4111,http://localhost:4222`
   - Comma+space: `http://localhost:4111, http://localhost:4222`
-- **`MCP_SERVER_PORT`**: (Optional) Port for the MCP proxy server to listen on. Default: **3001**
-- **Retry Settings**: Configure client resilience for network issues when connecting to Mastra servers
+
+### Optional Environment Variables
+
+All other environment variables are optional and have sensible defaults:
+
+- **`MCP_SERVER_PORT`** - Port for the MCP proxy server. Default: `3001`
+- **`MASTRA_CLIENT_RETRIES`** - Client retry attempts for Mastra servers. Default: `3`
+- **`MASTRA_CLIENT_BACKOFF_MS`** - Initial backoff delay in milliseconds. Default: `300`
+- **`MASTRA_CLIENT_MAX_BACKOFF_MS`** - Maximum backoff delay in milliseconds. Default: `5000`
+- **`MCP_SSE_PATH`** - SSE endpoint path. Default: `/mcp/sse`
+- **`MCP_MESSAGE_PATH`** - Message endpoint path. Default: `/mcp/message`
+- **`MCP_TRANSPORT`** - Transport method (stdio or http). Default: `http`
+
+### Example Configuration
+
+```json
+{
+  "mcpServers": {
+    "mastra-agent-proxy": {
+      "command": "mcp-agent-proxy",
+      "env": {
+        "MASTRA_SERVERS_CONFIG": "http://localhost:4111 http://localhost:4222"
+      }
+    }
+  }
+}
+```
 
 ## Usage
 
