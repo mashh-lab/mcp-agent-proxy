@@ -147,14 +147,12 @@ const mcpClient = new MCPClient({
 // Create agents with network access
 const networkAwareAgent = new Agent({
   name: 'NetworkAwareAgent',
-  instructions: `You have access to agents on other Mastra servers through MCP.
-                 Use agent IDs or fully qualified names like "server0:weatherAgent" to target specific agents.`,
-  tools: await mcpClient.getTools(), // ALL tools from ALL connected networks
-  model: { provider: 'openai', name: 'gpt-4' },
+  instructions: `You have access to agents on other Mastra servers through MCP.`,
+  tools: await mcpClient.getTools(), // ALL agents from ALL connected networks
 })
 ```
 
-**Then users connect to your network-aware server:**
+**Then users connect to your network-aware server from an MCP client like Cursor or Claude:**
 
 ```json
 {
