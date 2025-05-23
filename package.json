@@ -1,18 +1,43 @@
 {
-  "name": "mcp-agent-proxy",
+  "name": "@mashh/mcp-agent-proxy",
   "version": "1.0.0",
   "type": "module",
   "description": "MCP proxy server that allows MCP clients to communicate with Mastra agent servers",
   "main": "dist/mcp-server.js",
+  "bin": {
+    "mcp-agent-proxy": "dist/mcp-server.js"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mashh-lab/mcp-agent-proxy.git"
+  },
+  "homepage": "https://github.com/mashh-lab/mcp-agent-proxy#readme",
+  "bugs": {
+    "url": "https://github.com/mashh-lab/mcp-agent-proxy/issues"
+  },
   "scripts": {
     "build": "tsup src/mcp-server.ts --format esm,cjs --out-dir dist --dts --clean",
-    "start": "npm run build && node dist/mcp-server.js",
-    "dev": "npm run build && node dist/mcp-server.js",
+    "start": "pnpm build && node dist/mcp-server.js",
+    "dev": "pnpm build && node dist/mcp-server.js",
     "test": "tsx src/test-client.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "prepublishOnly": "pnpm build && pnpm lint && pnpm format:check",
+    "prepack": "pnpm build",
+    "version": "pnpm build"
   },
   "keywords": [
     "mcp",
@@ -21,8 +46,8 @@
     "proxy-server",
     "model-context-protocol"
   ],
-  "author": "",
-  "license": "ISC",
+  "author": "mashh-lab",
+  "license": "MIT",
   "packageManager": "pnpm@10.11.0",
   "dependencies": {
     "@aws-crypto/sha256-js": "^5.2.0",

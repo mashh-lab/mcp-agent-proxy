@@ -52,28 +52,26 @@ cp .env .env.local  # Edit the values as needed
 This repository has been cleaned up to include only production-ready files:
 
 - **Core functionality**: Located in `src/` directory
-- **Single configuration**: `mcp.json` with the working absolute path format
+- **Single configuration**: Working MCP client configuration examples
 - **Comprehensive documentation**: Everything you need is in this README
 - **Simple testing**: Run `pnpm test` to verify your setup
+- **Multiple distribution methods**: NPM package, Docker, binaries, and source
 
 ## Configuration
 
 Set the following environment variables in your `.env` file:
 
 ```env
-# Multi-server configuration (JSON array of server URLs)
-MASTRA_SERVERS_CONFIG=["http://localhost:4111", "http://localhost:4222"]
-
-# Primary server (used as default for conflicts)
-MASTRA_SERVER_BASE_URL=http://localhost:4111
+# Multi-server configuration (space or comma separated URLs)
+MASTRA_SERVERS_CONFIG=http://localhost:4111 http://localhost:4222
 
 # Client configuration
 MASTRA_CLIENT_RETRIES=3
 MASTRA_CLIENT_BACKOFF_MS=300
 MASTRA_CLIENT_MAX_BACKOFF_MS=5000
 
-# MCP server configuration
-MCP_SERVER_PORT=3001
+# MCP server configuration (optional)
+# MCP_SERVER_PORT=3001  # Default: 3001
 MCP_SSE_PATH=/mcp/sse
 MCP_MESSAGE_PATH=/mcp/message
 
@@ -83,10 +81,12 @@ MCP_TRANSPORT=http
 
 ### Key Configuration Options
 
-- **`MASTRA_SERVERS_CONFIG`**: JSON array of Mastra server URLs to monitor
-- **`MASTRA_SERVER_BASE_URL`**: Primary server URL (used as fallback and default)
-- **`MCP_SERVER_PORT`**: Port for the MCP proxy server to listen on
-- **Retry Settings**: Configure client resilience for network issues
+- **`MASTRA_SERVERS_CONFIG`**: Mastra server URLs to monitor and proxy to. Supports multiple formats:
+  - Space separated: `http://localhost:4111 http://localhost:4222`
+  - Comma separated: `http://localhost:4111,http://localhost:4222`
+  - Comma+space: `http://localhost:4111, http://localhost:4222`
+- **`MCP_SERVER_PORT`**: (Optional) Port for the MCP proxy server to listen on. Default: **3001**
+- **Retry Settings**: Configure client resilience for network issues when connecting to Mastra servers
 
 ## Usage
 
@@ -276,9 +276,7 @@ For Cursor IDE and other MCP clients, configure the proxy server in your `mcp.js
       "command": "node",
       "args": ["/absolute/path/to/your/mcp-agent-proxy/dist/mcp-server.js"],
       "env": {
-        "MASTRA_SERVER_BASE_URL": "http://localhost:4111",
-        "MCP_SERVER_PORT": "3001",
-        "MASTRA_SERVERS_CONFIG": "[\"http://localhost:4111\", \"http://localhost:4222\"]"
+        "MASTRA_SERVERS_CONFIG": "http://localhost:4111 http://localhost:4222"
       }
     }
   }
@@ -355,6 +353,36 @@ DEBUG=mastra:* pnpm start
 3. Make your changes
 4. Add tests if applicable
 5. Submit a pull request
+
+## Publishing (Maintainers)
+
+### Prerequisites
+```bash
+# Login to npm registry (works with pnpm too)
+npm login
+
+# Ensure you have access to the package
+npm whoami
+```
+
+### Release Process
+```bash
+# 1. Update version
+pnpm version patch  # or minor/major
+
+# 2. Build and publish (prepublishOnly script handles build/lint)
+pnpm publish
+
+# 3. Push tag to trigger GitHub Actions
+git push origin main --tags
+```
+
+The GitHub Actions workflow will automatically:
+- Build and test the package
+- Publish to NPM (using pnpm)
+- Build Docker images for multiple platforms
+- Create standalone binaries for Linux, macOS, and Windows
+- Create a GitHub release with all artifacts
 
 ## License
 

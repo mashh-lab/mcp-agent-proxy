@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 // src/mcp-server.ts
 import { MCPServer } from '@mastra/mcp'
 import http from 'http'

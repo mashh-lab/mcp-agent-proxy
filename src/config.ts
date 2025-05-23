@@ -1,27 +1,6 @@
-import { ClientOptions } from '@mastra/client-js'
 import dotenv from 'dotenv'
 
 dotenv.config() // Load environment variables from .env file
-
-export function loadMastraClientConfig(): ClientOptions {
-  const baseUrl = process.env.MASTRA_SERVER_BASE_URL
-  if (!baseUrl) {
-    console.warn(
-      'MASTRA_SERVER_BASE_URL environment variable not set. Defaulting to http://localhost:4111. This may not be intended for production.',
-    )
-  }
-
-  return {
-    baseUrl: baseUrl || 'http://localhost:4111', // Default if not set
-    retries: parseInt(process.env.MASTRA_CLIENT_RETRIES || '3', 10),
-    backoffMs: parseInt(process.env.MASTRA_CLIENT_BACKOFF_MS || '300', 10),
-    maxBackoffMs: parseInt(
-      process.env.MASTRA_CLIENT_MAX_BACKOFF_MS || '5000',
-      10,
-    ),
-    // Other ClientOptions can be added here, loaded from environment variables
-  }
-}
 
 export function getMCPServerPort(): number {
   const port = parseInt(process.env.MCP_SERVER_PORT || '3001', 10)
@@ -43,8 +22,10 @@ export function getMCPPaths() {
 
 /**
  * Load server mappings from environment configuration
- * Supports simple array config via MASTRA_SERVERS_CONFIG environment variable
- * Format: ["http://localhost:4111", "http://localhost:4222", ...]
+ * Supports multiple string formats:
+ * - Space separated: "http://localhost:4111 http://localhost:4222"
+ * - Comma separated: "http://localhost:4111,http://localhost:4222" 
+ * - Comma+space separated: "http://localhost:4111, http://localhost:4222"
  * Auto-generates names: server0, server1, server2, etc.
  */
 export function loadServerMappings(): Map<string, string> {
@@ -53,12 +34,11 @@ export function loadServerMappings(): Map<string, string> {
 
   if (serversConfig) {
     try {
-      const serverUrls = JSON.parse(serversConfig)
-
-      // Validate it's an array
-      if (!Array.isArray(serverUrls)) {
-        throw new Error('MASTRA_SERVERS_CONFIG must be an array of URLs')
-      }
+      // Parse as space/comma-separated string
+      const serverUrls = serversConfig
+        .split(/[,\s]+/) // Split by comma and/or whitespace
+        .map(url => url.trim())
+        .filter(url => url.length > 0) // Remove empty strings
 
       const serverMap = new Map()
 
@@ -90,9 +70,10 @@ export function loadServerMappings(): Map<string, string> {
       // Only log errors if not using stdio
       if (process.env.MCP_TRANSPORT !== 'stdio' && process.stdin.isTTY) {
         console.error('Failed to parse MASTRA_SERVERS_CONFIG:', error)
-        console.log(
-          'Expected format: ["http://localhost:4111", "http://localhost:4222"]',
-        )
+        console.log('Supported formats:')
+        console.log('  Space separated: "http://localhost:4111 http://localhost:4222"')
+        console.log('  Comma separated: "http://localhost:4111,http://localhost:4222"')
+        console.log('  Comma+space: "http://localhost:4111, http://localhost:4222"')
         console.log('Falling back to default server mappings')
       }
       return getDefaultMappings()

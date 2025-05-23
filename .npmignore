@@ -1,0 +1,59 @@
+# Source files
+src/
+tsconfig.json
+tsup.config.js
+
+# Development files
+.env
+.env.local
+.env.example
+*.log
+*.tmp
+.DS_Store
+
+# Test files
+**/*.test.*
+**/*.spec.*
+test/
+tests/
+
+# Build tools
+.eslintrc.*
+.prettierrc.*
+eslint.config.js
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Package managers
+node_modules/
+pnpm-lock.yaml
+yarn.lock
+package-lock.json
+
+# Documentation (keep README.md and LICENSE)
+CONTRIBUTING.md
+CODE_OF_CONDUCT.md
+INSTALL.md
+
+# Examples and configs
+examples/
+Dockerfile
+docker-compose.yml
+
+# Misc
+coverage/
+.nyc_output/
+*.tgz 

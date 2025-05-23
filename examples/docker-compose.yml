@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  mcp-agent-proxy:
+    image: mashh-lab/mcp-agent-proxy:latest
+    ports:
+      - "3001:3001"
+    environment:
+      - MASTRA_SERVERS_CONFIG=http://host.docker.internal:4111
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/health', (res) => process.exit(res.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3 
