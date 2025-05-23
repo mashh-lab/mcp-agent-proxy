@@ -78,7 +78,7 @@ async function findAgentServers(
 export const agentProxyTool = createTool({
   id: 'callMastraAgent',
   description:
-    "Proxies requests to a target Mastra agent using @mastra/client-js. Supports 'generate' and 'stream' interactions (note: stream responses are collected due to MCP tool interface limitations). Use 'server:agentId' format for multi-server environments with agent name conflicts.",
+    "Proxies requests to a target Mastra agent using @mastra/client-js. Supports 'generate' and 'stream' interactions. Stream responses collect chunks in real-time with timestamps for optimal streaming experience within MCP constraints. Use 'server:agentId' format for multi-server environments with agent name conflicts.",
   inputSchema: agentProxyInputSchema,
   outputSchema: agentProxyOutputSchema,
   execute: async (context: {
@@ -196,15 +196,77 @@ export const agentProxyTool = createTool({
       if (interactionType === 'generate') {
         responseData = await agent.generate(interactionParams)
       } else if (interactionType === 'stream') {
-        // Note: Current implementation collects full stream content
-        // This is a limitation of the current MCP tool interface which expects
-        // synchronous responses. Real streaming would require WebSocket or SSE support.
-        const streamResult = await agent.stream(interactionParams)
-        responseData = {
-          type: 'collected_stream',
-          content: streamResult,
-          note: 'Stream was collected due to MCP tool interface limitations. For real streaming, use the Mastra client directly.',
-          timestamp: new Date().toISOString(),
+        // Proper streaming implementation - collect chunks as they arrive
+        const chunks: Array<{
+          content: unknown
+          timestamp: string
+          index: number
+        }> = []
+
+        let chunkIndex = 0
+        const startTime = new Date()
+
+        try {
+          // Get the stream from the agent
+          const streamResponse = await agent.stream(interactionParams)
+
+          // Process the data stream using Mastra's API
+          await streamResponse.processDataStream({
+            onTextPart: (textPart: string) => {
+              chunks.push({
+                content: textPart,
+                timestamp: new Date().toISOString(),
+                index: chunkIndex++,
+              })
+            },
+            onDataPart: (dataPart: unknown) => {
+              chunks.push({
+                content: dataPart,
+                timestamp: new Date().toISOString(),
+                index: chunkIndex++,
+              })
+            },
+            onErrorPart: (errorPart: unknown) => {
+              chunks.push({
+                content: { error: errorPart },
+                timestamp: new Date().toISOString(),
+                index: chunkIndex++,
+              })
+            },
+          })
+
+          const endTime = new Date()
+          const totalDuration = endTime.getTime() - startTime.getTime()
+
+          responseData = {
+            type: 'collected_stream',
+            chunks,
+            summary: {
+              totalChunks: chunks.length,
+              startTime: startTime.toISOString(),
+              endTime: endTime.toISOString(),
+              durationMs: totalDuration,
+              note: 'Stream was collected in real-time with timestamps. Each chunk was processed as it arrived from the agent.',
+            },
+          }
+        } catch (streamError) {
+          // If streaming fails, collect what we have so far
+          const endTime = new Date()
+          responseData = {
+            type: 'partial_stream',
+            chunks,
+            summary: {
+              totalChunks: chunks.length,
+              startTime: startTime.toISOString(),
+              endTime: endTime.toISOString(),
+              durationMs: endTime.getTime() - startTime.getTime(),
+              error:
+                streamError instanceof Error
+                  ? streamError.message
+                  : 'Unknown streaming error',
+              note: 'Stream was partially collected before encountering an error.',
+            },
+          }
         }
       } else {
         throw new Error(`Invalid interaction type: ${interactionType}`)

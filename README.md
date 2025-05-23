@@ -196,7 +196,7 @@ This is the recursive **"Internet of Agents"** - where each connection unlocks e
 - **Smart Agent Resolution**: Automatically resolves agent names to appropriate servers, with support for fully qualified `server:agentId` format
 - **Location Agnostic**: Connect to Mastra servers running locally (e.g., `localhost:4111`) or remotely via configurable base URL
 - **MCP Compliance**: Exposes Mastra agents as standard MCP tools for broad ecosystem integration
-- **Dual Interaction Support**: Supports both `generate` and `stream` interactions with target agents
+- **Real-Time Streaming Support**: Both `generate` and `stream` interactions supported, with stream responses collecting chunks in real-time with timestamps for optimal streaming experience
 - **Dynamic Discovery**: Tools to list available agents across all configured servers with conflict detection
 - **HTTP/SSE Transport**: Network-accessible via HTTP Server-Sent Events for robust client connections
 - **Type Safety**: Full TypeScript implementation with Zod schema validation

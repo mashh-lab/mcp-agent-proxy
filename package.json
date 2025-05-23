@@ -1,6 +1,6 @@
 {
   "name": "@mashh/mcp-agent-proxy",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "type": "module",
   "description": "MCP proxy server that allows MCP clients to communicate with Mastra agent servers",
   "main": "dist/mcp-server.js",
