@@ -123,9 +123,9 @@ This guide shows how to configure the MCP Agent Proxy in your MCP client's confi
 
 ## Advanced Configuration Examples
 
-### Multiple Mastra Servers (Production Setup)
+### Multiple Mastra Servers (Different Ports)
 
-Connect to multiple Mastra servers running in different environments:
+Connect to multiple local Mastra servers running on different ports:
 
 ```json
 {
@@ -133,7 +133,7 @@ Connect to multiple Mastra servers running in different environments:
     "mastra-agent-proxy": {
       "command": "mcp-agent-proxy",
       "env": {
-        "MASTRA_SERVERS_CONFIG": "http://localhost:4111 http://staging-server:4111 http://prod-server:4111"
+        "MASTRA_SERVERS_CONFIG": "http://localhost:4111 http://localhost:4222 http://localhost:4333"
       }
     }
   }
@@ -148,7 +148,7 @@ Connect to multiple Mastra servers running in different environments:
     "mastra-agent-proxy": {
       "command": "mcp-agent-proxy",
       "env": {
-        "MASTRA_SERVERS_CONFIG": "http://localhost:4111 http://production-server:4222",
+        "MASTRA_SERVERS_CONFIG": "http://localhost:4111 http://localhost:4222",
         "MCP_SERVER_PORT": "3001",
         "MASTRA_CLIENT_RETRIES": "5",
         "MASTRA_CLIENT_BACKOFF_MS": "500",
@@ -163,7 +163,7 @@ Connect to multiple Mastra servers running in different environments:
 }
 ```
 
-### Docker with Multiple Remote Mastra Servers
+### Docker with Multiple Local Mastra Servers
 
 ```json
 {
@@ -172,7 +172,7 @@ Connect to multiple Mastra servers running in different environments:
       "command": "docker",
       "args": [
         "run", "--rm", "-p", "3001:3001",
-        "-e", "MASTRA_SERVERS_CONFIG=http://dev-server:4111 http://staging-server:4111 http://prod-server:4111",
+        "-e", "MASTRA_SERVERS_CONFIG=http://host.docker.internal:4111 http://host.docker.internal:4222 http://host.docker.internal:4333",
         "mashh/mcp-agent-proxy:latest"
       ]
     }
@@ -190,7 +190,7 @@ You can also use comma-separated URLs if you prefer:
     "mastra-agent-proxy": {
       "command": "mcp-agent-proxy",
       "env": {
-        "MASTRA_SERVERS_CONFIG": "http://localhost:4111,http://localhost:4222,http://remote-server:4111"
+        "MASTRA_SERVERS_CONFIG": "http://localhost:4111,http://localhost:4222,http://localhost:4333"
       }
     }
   }
@@ -280,12 +280,12 @@ Separate multiple server URLs with spaces or commas:
 
 **Space-separated (recommended):**
 ```json
-"MASTRA_SERVERS_CONFIG": "http://localhost:4111 http://localhost:4222 http://remote-server:4111"
+"MASTRA_SERVERS_CONFIG": "http://localhost:4111 http://localhost:4222 http://localhost:4333"
 ```
 
 **Comma-separated:**
 ```json
-"MASTRA_SERVERS_CONFIG": "http://localhost:4111,http://localhost:4222,http://remote-server:4111"
+"MASTRA_SERVERS_CONFIG": "http://localhost:4111,http://localhost:4222,http://localhost:4333"
 ```
 
 ### 3. Docker Networking
@@ -358,7 +358,7 @@ MASTRA_SERVERS_CONFIG="http://localhost:4111 http://localhost:4222" mcp-agent-pr
 
 ## Real-World Examples
 
-### Local Development
+### Single Mastra Server
 ```json
 {
   "mcpServers": {
@@ -372,21 +372,21 @@ MASTRA_SERVERS_CONFIG="http://localhost:4111 http://localhost:4222" mcp-agent-pr
 }
 ```
 
-### Development + Staging
+### Multiple Mastra Servers
 ```json
 {
   "mcpServers": {
     "mastra-agent-proxy": {
       "command": "mcp-agent-proxy",
       "env": {
-        "MASTRA_SERVERS_CONFIG": "http://localhost:4111 http://staging.company.com:4111"
+        "MASTRA_SERVERS_CONFIG": "http://localhost:4111 http://localhost:4222"
       }
     }
   }
 }
 ```
 
-### Production Setup
+### Docker with Multiple Local Servers
 ```json
 {
   "mcpServers": {
@@ -394,7 +394,7 @@ MASTRA_SERVERS_CONFIG="http://localhost:4111 http://localhost:4222" mcp-agent-pr
       "command": "docker",
       "args": [
         "run", "--rm", "-p", "3001:3001",
-        "-e", "MASTRA_SERVERS_CONFIG=http://mastra-primary:4111 http://mastra-secondary:4111",
+        "-e", "MASTRA_SERVERS_CONFIG=http://host.docker.internal:4111 http://host.docker.internal:4222",
         "-e", "MASTRA_CLIENT_RETRIES=5",
         "mashh/mcp-agent-proxy:latest"
       ]
