@@ -1,0 +1,107 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # Fast build validation (recommended for most CI scenarios)
+  build-validation:
+    runs-on: ubuntu-latest
+    name: Build Validation
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint code
+        run: pnpm lint
+
+      - name: Check formatting
+        run: pnpm format:check
+
+      - name: Build and validate
+        run: pnpm ci:test
+        env:
+          MCP_SKIP_SERVER_TESTS: 'true'
+
+  # Full testing with server (optional, slower)
+  full-testing:
+    runs-on: ubuntu-latest
+    name: Full Server Testing
+    if: github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'full-test')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build project
+        run: pnpm build
+
+      - name: Run health check (one-shot)
+        run: pnpm health:oneshot
+        env:
+          MASTRA_SERVERS: 'http://localhost:4111'
+
+      - name: Run full checks (one-shot)
+        run: pnpm check:oneshot
+        env:
+          MASTRA_SERVERS: 'http://localhost:4111'
+
+  # Test on multiple platforms
+  cross-platform:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node-version: ['18', '20', '22']
+
+    runs-on: ${{ matrix.os }}
+    name: Test on ${{ matrix.os }} (Node ${{ matrix.node-version }})
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build and validate (fast)
+        run: pnpm build:validate

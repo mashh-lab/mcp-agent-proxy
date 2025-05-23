@@ -152,8 +152,7 @@ pnpm lint:fix
 src/
 ├── tools/           # MCP tools implementation
 ├── config.ts        # Configuration management
-├── mcp-server.ts    # Main server setup
-└── test-client.ts   # Testing utilities
+└── mcp-server.ts    # Main server setup
 ```
 
 ## Testing
@@ -326,6 +325,24 @@ pnpm dev
 # In another terminal, test with a real MCP client
 # or use the test client
 pnpm test
+
+# Check server health and status
+pnpm check           # Both health and status
+pnpm health:json     # Quick health check
+pnpm status:json     # Full status with agents
+
+# One-shot checks (no background server needed)
+pnpm health:oneshot  # Start server, check health, cleanup
+pnpm status:oneshot  # Start server, check status, cleanup
+pnpm check:oneshot   # Start server, check both, cleanup
+
+# CI-friendly testing
+pnpm build:validate  # Build validation without server (fast)
+pnpm ci:test         # Alias for build:validate
+
+# Test in CI mode locally
+CI=true pnpm check:oneshot                    # CI optimizations enabled
+CI=true MCP_SKIP_SERVER_TESTS=true pnpm ci:test  # Build validation only
 ```
 
 ### Debugging
@@ -343,6 +360,27 @@ For testing multi-server scenarios:
 ```env
 MASTRA_SERVERS=http://localhost:4111 http://localhost:4222
 ```
+
+### CI/CD Testing
+
+The project includes CI-optimized testing that automatically detects CI environments:
+
+**Fast CI Tests (Recommended)**:
+
+- `pnpm ci:test` - Build validation without server startup (~10-15 seconds)
+- Validates TypeScript compilation, module loading, and package.json scripts
+- Perfect for PR checks and most CI scenarios
+
+**Full CI Tests (Optional)**:
+
+- `pnpm check:oneshot` in CI mode - Includes server testing (~30-45 seconds)
+- Uses random port selection and longer timeouts
+- Recommended for main branch pushes or when labeled `full-test`
+
+**Local Testing**:
+
+- `pnpm check:oneshot` - Full local testing with optimized timeouts
+- `pnpm build:validate` - Quick build validation
 
 ## Architecture Overview
 

@@ -1,7 +1,7 @@
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { MastraClient } from '@mastra/client-js'
-import { loadServerMappings } from '../config.js'
+import { loadServerMappings, getRetryConfig, logger } from '../config.js'
 
 // Input schema with support for fully qualified agent IDs
 const agentProxyInputSchema = z.object({
@@ -49,14 +49,15 @@ async function findAgentServers(
   serverMap: Map<string, string>,
 ): Promise<Map<string, string>> {
   const foundServers = new Map<string, string>() // serverName -> serverUrl
+  const retryConfig = getRetryConfig()
 
   for (const [serverName, serverUrl] of serverMap.entries()) {
     try {
       const clientConfig = {
         baseUrl: serverUrl,
-        retries: 1, // Quick check
-        backoffMs: 100,
-        maxBackoffMs: 500,
+        retries: retryConfig.discovery.retries,
+        backoffMs: retryConfig.discovery.backoffMs,
+        maxBackoffMs: retryConfig.discovery.maxBackoffMs,
       }
 
       const mastraClient = new MastraClient(clientConfig)
@@ -77,7 +78,7 @@ async function findAgentServers(
 export const agentProxyTool = createTool({
   id: 'callMastraAgent',
   description:
-    "Proxies requests to a target Mastra agent using @mastra/client-js. Supports 'generate' and 'stream' interactions. Use 'server:agentId' format for multi-server environments with agent name conflicts.",
+    "Proxies requests to a target Mastra agent using @mastra/client-js. Supports 'generate' and 'stream' interactions (note: stream responses are collected due to MCP tool interface limitations). Use 'server:agentId' format for multi-server environments with agent name conflicts.",
   inputSchema: agentProxyInputSchema,
   outputSchema: agentProxyOutputSchema,
   execute: async (context: {
@@ -172,14 +173,13 @@ export const agentProxyTool = createTool({
         }
       }
 
+      const retryConfig = getRetryConfig()
+
       const clientConfig = {
         baseUrl: serverToUse,
-        retries: parseInt(process.env.MASTRA_CLIENT_RETRIES || '3', 10),
-        backoffMs: parseInt(process.env.MASTRA_CLIENT_BACKOFF_MS || '300', 10),
-        maxBackoffMs: parseInt(
-          process.env.MASTRA_CLIENT_MAX_BACKOFF_MS || '5000',
-          10,
-        ),
+        retries: retryConfig.interaction.retries,
+        backoffMs: retryConfig.interaction.backoffMs,
+        maxBackoffMs: retryConfig.interaction.maxBackoffMs,
       }
 
       const mastraClient = new MastraClient(clientConfig)
@@ -196,14 +196,15 @@ export const agentProxyTool = createTool({
       if (interactionType === 'generate') {
         responseData = await agent.generate(interactionParams)
       } else if (interactionType === 'stream') {
-        console.warn(
-          'Streaming via agent.stream() is simplified to collect full content.',
-        )
+        // Note: Current implementation collects full stream content
+        // This is a limitation of the current MCP tool interface which expects
+        // synchronous responses. Real streaming would require WebSocket or SSE support.
         const streamResult = await agent.stream(interactionParams)
         responseData = {
-          type: 'streamResult',
+          type: 'collected_stream',
           content: streamResult,
-          streamInfo: 'Stream result from target agent.',
+          note: 'Stream was collected due to MCP tool interface limitations. For real streaming, use the Mastra client directly.',
+          timestamp: new Date().toISOString(),
         }
       } else {
         throw new Error(`Invalid interaction type: ${interactionType}`)
@@ -219,7 +220,7 @@ export const agentProxyTool = createTool({
         resolutionMethod,
       }
     } catch (error: unknown) {
-      console.error(
+      logger.error(
         `Error interacting with Mastra agent '${targetAgentId}':`,
         error,
       )
