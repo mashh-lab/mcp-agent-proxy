@@ -369,6 +369,30 @@ Enable debug logging:
 }
 ```
 
+### Health and Status Endpoints
+
+The proxy provides monitoring endpoints for troubleshooting:
+
+```bash
+# Quick health check (fast, basic liveness)
+curl http://localhost:3001/health | jq .
+
+# Full status with agent information (slower, comprehensive)
+curl http://localhost:3001/status | jq .
+
+# Using pnpm scripts (if in project directory)
+pnpm health:json     # Health check
+pnpm status:json     # Status check
+pnpm check           # Both
+```
+
+Use the `/status` endpoint to verify:
+
+- Mastra server connectivity
+- Available agents and conflicts
+- Server response times
+- Configuration issues
+
 ## Testing Your Configuration
 
 1. **Verify server starts:**

@@ -145,6 +145,25 @@ The `MASTRA_SERVERS` environment variable supports multiple formats for flexibil
 2. **Add the configuration** to your MCP client's `mcp.json`
 3. **Test the connection** by using MCP client features
 
+## Testing Your Installation
+
+You can test your installation using the built-in health and status checks:
+
+```bash
+# Quick one-shot tests (no background server needed)
+pnpm health:oneshot  # Test basic server functionality
+pnpm status:oneshot  # Test server + agent connectivity
+pnpm check:oneshot   # Test both health and status
+
+# Traditional tests (requires running server)
+pnpm start &         # Start server in background
+pnpm health:json     # Test health endpoint
+pnpm status:json     # Test status endpoint
+pnpm check           # Test both endpoints
+```
+
+The one-shot scripts are perfect for quick testing as they automatically start the server, run the tests, and clean up without leaving background processes.
+
 ## Getting Help
 
 - Check our [MCP Configuration Guide](MCP_CONFIGURATION.md) for detailed examples
@@ -391,6 +410,15 @@ mcp-agent-proxy --help
 
 # Test with environment variables
 MASTRA_SERVERS="http://localhost:4111" mcp-agent-proxy
+
+# Check health and status (if server is running)
+pnpm health:json     # Quick health check
+pnpm status:json     # Full status with agent info
+pnpm check           # Both health and status
+
+# Or use curl directly
+curl http://localhost:3001/health | jq .
+curl http://localhost:3001/status | jq .
 ```
 
 ## Troubleshooting

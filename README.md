@@ -148,10 +148,110 @@ The server will start and display:
 MCP Server with HTTP/SSE transport listening on port 3001
 SSE Endpoint: http://localhost:3001/mcp/sse
 Message Endpoint: http://localhost:3001/mcp/message
+Health Check: http://localhost:3001/health
+Status Endpoint: http://localhost:3001/status
 Available tools: callMastraAgent, listMastraAgents
 ```
 
-### 2. Available MCP Tools
+### 2. Health and Status Endpoints
+
+The proxy server provides monitoring endpoints for operational visibility:
+
+#### `/health` - Quick Health Check
+
+Fast liveness check for container orchestration and load balancers:
+
+```bash
+# Using pnpm script
+pnpm health:json
+
+# Or directly
+curl http://localhost:3001/health | jq .
+```
+
+Returns basic service information and uptime (~1ms response time).
+
+#### `/status` - Comprehensive Status
+
+Full system status including agent information from all Mastra servers:
+
+```bash
+# Using pnpm script
+pnpm status:json
+
+# Or directly
+curl http://localhost:3001/status | jq .
+```
+
+Returns complete agent listing, server status, and conflict detection (~100-500ms response time).
+
+#### Combined Check
+
+Get both health and status information:
+
+```bash
+pnpm check
+```
+
+#### One-Shot Checks (No Background Server Required)
+
+For testing without starting a persistent server, use the one-shot scripts that automatically start the server, run checks, and clean up:
+
+```bash
+# One-shot health check
+pnpm health:oneshot
+
+# One-shot status check
+pnpm status:oneshot
+
+# One-shot combined check
+pnpm check:oneshot
+```
+
+These scripts are perfect for:
+
+- CI/CD pipelines
+- Quick testing during development
+- Environments where you don't want persistent processes
+- Automated health monitoring scripts
+
+#### CI/CD Integration
+
+For CI environments, use the specialized scripts that automatically detect CI and optimize behavior:
+
+```bash
+# Fast build validation (recommended for CI)
+pnpm build:validate    # Validates build without starting server
+pnpm ci:test          # Alias for build:validate
+
+# Environment-aware testing
+CI=true pnpm check:oneshot                    # Uses longer timeouts, finds available ports
+CI=true MCP_SKIP_SERVER_TESTS=true pnpm check:oneshot  # Skips server, validates build only
+```
+
+**CI Environment Detection**: Automatically detects GitHub Actions, GitLab CI, Travis, CircleCI, Jenkins, and other CI environments.
+
+**CI Optimizations**:
+
+- **Random Port Selection**: Finds available ports to avoid conflicts
+- **Longer Timeouts**: 30s vs 15s for slower CI environments
+- **Build-Only Mode**: Fast validation without network tests
+- **Reduced Polling**: Less frequent health checks to reduce load
+
+**Example GitHub Actions**:
+
+```yaml
+- name: Fast CI Test (Build Validation)
+  run: pnpm ci:test
+  env:
+    MCP_SKIP_SERVER_TESTS: 'true'
+
+- name: Full CI Test (With Server)
+  run: pnpm check:oneshot
+  # Automatically uses CI optimizations
+```
+
+### 3. Available MCP Tools
 
 #### `callMastraAgent`
 
@@ -231,7 +331,7 @@ Lists available agents across all configured Mastra servers with conflict detect
 }
 ```
 
-### 3. Smart Agent Resolution Examples
+### 4. Smart Agent Resolution Examples
 
 ```typescript
 // Unique agent - auto-resolves to the only server containing it
@@ -256,7 +356,7 @@ await callMastraAgent({
 // Result: server1:weatherAgent (explicit targeting)
 ```
 
-### 4. Testing with the Test Client
+### 5. Testing with the Test Client
 
 Run the included test client to verify functionality:
 
@@ -271,7 +371,7 @@ This will:
 3. Test the `listMastraAgents` tool
 4. Test the `callMastraAgent` tool with a sample request
 
-### 5. Integration with MCP Clients
+### 6. Integration with MCP Clients
 
 The server can be integrated with any MCP-compliant client:
 
@@ -301,7 +401,7 @@ const result = await tools.mastraProxy
   })
 ```
 
-### 6. MCP Client Configuration
+### 7. MCP Client Configuration
 
 For comprehensive MCP client configuration examples covering all installation methods, see **[MCP_CONFIGURATION.md](MCP_CONFIGURATION.md)**.
 
@@ -363,8 +463,7 @@ src/
 │   ├── agentProxyTool.ts      # Core proxy tool implementation
 │   └── listMastraAgentsTool.ts # Agent discovery tool
 ├── mcp-server.ts              # Main MCP server setup
-├── config.ts                  # Configuration management
-└── test-client.ts             # Test client script
+└── config.ts                  # Configuration management
 ```
 
 ### Building
