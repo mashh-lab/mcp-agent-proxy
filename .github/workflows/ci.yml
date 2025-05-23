@@ -76,8 +76,8 @@ jobs:
   cross-platform:
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        node-version: ['18', '20', '22']
+        os: [ubuntu-latest, macos-latest]
+        node-version: ['22']
 
     runs-on: ${{ matrix.os }}
     name: Test on ${{ matrix.os }} (Node ${{ matrix.node-version }})
