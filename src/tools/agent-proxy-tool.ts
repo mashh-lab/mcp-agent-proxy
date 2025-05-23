@@ -1,8 +1,15 @@
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { MastraClient } from '@mastra/client-js'
-import { getServersFromConfig, getRetryConfig, logger } from '../config.js'
+import {
+  getServersFromConfig,
+  getRetryConfig,
+  getBGPConfig,
+  logger,
+} from '../config.js'
 import { ServerConfig } from '../bgp/types.js'
+import { AgentPathTracker } from '../bgp/path-tracking.js'
+import { AgentRoute } from '../bgp/types.js'
 
 // Input schema with support for fully qualified agent IDs
 const agentProxyInputSchema = z.object({
@@ -49,88 +56,137 @@ const agentProxyOutputSchema = z.object({
   }),
 })
 
-/**
- * BGP-aware agent resolution: finds which servers contain the given agent ID
- * and provides intelligent routing based on AS numbers, priorities, and regions
- */
-async function findAgentServers(
+// BGP-aware agent resolution with path tracking
+async function findBestAgentRoute(
   agentId: string,
-  servers: ServerConfig[],
-): Promise<ServerConfig[]> {
-  const foundServers: ServerConfig[] = []
-  const retryConfig = getRetryConfig()
+  requiredCapabilities: string[] = [],
+): Promise<AgentRoute | null> {
+  const servers = getServersFromConfig()
+  const bgpConfig = getBGPConfig()
 
-  for (const server of servers) {
-    try {
-      const clientConfig = {
-        baseUrl: server.url,
-        retries: retryConfig.discovery.retries,
-        backoffMs: retryConfig.discovery.backoffMs,
-        maxBackoffMs: retryConfig.discovery.maxBackoffMs,
-      }
+  // Create path tracker for BGP-style discovery
+  const pathTracker = new AgentPathTracker(bgpConfig.localASN, servers)
 
-      const mastraClient = new MastraClient(clientConfig)
-      const agentsData = await mastraClient.getAgents()
+  // Discover agent with AS path tracking (prevents loops)
+  const routes = await pathTracker.discoverAgentWithPath(agentId)
 
-      if (agentsData && Object.keys(agentsData).includes(agentId)) {
-        foundServers.push(server)
-      }
-    } catch {
-      // Server offline or error - skip
-      continue
+  if (routes.length === 0) {
+    return null
+  }
+
+  // Apply BGP-style path selection algorithm
+  const bestRoute = selectBestRoute(routes, requiredCapabilities)
+
+  logger.log(
+    `BGP: Selected route for ${agentId} through AS path [${bestRoute.asPath.join(' → ')}] ` +
+      `with local pref ${bestRoute.localPref}, MED ${bestRoute.med}`,
+  )
+
+  return bestRoute
+}
+
+// BGP path selection algorithm for agents
+function selectBestRoute(
+  routes: AgentRoute[],
+  requiredCapabilities: string[] = [],
+): AgentRoute {
+  if (routes.length === 1) return routes[0]
+
+  let candidates = [...routes]
+
+  // Filter by required capabilities first
+  if (requiredCapabilities.length > 0) {
+    const capabilityMatches = candidates.filter((route) =>
+      requiredCapabilities.every((reqCap) =>
+        route.capabilities.some((routeCap) =>
+          routeCap.toLowerCase().includes(reqCap.toLowerCase()),
+        ),
+      ),
+    )
+
+    if (capabilityMatches.length > 0) {
+      candidates = capabilityMatches
     }
   }
 
-  return foundServers
+  // BGP path selection process
+
+  // 1. Highest local preference (prefer local/priority servers)
+  candidates = filterByMaxLocalPref(candidates)
+  if (candidates.length === 1) return candidates[0]
+
+  // 2. Shortest AS path (prefer fewer hops)
+  candidates = filterByShortestASPath(candidates)
+  if (candidates.length === 1) return candidates[0]
+
+  // 3. Lowest MED (prefer better performance)
+  candidates = filterByLowestMED(candidates)
+  if (candidates.length === 1) return candidates[0]
+
+  // 4. Prefer newer routes (more recently discovered)
+  candidates = filterByNewestRoute(candidates)
+
+  // Return best candidate
+  return candidates[0]
+}
+
+function filterByMaxLocalPref(routes: AgentRoute[]): AgentRoute[] {
+  const maxPref = Math.max(...routes.map((r) => r.localPref))
+  return routes.filter((r) => r.localPref === maxPref)
+}
+
+function filterByShortestASPath(routes: AgentRoute[]): AgentRoute[] {
+  const minLength = Math.min(...routes.map((r) => r.asPath.length))
+  return routes.filter((r) => r.asPath.length === minLength)
+}
+
+function filterByLowestMED(routes: AgentRoute[]): AgentRoute[] {
+  const minMED = Math.min(...routes.map((r) => r.med))
+  return routes.filter((r) => r.med === minMED)
+}
+
+function filterByNewestRoute(routes: AgentRoute[]): AgentRoute[] {
+  const newestTime = Math.max(...routes.map((r) => r.originTime.getTime()))
+  return routes.filter((r) => r.originTime.getTime() === newestTime)
 }
 
 /**
- * BGP-style server selection algorithm
- * Uses BGP-like path selection criteria: priority (like local_pref), AS path length, etc.
+ * Extract required capabilities from messages
  */
-function selectBestServer(
-  servers: ServerConfig[],
-  preferredRegion?: string,
-): ServerConfig {
-  if (servers.length === 0) {
-    throw new Error('No servers available for selection')
+function extractRequiredCapabilities(
+  messages: { role: string; content: string }[],
+): string[] {
+  const capabilities: string[] = []
+
+  // Analyze message content for capability hints
+  const allContent = messages.map((m) => m.content.toLowerCase()).join(' ')
+
+  if (
+    allContent.includes('code') ||
+    allContent.includes('program') ||
+    allContent.includes('debug')
+  ) {
+    capabilities.push('coding')
+  }
+  if (allContent.includes('weather') || allContent.includes('forecast')) {
+    capabilities.push('weather')
+  }
+  if (
+    allContent.includes('analy') ||
+    allContent.includes('data') ||
+    allContent.includes('insight')
+  ) {
+    capabilities.push('analysis')
+  }
+  if (
+    allContent.includes('write') ||
+    allContent.includes('content') ||
+    allContent.includes('blog')
+  ) {
+    capabilities.push('writing')
   }
 
-  if (servers.length === 1) {
-    return servers[0]
-  }
-
-  // BGP-style path selection algorithm:
-  // 1. Highest priority (like BGP local preference)
-  // 2. Preferred region (like BGP communities for region preference)
-  // 3. Lowest AS number (like BGP router ID tie-breaking)
-
-  let candidates = [...servers]
-
-  // Step 1: Filter by highest priority
-  const maxPriority = Math.max(...candidates.map((s) => s.priority || 0))
-  candidates = candidates.filter((s) => (s.priority || 0) === maxPriority)
-
-  if (candidates.length === 1) {
-    return candidates[0]
-  }
-
-  // Step 2: Prefer region if specified
-  if (preferredRegion) {
-    const regionMatches = candidates.filter((s) => s.region === preferredRegion)
-    if (regionMatches.length > 0) {
-      candidates = regionMatches
-    }
-  }
-
-  if (candidates.length === 1) {
-    return candidates[0]
-  }
-
-  // Step 3: Use lowest AS number as tie-breaker (like BGP router ID)
-  candidates.sort((a, b) => a.asn - b.asn)
-
-  return candidates[0]
+  return capabilities
 }
 
 export const agentProxyTool = createTool({
@@ -203,27 +259,37 @@ export const agentProxyTool = createTool({
           resolutionMethod = 'explicit_url_override'
           fullyQualifiedId = `custom:${actualAgentId}`
         } else {
-          // BGP-aware resolution: find which servers contain this agent
-          const foundServers = await findAgentServers(actualAgentId, servers)
-          availableAlternatives = foundServers.length - 1
+          // BGP-aware resolution with AS path tracking
+          const requiredCapabilities = extractRequiredCapabilities(messages)
+          const bestRoute = await findBestAgentRoute(
+            actualAgentId,
+            requiredCapabilities,
+          )
 
-          if (foundServers.length === 0) {
+          if (!bestRoute) {
             // Agent not found on any server
+            const servers = getServersFromConfig()
             const availableServers = servers.map((s) => s.name).join(', ')
             throw new Error(
               `Agent '${actualAgentId}' not found on any configured server. Available servers: ${availableServers}. Use 'server:agentId' format or check agent name.`,
             )
-          } else if (foundServers.length === 1) {
-            // Agent found on exactly one server - use it automatically
-            serverToUse = foundServers[0]
-            fullyQualifiedId = `${serverToUse.name}:${actualAgentId}`
-            resolutionMethod = 'unique_auto_resolution'
-          } else {
-            // Agent found on multiple servers - use BGP-style selection
-            serverToUse = selectBestServer(foundServers)
-            fullyQualifiedId = `${serverToUse.name}:${actualAgentId}`
-            resolutionMethod = 'bgp_path_selection'
           }
+
+          // Use BGP-selected route
+          const serverName =
+            (bestRoute.pathAttributes.get('server_name') as string) || 'unknown'
+          const matchingServer = servers.find((s) => s.name === serverName)
+
+          if (!matchingServer) {
+            throw new Error(
+              `Internal error: Could not find server config for ${serverName}`,
+            )
+          }
+
+          serverToUse = matchingServer
+          fullyQualifiedId = `${serverName}:${actualAgentId}`
+          resolutionMethod = `bgp_path_[${bestRoute.asPath.join('→')}]_pref_${bestRoute.localPref}_med_${bestRoute.med}`
+          availableAlternatives = 0 // BGP selects single best path
         }
       }
 
