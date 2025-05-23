@@ -89,7 +89,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: mashh-lab/mcp-agent-proxy
+          images: mashh/mcp-agent-proxy
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -189,7 +189,7 @@ jobs:
             
             ### Docker Image
             ```bash
-            docker pull mashh-lab/mcp-agent-proxy:${{ github.ref_name }}
+            docker pull mashh/mcp-agent-proxy:${{ github.ref_name }}
             ```
             
             ### Binary Downloads

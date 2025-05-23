@@ -88,7 +88,7 @@ npx mcp-agent-proxy
 
 ### Pull from registry
 ```bash
-docker pull your-registry/mcp-agent-proxy:latest
+docker pull mashh/mcp-agent-proxy:latest
 ```
 
 ### Run with environment variables
@@ -97,7 +97,7 @@ docker run -d \
   --name mcp-agent-proxy \
   -p 3001:3001 \
   -e MASTRA_SERVERS_CONFIG=http://host.docker.internal:4111 \
-  your-registry/mcp-agent-proxy:latest
+  mashh/mcp-agent-proxy:latest
 ```
 
 ### Docker Compose
@@ -105,7 +105,7 @@ docker run -d \
 version: '3.8'
 services:
   mcp-agent-proxy:
-    image: your-registry/mcp-agent-proxy:latest
+    image: mashh/mcp-agent-proxy:latest
     ports:
       - "3001:3001"
     environment:
@@ -118,7 +118,7 @@ services:
 ### Download and install
 ```bash
 # Download latest release
-curl -L https://github.com/your-username/mcp-agent-proxy/releases/latest/download/mcp-agent-proxy-linux -o mcp-agent-proxy
+curl -L https://github.com/mashh-lab/mcp-agent-proxy/releases/latest/download/mcp-agent-proxy-linux -o mcp-agent-proxy
 
 # Make executable
 chmod +x mcp-agent-proxy
@@ -145,7 +145,7 @@ sudo mv mcp-agent-proxy /usr/local/bin/
 
 ### Clone and build
 ```bash
-git clone https://github.com/your-username/mcp-agent-proxy.git
+git clone https://github.com/mashh-lab/mcp-agent-proxy.git
 cd mcp-agent-proxy
 pnpm install
 pnpm build
