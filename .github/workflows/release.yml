@@ -63,7 +63,7 @@ jobs:
           path: dist/
 
       - name: Publish to NPM
-        run: pnpm publish
+        run: pnpm publish --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -77,7 +77,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Login to Docker Hub
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v') && secrets.DOCKER_USERNAME != ''
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
@@ -100,7 +100,7 @@ jobs:
         with:
           context: .
           platforms: linux/amd64,linux/arm64
-          push: ${{ startsWith(github.ref, 'refs/tags/v') }}
+          push: ${{ startsWith(github.ref, 'refs/tags/v') && secrets.DOCKER_USERNAME != '' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
@@ -142,7 +142,7 @@ jobs:
         run: npm install -g pkg
 
       - name: Build binary
-        run: pkg dist/mcp-server.js --target node22-${{ matrix.target }}-x64 --output mcp-agent-proxy-${{ matrix.target }}${{ matrix.ext }}
+        run: pkg dist/mcp-server.js --target node20-${{ matrix.target }}-x64 --output mcp-agent-proxy-${{ matrix.target }}${{ matrix.ext }}
 
       - name: Upload binary
         if: startsWith(github.ref, 'refs/tags/v')
