@@ -4,9 +4,9 @@ import { MastraClient } from "@mastra/client-js";
 import { loadServerMappings } from "../config.js";
 
 /**
- * Generate servers from configurable server mappings
+ * Generate default servers from configurable server mappings
  */
-function getServersFromConfig() {
+function getDefaultServers() {
   const serverMappings = loadServerMappings();
   return Array.from(serverMappings.entries()).map(([name, url]) => ({
     name,
@@ -15,7 +15,17 @@ function getServersFromConfig() {
   }));
 }
 
-const listAgentsOutputSchema = z.object({
+const multiServerInputSchema = z.object({
+  servers: z.array(
+    z.object({
+      name: z.string(),
+      url: z.string().url(),
+      description: z.string().optional(),
+    })
+  ).optional(), // If not provided, use configurable defaults
+});
+
+const multiServerOutputSchema = z.object({
   serverAgents: z.array(
     z.object({
       serverName: z.string(),
@@ -45,13 +55,16 @@ const listAgentsOutputSchema = z.object({
   }),
 });
 
-export const listMastraAgentsTool = createTool({
-  id: "listMastraAgents",
-  description: "Lists available agents on all configured Mastra servers. Supports both single and multi-server setups with automatic conflict detection.",
-  inputSchema: z.object({}), // No input needed
-  outputSchema: listAgentsOutputSchema,
-  execute: async () => {
-    const serversToCheck = getServersFromConfig();
+export const multiServerAgentsTool = createTool({
+  id: "listMultiServerAgents",
+  description: "Lists agents from multiple Mastra servers and identifies name conflicts. Returns fully qualified agent IDs (server:agentId) to avoid conflicts.",
+  inputSchema: multiServerInputSchema,
+  outputSchema: multiServerOutputSchema,
+  execute: async (context: any) => {
+    const { servers } = context.context || {};
+    
+    // Use provided servers or defaults
+    const serversToCheck = servers || getDefaultServers();
     
     const serverAgents = [];
     const agentIdMap = new Map<string, string[]>(); // agentId -> [serverNames]
