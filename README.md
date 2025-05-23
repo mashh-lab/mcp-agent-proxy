@@ -31,12 +31,12 @@ _Quick MCP config -> instant agent access_
 }
 ```
 
-## 🎯 Just 2 Tools. Unlimited Possibilities.
+## 🎯 Just 2 Tools. That's it.
 
 **The entire proxy exposes just 2 MCP tools:**
 
-- `listMastraAgents` - Discover what's available
-- `callMastraAgent` - Call any agent anywhere
+- `listMastraAgents` - Discover what's available across all configured servers
+- `callMastraAgent` - Call any agent anywhere, gracefully handling conflicting agent names across multiple servers
 
 **That's it.** No complex protocols. No rigid schemas. No predefined workflows.
 
