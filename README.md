@@ -264,6 +264,7 @@ const result = await tools.mastraProxy
 For comprehensive MCP client configuration examples covering all installation methods, see **[MCP_CONFIGURATION.md](MCP_CONFIGURATION.md)**.
 
 #### Quick Example (NPM Global Install):
+
 ```json
 {
   "mcpServers": {
@@ -278,14 +279,19 @@ For comprehensive MCP client configuration examples covering all installation me
 ```
 
 #### Quick Example (Docker):
+
 ```json
 {
   "mcpServers": {
     "mastra-agent-proxy": {
       "command": "docker",
       "args": [
-        "run", "--rm", "-p", "3001:3001",
-        "-e", "MASTRA_SERVERS_CONFIG=http://host.docker.internal:4111 http://host.docker.internal:4222",
+        "run",
+        "--rm",
+        "-p",
+        "3001:3001",
+        "-e",
+        "MASTRA_SERVERS_CONFIG=http://host.docker.internal:4111 http://host.docker.internal:4222",
         "mashh/mcp-agent-proxy:latest"
       ]
     }
@@ -294,6 +300,7 @@ For comprehensive MCP client configuration examples covering all installation me
 ```
 
 **📖 For detailed configuration examples including:**
+
 - NPM/PNPM installations (global & local)
 - Docker containers (standard & host network)
 - Standalone binaries
@@ -372,6 +379,7 @@ DEBUG=mastra:* pnpm start
 ## Publishing (Maintainers)
 
 ### Prerequisites
+
 ```bash
 # Login to npm registry (works with pnpm too)
 npm login
@@ -381,6 +389,7 @@ npm whoami
 ```
 
 ### Release Process
+
 ```bash
 # 1. Update version
 pnpm version patch  # or minor/major
@@ -393,6 +402,7 @@ git push origin main --tags
 ```
 
 The GitHub Actions workflow will automatically:
+
 - Build and test the package
 - Publish to NPM (using pnpm)
 - Build Docker images for multiple platforms

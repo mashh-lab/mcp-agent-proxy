@@ -17,23 +17,27 @@ By participating in this project, you agree to abide by our Code of Conduct. Ple
 ### Development Setup
 
 1. **Fork and clone the repository**:
+
    ```bash
    git clone https://github.com/your-username/mcp-agent-proxy.git
    cd mcp-agent-proxy
    ```
 
 2. **Install dependencies**:
+
    ```bash
    pnpm install
    ```
 
 3. **Set up environment**:
+
    ```bash
    cp .env .env.local
    # Edit .env.local with your Mastra server URLs
    ```
 
 4. **Build the project**:
+
    ```bash
    pnpm build
    ```
@@ -57,24 +61,27 @@ Example: `feature/add-websocket-transport` or `fix/agent-timeout-handling`
 ### Making Changes
 
 1. **Create a new branch**:
+
    ```bash
    git checkout -b feature/your-feature-name
    ```
 
 2. **Make your changes**:
+
    - Follow the existing code style and patterns
    - Add tests for new functionality
    - Update documentation as needed
 
 3. **Test your changes**:
+
    ```bash
    # Run linting and formatting
    pnpm lint
    pnpm format:check
-   
+
    # Run tests
    pnpm test
-   
+
    # Build to ensure everything compiles
    pnpm build
    ```
@@ -98,6 +105,7 @@ We follow [Conventional Commits](https://www.conventionalcommits.org/):
 - `chore:` Maintenance tasks
 
 Examples:
+
 ```
 feat: add WebSocket transport support
 fix: handle agent timeout gracefully
@@ -173,16 +181,16 @@ MASTRA_SERVERS_CONFIG=http://localhost:4111 pnpm test
 describe('Feature Name', () => {
   beforeEach(() => {
     // Setup
-  });
+  })
 
   it('should handle success case', async () => {
     // Test implementation
-  });
+  })
 
   it('should handle error case', async () => {
     // Test implementation
-  });
-});
+  })
+})
 ```
 
 ## Documentation
@@ -190,6 +198,7 @@ describe('Feature Name', () => {
 ### README Updates
 
 If your changes affect usage or installation:
+
 - Update the main README.md
 - Update INSTALL.md if installation procedures change
 - Add or update code examples
@@ -203,6 +212,7 @@ If your changes affect usage or installation:
 ### API Documentation
 
 When adding new tools or changing existing ones:
+
 - Update schema documentation
 - Add usage examples
 - Document error conditions
@@ -212,6 +222,7 @@ When adding new tools or changing existing ones:
 ### Before Submitting
 
 1. **Ensure all tests pass**:
+
    ```bash
    pnpm test
    pnpm lint
@@ -228,11 +239,13 @@ When adding new tools or changing existing ones:
 ### Submitting a Pull Request
 
 1. **Push your branch**:
+
    ```bash
    git push origin feature/your-feature-name
    ```
 
 2. **Create a Pull Request** on GitHub with:
+
    - Clear title describing the change
    - Detailed description of what was changed and why
    - Reference any related issues
@@ -294,6 +307,7 @@ git push origin main --tags
 ```
 
 The CI/CD pipeline will automatically:
+
 - Run tests and linting
 - Build the package
 - Publish to npm
@@ -354,8 +368,9 @@ MCP Client → MCP Server → Agent Proxy Tool → @mastra/client-js → Mastra 
 ## Recognition
 
 Contributors will be recognized in:
+
 - GitHub contributors list
 - Release notes for significant contributions
 - README.md for major features
 
-Thank you for contributing to MCP Agent Proxy! 🚀 
+Thank you for contributing to MCP Agent Proxy! 🚀

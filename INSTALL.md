@@ -3,22 +3,25 @@
 ## Method 1: PNPM Package (Recommended)
 
 ### Global Installation
+
 ```bash
-pnpm add -g mcp-agent-proxy
+pnpm add -g @mashh/mcp-agent-proxy
 ```
 
 ### Local Installation
+
 ```bash
-pnpm add mcp-agent-proxy
+pnpm add @mashh/mcp-agent-proxy
 ```
 
 ### Usage after PNPM installation
+
 ```bash
 # Global installation
 mcp-agent-proxy
 
-# Local installation
-pnpm exec mcp-agent-proxy
+# Local installation (use scoped name with pnpm exec)
+pnpm exec @mashh/mcp-agent-proxy
 
 # Or in package.json scripts
 {
@@ -29,6 +32,7 @@ pnpm exec mcp-agent-proxy
 ```
 
 ### MCP Client Configuration (PNPM)
+
 ```json
 {
   "mcpServers": {
@@ -45,22 +49,25 @@ pnpm exec mcp-agent-proxy
 ## Method 2: NPM Package (Alternative)
 
 ### Global Installation
+
 ```bash
-npm install -g mcp-agent-proxy
+npm install -g @mashh/mcp-agent-proxy
 ```
 
 ### Local Installation
+
 ```bash
-npm install mcp-agent-proxy
+npm install @mashh/mcp-agent-proxy
 ```
 
 ### Usage after NPM installation
+
 ```bash
 # Global installation
 mcp-agent-proxy
 
-# Local installation
-npx mcp-agent-proxy
+# Local installation (use scoped name with npx)
+npx @mashh/mcp-agent-proxy
 
 # Or in package.json scripts
 {
@@ -71,6 +78,7 @@ npx mcp-agent-proxy
 ```
 
 ### MCP Client Configuration (NPM)
+
 ```json
 {
   "mcpServers": {
@@ -87,11 +95,13 @@ npx mcp-agent-proxy
 ## Method 3: Docker (Containerized)
 
 ### Pull from registry
+
 ```bash
 docker pull mashh/mcp-agent-proxy:latest
 ```
 
 ### Run with environment variables
+
 ```bash
 docker run -d \
   --name mcp-agent-proxy \
@@ -101,13 +111,14 @@ docker run -d \
 ```
 
 ### Docker Compose
+
 ```yaml
 version: '3.8'
 services:
   mcp-agent-proxy:
     image: mashh/mcp-agent-proxy:latest
     ports:
-      - "3001:3001"
+      - '3001:3001'
     environment:
       - MASTRA_SERVERS_CONFIG=http://host.docker.internal:4111
     restart: unless-stopped
@@ -116,6 +127,7 @@ services:
 ## Method 4: Standalone Binary
 
 ### Download and install
+
 ```bash
 # Download latest release
 curl -L https://github.com/mashh-lab/mcp-agent-proxy/releases/latest/download/mcp-agent-proxy-linux -o mcp-agent-proxy
@@ -128,6 +140,7 @@ sudo mv mcp-agent-proxy /usr/local/bin/
 ```
 
 ### MCP Client Configuration (Binary)
+
 ```json
 {
   "mcpServers": {
@@ -144,6 +157,7 @@ sudo mv mcp-agent-proxy /usr/local/bin/
 ## Method 5: From Source
 
 ### Clone and build
+
 ```bash
 git clone https://github.com/mashh-lab/mcp-agent-proxy.git
 cd mcp-agent-proxy
@@ -152,11 +166,13 @@ pnpm build
 ```
 
 ### Run from source
+
 ```bash
 pnpm start
 ```
 
 ### MCP Client Configuration (Source)
+
 ```json
 {
   "mcpServers": {
@@ -213,16 +229,19 @@ MASTRA_SERVERS_CONFIG=http://localhost:4111 mcp-agent-proxy
 ## Troubleshooting
 
 ### Permission Issues (Binary)
+
 ```bash
 chmod +x mcp-agent-proxy
 ```
 
 ### Port Conflicts
+
 ```bash
 MCP_SERVER_PORT=3002 mcp-agent-proxy
 ```
 
 ### Path Issues (Global Installation)
+
 ```bash
 # For PNPM
 pnpm config get prefix
@@ -231,4 +250,4 @@ echo $PATH
 # For NPM
 npm config get prefix
 echo $PATH
-``` 
+```
