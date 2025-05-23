@@ -310,8 +310,6 @@ The CI/CD pipeline will automatically:
 - Run tests and linting
 - Build the package
 - Publish to npm
-- Create Docker images
-- Generate standalone binaries
 - Create a GitHub release
 
 ## Development Tips

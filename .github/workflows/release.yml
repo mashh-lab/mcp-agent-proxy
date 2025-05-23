@@ -6,6 +6,10 @@ on:
       - 'v*'
   workflow_dispatch:
 
+# Global permissions for the workflow
+permissions:
+  contents: read
+
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
@@ -71,6 +75,8 @@ jobs:
     needs: [npm-publish]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write # Required to create releases
     steps:
       - uses: actions/checkout@v4
 

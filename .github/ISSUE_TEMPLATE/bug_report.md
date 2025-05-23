@@ -16,7 +16,7 @@ A clear and concise description of what the bug is.
 - **Node.js version**: [e.g., 18.17.0]
 - **Package manager**: [e.g., pnpm 10.11.0, npm 9.8.1]
 - **MCP Agent Proxy version**: [e.g., 1.0.0]
-- **Installation method**: [e.g., npm global, docker, binary, from source]
+- **Installation method**: [e.g., npm global, from source]
 
 ## Steps to Reproduce
 

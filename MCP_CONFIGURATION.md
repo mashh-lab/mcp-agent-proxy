@@ -127,27 +127,6 @@ Connect to multiple local Mastra servers running on different ports:
 }
 ```
 
-### Docker with Multiple Local Mastra Servers
-
-```json
-{
-  "mcpServers": {
-    "mastra-agent-proxy": {
-      "command": "docker",
-      "args": [
-        "run",
-        "--rm",
-        "-p",
-        "3001:3001",
-        "-e",
-        "MASTRA_SERVERS=http://localhost:4111 http://localhost:4222 http://localhost:4333",
-        "mashh/mcp-agent-proxy:latest"
-      ]
-    }
-  }
-}
-```
-
 ### Comma-Separated Format (Alternative)
 
 You can also use comma-separated URLs if you prefer:
@@ -400,29 +379,6 @@ Perfect for standard local Mastra development:
       "env": {
         "MASTRA_SERVERS": "http://localhost:4111 http://localhost:4222"
       }
-    }
-  }
-}
-```
-
-### Docker with Multiple Local Servers
-
-```json
-{
-  "mcpServers": {
-    "mastra-agent-proxy": {
-      "command": "docker",
-      "args": [
-        "run",
-        "--rm",
-        "-p",
-        "3001:3001",
-        "-e",
-        "MASTRA_SERVERS=http://localhost:4111 http://localhost:4222",
-        "-e",
-        "MASTRA_CLIENT_RETRIES=5",
-        "mashh/mcp-agent-proxy:latest"
-      ]
     }
   }
 }

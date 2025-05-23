@@ -191,7 +191,7 @@ function isMainModule(): boolean {
         process.argv[1].endsWith('/mcp-server.cjs') ||
         process.argv[1].endsWith('\\mcp-server.js') ||
         process.argv[1].endsWith('\\mcp-server.cjs') ||
-        process.argv[1].endsWith('mcp-agent-proxy') || // For binary builds
+        process.argv[1].endsWith('mcp-agent-proxy') || // For NPM global installs
         process.argv[1].includes('mcp-server'))
     ) // Catch other variations
   )

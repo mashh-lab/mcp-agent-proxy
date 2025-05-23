@@ -1,25 +1,27 @@
-# Source files
+# Source files - don't include source, only built dist/
 src/
 tsconfig.json
 tsup.config.js
 
 # Development files
-.env
-.env.local
-.env.example
+.env*
 *.log
 *.tmp
 .DS_Store
 
-# Test files
+# Testing
+*.test.*
 **/*.test.*
 **/*.spec.*
 test/
 tests/
+coverage/
+.nyc_output/
 
-# Build tools
+# Build tools and linting
 .eslintrc.*
-.prettierrc.*
+.prettierrc*
+.prettierignore
 eslint.config.js
 
 # IDE
@@ -34,8 +36,6 @@ eslint.config.js
 
 # CI/CD
 .github/
-.gitlab-ci.yml
-.travis.yml
 
 # Package managers
 node_modules/
@@ -43,17 +43,15 @@ pnpm-lock.yaml
 yarn.lock
 package-lock.json
 
-# Documentation (keep README.md and LICENSE)
-CONTRIBUTING.md
-CODE_OF_CONDUCT.md
-INSTALL.md
-
-# Examples and configs
+# Examples and documentation (keep important docs)
 examples/
-Dockerfile
-docker-compose.yml
+docs/
+*.md
+!README.md
+!INSTALL.md
+!MCP_CONFIGURATION.md
+!CONTRIBUTING.md
+!CODE_OF_CONDUCT.md
 
 # Misc
-coverage/
-.nyc_output/
 *.tgz 
