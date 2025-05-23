@@ -2,6 +2,8 @@
 
 This guide shows how to configure the MCP Agent Proxy in your MCP client's configuration file (typically `mcp.json`) for each installation method.
 
+**Important:** All environment variables are set in the `"env"` section of your `mcp.json` configuration. Only `MASTRA_SERVERS_CONFIG` is required - all other variables are optional with sensible defaults.
+
 ## Quick Start Examples
 
 ### Method 1: NPM/PNPM Global Installation (Recommended)
@@ -157,10 +159,9 @@ Connect to multiple local Mastra servers running on different ports:
         "MASTRA_CLIENT_RETRIES": "5",
         "MASTRA_CLIENT_BACKOFF_MS": "500",
         "MASTRA_CLIENT_MAX_BACKOFF_MS": "10000",
-        "MCP_TRANSPORT": "http",
         "MCP_SSE_PATH": "/mcp/sse",
         "MCP_MESSAGE_PATH": "/mcp/message",
-        "NODE_ENV": "production"
+        "MCP_TRANSPORT": "http"
       }
     }
   }
@@ -256,16 +257,23 @@ You can also use comma-separated URLs if you prefer:
 
 ## Environment Variables Reference
 
-| Variable                       | Description                       | Default        | Example                                       |
-| ------------------------------ | --------------------------------- | -------------- | --------------------------------------------- |
-| `MASTRA_SERVERS_CONFIG`        | **Required** - Mastra server URLs | None           | `http://localhost:4111 http://localhost:4222` |
-| `MCP_SERVER_PORT`              | Port for MCP proxy server         | `3001`         | `3001`                                        |
-| `MASTRA_CLIENT_RETRIES`        | Client retry attempts             | `3`            | `5`                                           |
-| `MASTRA_CLIENT_BACKOFF_MS`     | Initial backoff delay             | `300`          | `500`                                         |
-| `MASTRA_CLIENT_MAX_BACKOFF_MS` | Maximum backoff delay             | `5000`         | `10000`                                       |
-| `MCP_TRANSPORT`                | Transport type                    | `http`         | `http`                                        |
-| `MCP_SSE_PATH`                 | SSE endpoint path                 | `/mcp/sse`     | `/mcp/sse`                                    |
-| `MCP_MESSAGE_PATH`             | Message endpoint path             | `/mcp/message` | `/mcp/message`                                |
+### Required Variable
+
+| Variable                | Description        | Example                                       |
+| ----------------------- | ------------------ | --------------------------------------------- |
+| `MASTRA_SERVERS_CONFIG` | Mastra server URLs | `http://localhost:4111 http://localhost:4222` |
+
+### Optional Variables (All Have Defaults)
+
+| Variable                       | Description                              | Default        | Example        |
+| ------------------------------ | ---------------------------------------- | -------------- | -------------- |
+| `MCP_SERVER_PORT`              | Port for MCP proxy server                | `3001`         | `3001`         |
+| `MASTRA_CLIENT_RETRIES`        | Client retry attempts for Mastra servers | `3`            | `5`            |
+| `MASTRA_CLIENT_BACKOFF_MS`     | Initial backoff delay (milliseconds)     | `300`          | `500`          |
+| `MASTRA_CLIENT_MAX_BACKOFF_MS` | Maximum backoff delay (milliseconds)     | `5000`         | `10000`        |
+| `MCP_SSE_PATH`                 | SSE endpoint path                        | `/mcp/sse`     | `/mcp/sse`     |
+| `MCP_MESSAGE_PATH`             | Message endpoint path                    | `/mcp/message` | `/mcp/message` |
+| `MCP_TRANSPORT`                | Transport method (stdio or http)         | `http`         | `stdio`        |
 
 ## Configuration Best Practices
 
@@ -369,13 +377,15 @@ Enable debug logging:
 mcp-agent-proxy --help
 ```
 
-2. **Test with environment:**
+2. **Test with environment variables:**
 
 ```bash
 MASTRA_SERVERS_CONFIG="http://localhost:4111 http://localhost:4222" mcp-agent-proxy
 ```
 
 3. **Check MCP client logs** for connection status and error messages.
+
+**Note:** In production, environment variables should be set in your `mcp.json` configuration file, not as shell variables.
 
 ## Real-World Examples
 

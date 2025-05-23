@@ -189,30 +189,36 @@ pnpm start
 
 ## Environment Configuration
 
-Create a `.env` file or set environment variables:
+Configure environment variables in your MCP client's configuration file (typically `mcp.json`):
 
-```env
-# Required - Mastra server configuration (multiple formats supported)
-MASTRA_SERVERS_CONFIG=http://localhost:4111 http://localhost:4222
+### Required Variable
 
-# Optional - Server configuration
-# MCP_SERVER_PORT=3001  # Default: 3001
-MCP_SSE_PATH=/mcp/sse
-MCP_MESSAGE_PATH=/mcp/message
+- **`MASTRA_SERVERS_CONFIG`** - Mastra server URLs (multiple formats supported)
 
-# Optional - Client configuration
-MASTRA_CLIENT_RETRIES=3
-MASTRA_CLIENT_BACKOFF_MS=300
-MASTRA_CLIENT_MAX_BACKOFF_MS=5000
+### Optional Variables (All Have Defaults)
+
+- **`MCP_SERVER_PORT`** - MCP proxy server port (default: `3001`)
+- **`MASTRA_CLIENT_RETRIES`** - Client retry attempts (default: `3`)
+- **`MASTRA_CLIENT_BACKOFF_MS`** - Initial backoff delay (default: `300`)
+- **`MASTRA_CLIENT_MAX_BACKOFF_MS`** - Maximum backoff delay (default: `5000`)
+- **`MCP_SSE_PATH`** - SSE endpoint path (default: `/mcp/sse`)
+- **`MCP_MESSAGE_PATH`** - Message endpoint path (default: `/mcp/message`)
+- **`MCP_TRANSPORT`** - Transport method (default: `http`)
+
+### Example Configuration
+
+```json
+{
+  "mcpServers": {
+    "mastra-agent-proxy": {
+      "command": "mcp-agent-proxy",
+      "env": {
+        "MASTRA_SERVERS_CONFIG": "http://localhost:4111 http://localhost:4222"
+      }
+    }
+  }
+}
 ```
-
-### MASTRA_SERVERS_CONFIG Format Options
-
-The `MASTRA_SERVERS_CONFIG` environment variable supports multiple formats for flexibility:
-
-- **Space separated** (recommended): `http://localhost:4111 http://localhost:4222`
-- **Comma separated**: `http://localhost:4111,http://localhost:4222`
-- **Comma + space**: `http://localhost:4111, http://localhost:4222`
 
 ## Verification
 
@@ -223,7 +229,7 @@ Test your installation:
 mcp-agent-proxy --help
 
 # Test with environment variables
-MASTRA_SERVERS_CONFIG=http://localhost:4111 mcp-agent-proxy
+MASTRA_SERVERS_CONFIG="http://localhost:4111" mcp-agent-proxy
 ```
 
 ## Troubleshooting
@@ -251,3 +257,11 @@ echo $PATH
 npm config get prefix
 echo $PATH
 ```
+
+### MASTRA_SERVERS_CONFIG Format Options
+
+The `MASTRA_SERVERS_CONFIG` environment variable supports multiple formats for flexibility:
+
+- **Space separated** (recommended): `http://localhost:4111 http://localhost:4222`
+- **Comma separated**: `http://localhost:4111,http://localhost:4222`
+- **Comma + space**: `http://localhost:4111, http://localhost:4222`
