@@ -16,9 +16,20 @@ The entire core is just a few TypeScript files, yet it enables any MCP client to
 
 **[👉 Jump to Quick Start Guide 👈](#quick-start)**
 
-_One command, one config line, unlimited agent access_
+_Quick MCP config -> instant agent access_
 
 </div>
+
+```json
+{
+  "mcpServers": {
+    "mastra-agent-proxy": {
+      "command": "pnpx",
+      "args": ["@mashh/mcp-agent-proxy"]
+    }
+  }
+}
+```
 
 ## Why This Is Powerful
 
