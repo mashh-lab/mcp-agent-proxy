@@ -14,7 +14,7 @@ export interface AgentRoute {
   med: number // Multi-exit discriminator (lower = better)
   communities: string[] // BGP communities for policy control
   originTime: Date // When route was first learned
-  pathAttributes: Map<string, any> // Additional BGP-style attributes
+  pathAttributes: Map<string, unknown> // Additional BGP-style attributes
 }
 
 /**
@@ -146,7 +146,7 @@ export interface BGPMessage {
   type: 'OPEN' | 'UPDATE' | 'NOTIFICATION' | 'KEEPALIVE' | 'ROUTE_REFRESH'
   timestamp: Date
   senderASN: number
-  data?: any
+  data?: unknown
 }
 
 /**
@@ -234,7 +234,7 @@ export interface StructuredCapability {
   name: string // Capability name (e.g., "coding")
   version?: string // Capability version
   subcapabilities?: string[] // Sub-capabilities (e.g., ["typescript", "python"])
-  metadata?: Record<string, any> // Additional capability metadata
+  metadata?: Record<string, unknown> // Additional capability metadata
 }
 
 /**
@@ -265,7 +265,7 @@ export interface TopologyNode {
   region?: string
   nodeType: 'edge' | 'transit' | 'route-reflector' | 'client'
   capabilities?: string[]
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }
 
 export interface TopologyEdge {
@@ -278,35 +278,52 @@ export interface TopologyEdge {
 }
 
 // Type guards for runtime type checking
-export function isAgentRoute(obj: any): obj is AgentRoute {
+export function isAgentRoute(obj: unknown): obj is AgentRoute {
   return (
-    obj &&
-    typeof obj.agentId === 'string' &&
-    Array.isArray(obj.capabilities) &&
-    Array.isArray(obj.asPath) &&
-    typeof obj.nextHop === 'string' &&
-    typeof obj.localPref === 'number' &&
-    typeof obj.med === 'number'
+    !!obj &&
+    typeof obj === 'object' &&
+    'agentId' in obj &&
+    typeof (obj as Record<string, unknown>).agentId === 'string' &&
+    'capabilities' in obj &&
+    Array.isArray((obj as Record<string, unknown>).capabilities) &&
+    'asPath' in obj &&
+    Array.isArray((obj as Record<string, unknown>).asPath) &&
+    'nextHop' in obj &&
+    typeof (obj as Record<string, unknown>).nextHop === 'string' &&
+    'localPref' in obj &&
+    typeof (obj as Record<string, unknown>).localPref === 'number' &&
+    'med' in obj &&
+    typeof (obj as Record<string, unknown>).med === 'number'
   )
 }
 
-export function isAgentPeer(obj: any): obj is AgentPeer {
+export function isAgentPeer(obj: unknown): obj is AgentPeer {
   return (
-    obj &&
-    typeof obj.asn === 'number' &&
-    typeof obj.address === 'string' &&
-    ['idle', 'connect', 'active', 'established'].includes(obj.status)
+    !!obj &&
+    typeof obj === 'object' &&
+    'asn' in obj &&
+    typeof (obj as Record<string, unknown>).asn === 'number' &&
+    'address' in obj &&
+    typeof (obj as Record<string, unknown>).address === 'string' &&
+    'status' in obj &&
+    ['idle', 'connect', 'active', 'established'].includes(
+      (obj as Record<string, unknown>).status as string,
+    )
   )
 }
 
-export function isBGPMessage(obj: any): obj is BGPMessage {
+export function isBGPMessage(obj: unknown): obj is BGPMessage {
   return (
-    obj &&
+    !!obj &&
+    typeof obj === 'object' &&
+    'type' in obj &&
     ['OPEN', 'UPDATE', 'NOTIFICATION', 'KEEPALIVE', 'ROUTE_REFRESH'].includes(
-      obj.type,
+      (obj as Record<string, unknown>).type as string,
     ) &&
-    obj.timestamp instanceof Date &&
-    typeof obj.senderASN === 'number'
+    'timestamp' in obj &&
+    (obj as Record<string, unknown>).timestamp instanceof Date &&
+    'senderASN' in obj &&
+    typeof (obj as Record<string, unknown>).senderASN === 'number'
   )
 }
 

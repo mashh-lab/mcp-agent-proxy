@@ -1,4 +1,5 @@
 import dotenv from 'dotenv'
+import fs from 'fs'
 import { ServerConfig, PRIVATE_ASN_RANGES } from './bgp/types.js'
 
 dotenv.config() // Load environment variables from .env file
@@ -208,7 +209,6 @@ export function loadRoutingPolicy() {
 
   if (policyFile) {
     try {
-      const fs = require('fs')
       const policyData = JSON.parse(fs.readFileSync(policyFile, 'utf8'))
       return policyData
     } catch (error) {

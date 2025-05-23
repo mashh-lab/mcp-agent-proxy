@@ -2,7 +2,6 @@ import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { MastraClient } from '@mastra/client-js'
 import { getServersFromConfig, getRetryConfig } from '../config.js'
-import { ServerConfig } from '../bgp/types.js'
 
 /**
  * Get agent information from all configured Mastra servers with BGP awareness
