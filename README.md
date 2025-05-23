@@ -153,33 +153,20 @@ _The agent weighs in on our simple implementation compared to Google's A2A proto
 
 </div>
 
-**TL;DR**: \_What started as "let's see if this ~500 line proxy actually works" turned into "holy cow, we just built a quick and dirty stand-in for A2A that actually works now." 🍮
+**TL;DR**: \_What started as "let's see if this ~500 line proxy actually works" turned into "holy cow, we just built a quick and dirty stand-in for A2A that actually works now."\_ 🍮
 
 ## Quick Start
 
-Install the MCP Agent Proxy globally and add it to your MCP client configuration:
+**No installation required!** Add this configuration to your MCP client's `mcp.json`:
 
-### 1. Install
-
-```bash
-# Using pnpm (recommended)
-pnpm add -g @mashh/mcp-agent-proxy
-
-# Or using npm
-npm install -g @mashh/mcp-agent-proxy
-```
-
-### 2. Configure
-
-**Option A: Zero Setup (Recommended for local development)**
-
-Add this minimal configuration to your MCP client's `mcp.json`:
+### 1. Zero Setup Configuration (Recommended)
 
 ```json
 {
   "mcpServers": {
     "mastra-agent-proxy": {
-      "command": "mcp-agent-proxy"
+      "command": "pnpx",
+      "args": ["@mashh/mcp-agent-proxy"]
     }
   }
 }
@@ -187,21 +174,7 @@ Add this minimal configuration to your MCP client's `mcp.json`:
 
 That's it! The proxy automatically connects to `http://localhost:4111` - perfect for standard Mastra setups.
 
-**Note:** If you get `spawn mcp-agent-proxy ENOENT` errors (common with Claude Desktop), use the absolute path instead:
-
-```json
-{
-  "mcpServers": {
-    "mastra-agent-proxy": {
-      "command": "/absolute/path/to/mcp-agent-proxy"
-    }
-  }
-}
-```
-
-Find your path with: `which mcp-agent-proxy`
-
-**Option B: Custom Configuration**
+### 2. Custom Configuration
 
 For multiple servers or custom URLs:
 
@@ -209,7 +182,8 @@ For multiple servers or custom URLs:
 {
   "mcpServers": {
     "mastra-agent-proxy": {
-      "command": "mcp-agent-proxy",
+      "command": "pnpx",
+      "args": ["@mashh/mcp-agent-proxy"],
       "env": {
         "MASTRA_SERVERS": "http://localhost:4111 http://localhost:4222"
       }
@@ -228,34 +202,11 @@ For detailed installation options, see [INSTALL.md](INSTALL.md).
 
 ## Installation
 
-1. Clone the repository:
+**No installation required!** Your mcp.json can use `pnpx` to automatically download and run the latest version.
 
-```bash
-git clone <repository-url>
-cd mcp-agent-proxy
-```
+You can install the global executable with `pnpm -g @mashh/mcp-agent-proxy`
 
-2. Install dependencies:
-
-```bash
-pnpm install
-```
-
-3. Build the project:
-
-```bash
-pnpm build
-```
-
-## Clean Project Structure
-
-This repository has been cleaned up to include only production-ready files:
-
-- **Core functionality**: Located in `src/` directory
-- **Single configuration**: Working MCP client configuration examples
-- **Comprehensive documentation**: Everything you need is in this README
-- **Simple testing**: Run `pnpm test` to verify your setup
-- **Multiple distribution methods**: NPM package and source
+Simply add the configuration to your MCP client's `mcp.json` file - no global installation, no building from source, no PATH issues.
 
 ## Configuration
 
@@ -288,7 +239,8 @@ All other environment variables are optional and have sensible defaults:
 {
   "mcpServers": {
     "mastra-agent-proxy": {
-      "command": "mcp-agent-proxy",
+      "command": "pnpx",
+      "args": ["@mashh/mcp-agent-proxy"],
       "env": {
         "MASTRA_SERVERS": "http://localhost:4111 http://localhost:4222"
       }
@@ -658,10 +610,12 @@ The proxy implements comprehensive error handling:
 
 ### Common Issues
 
-1. **Connection Refused**: Ensure target Mastra server is running and accessible
-2. **Agent Not Found**: Verify `targetAgentId` exists on target server
-3. **Port Conflicts**: Change `MCP_SERVER_PORT` if 3001 is in use
-4. **Type Errors**: Ensure all dependencies are properly installed
+1. **Port conflicts** - Default port 3001 is in use
+   - **Solution**: Set `MCP_SERVER_PORT` environment variable to a different port
+2. **Connection failures** - Mastra server not running
+   - **Solution**: Ensure your Mastra server is running on the specified URL
+3. **Network issues** - Proxy can't reach configured Mastra servers
+   - **Solution**: Check firewall settings and server accessibility
 
 ### Debug Mode
 
@@ -718,11 +672,12 @@ MIT License - see LICENSE file for details.
 
 **Common Issues:**
 
-- **`spawn mcp-agent-proxy ENOENT`** - Command not found (especially in Claude Desktop)
-  - **Solution**: Use absolute path in your `mcp.json` configuration
-  - Find path with: `which mcp-agent-proxy`
 - **Port conflicts** - Default port 3001 is in use
+  - **Solution**: Set `MCP_SERVER_PORT` environment variable to a different port
 - **Connection failures** - Mastra server not running
+  - **Solution**: Ensure your Mastra server is running on the specified URL
+- **Network issues** - Proxy can't reach configured Mastra servers
+  - **Solution**: Check firewall settings and server accessibility
 
 **→ See [MCP_CONFIGURATION.md](MCP_CONFIGURATION.md#troubleshooting) for detailed solutions**
 

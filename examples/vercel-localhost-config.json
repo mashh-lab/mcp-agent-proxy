@@ -1,7 +1,8 @@
 {
   "mcpServers": {
     "mastra-agent-proxy": {
-      "command": "mcp-agent-proxy",
+      "command": "pnpx",
+      "args": ["@mashh/mcp-agent-proxy"],
       "env": {
         "MASTRA_SERVERS": "https://your-mastra-app.vercel.app http://localhost:4111"
       }

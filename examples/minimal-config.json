@@ -1,7 +1,8 @@
 {
   "mcpServers": {
-    "mcp-agent-proxy": {
-      "command": "mcp-agent-proxy"
+    "mastra-agent-proxy": {
+      "command": "pnpx",
+      "args": ["@mashh/mcp-agent-proxy"]
     }
   }
 }

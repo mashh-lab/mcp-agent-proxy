@@ -14,7 +14,8 @@ Perfect for standard Mastra setups:
 {
   "mcpServers": {
     "mastra-agent-proxy": {
-      "command": "mcp-agent-proxy"
+      "command": "pnpx",
+      "args": ["@mashh/mcp-agent-proxy"]
     }
   }
 }
@@ -22,13 +23,14 @@ Perfect for standard Mastra setups:
 
 This automatically connects to `http://localhost:4111` - no environment variables needed!
 
-### Method 1: NPM/PNPM Global Installation (Recommended)
+### Method 1: PNPX (Recommended - No Installation Required!)
 
 ```json
 {
   "mcpServers": {
     "mastra-agent-proxy": {
-      "command": "mcp-agent-proxy",
+      "command": "pnpx",
+      "args": ["@mashh/mcp-agent-proxy"],
       "env": {
         "MASTRA_SERVERS": "http://localhost:4111 http://localhost:4222"
       }
@@ -37,7 +39,7 @@ This automatically connects to `http://localhost:4111` - no environment variable
 }
 ```
 
-### Method 2: NPM Local Installation (with npx)
+### Method 2: NPX (Alternative - No Installation Required!)
 
 ```json
 {
@@ -53,14 +55,13 @@ This automatically connects to `http://localhost:4111` - no environment variable
 }
 ```
 
-### Method 3: From Source (Development)
+### Method 3: Global Installation (Legacy)
 
 ```json
 {
   "mcpServers": {
     "mastra-agent-proxy": {
-      "command": "node",
-      "args": ["/absolute/path/to/mcp-agent-proxy/dist/mcp-server.js"],
+      "command": "mcp-agent-proxy",
       "env": {
         "MASTRA_SERVERS": "http://localhost:4111 http://localhost:4222"
       }
@@ -69,15 +70,14 @@ This automatically connects to `http://localhost:4111` - no environment variable
 }
 ```
 
-### Method 4: PNPM with Project Directory
+### Method 4: From Source (Development)
 
 ```json
 {
   "mcpServers": {
     "mastra-agent-proxy": {
-      "command": "pnpm",
-      "args": ["exec", "@mashh/mcp-agent-proxy"],
-      "cwd": "/path/to/your/project",
+      "command": "node",
+      "args": ["/absolute/path/to/mcp-agent-proxy/dist/mcp-server.js"],
       "env": {
         "MASTRA_SERVERS": "http://localhost:4111 http://localhost:4222"
       }
@@ -96,7 +96,8 @@ Connect to multiple local Mastra servers running on different ports:
 {
   "mcpServers": {
     "mastra-agent-proxy": {
-      "command": "mcp-agent-proxy",
+      "command": "pnpx",
+      "args": ["@mashh/mcp-agent-proxy"],
       "env": {
         "MASTRA_SERVERS": "http://localhost:4111 http://localhost:4222 http://localhost:4333"
       }
@@ -111,7 +112,8 @@ Connect to multiple local Mastra servers running on different ports:
 {
   "mcpServers": {
     "mastra-agent-proxy": {
-      "command": "mcp-agent-proxy",
+      "command": "pnpx",
+      "args": ["@mashh/mcp-agent-proxy"],
       "env": {
         "MASTRA_SERVERS": "http://localhost:4111 http://localhost:4222",
         "MCP_SERVER_PORT": "3001",
@@ -135,7 +137,8 @@ You can also use comma-separated URLs if you prefer:
 {
   "mcpServers": {
     "mastra-agent-proxy": {
-      "command": "mcp-agent-proxy",
+      "command": "pnpx",
+      "args": ["@mashh/mcp-agent-proxy"],
       "env": {
         "MASTRA_SERVERS": "http://localhost:4111,http://localhost:4222,http://localhost:4333"
       }
@@ -171,7 +174,8 @@ Connect to any deployed Mastra server (examples using different providers):
 {
   "mcpServers": {
     "mastra-agent-proxy": {
-      "command": "mcp-agent-proxy",
+      "command": "pnpx",
+      "args": ["@mashh/mcp-agent-proxy"],
       "env": {
         "MASTRA_SERVERS": "https://your-mastra-app.vercel.app"
       }
@@ -186,7 +190,8 @@ Connect to any deployed Mastra server (examples using different providers):
 {
   "mcpServers": {
     "mastra-agent-proxy": {
-      "command": "mcp-agent-proxy",
+      "command": "pnpx",
+      "args": ["@mashh/mcp-agent-proxy"],
       "env": {
         "MASTRA_SERVERS": "https://your-mastra-app.anycloudprovider.com"
       }
@@ -201,7 +206,8 @@ Connect to any deployed Mastra server (examples using different providers):
 {
   "mcpServers": {
     "mastra-agent-proxy": {
-      "command": "mcp-agent-proxy",
+      "command": "pnpx",
+      "args": ["@mashh/mcp-agent-proxy"],
       "env": {
         "MASTRA_SERVERS": "https://api.yourcompany.com"
       }
@@ -218,7 +224,8 @@ Perfect for accessing both production agents (any cloud provider) and local deve
 {
   "mcpServers": {
     "mastra-agent-proxy": {
-      "command": "mcp-agent-proxy",
+      "command": "pnpx",
+      "args": ["@mashh/mcp-agent-proxy"],
       "env": {
         "MASTRA_SERVERS": "https://your-mastra-app.example.com http://localhost:4111"
       }
@@ -242,7 +249,8 @@ Mix any combination of cloud providers and deployment platforms:
 {
   "mcpServers": {
     "mastra-agent-proxy": {
-      "command": "mcp-agent-proxy",
+      "command": "pnpx",
+      "args": ["@mashh/mcp-agent-proxy"],
       "env": {
         "MASTRA_SERVERS": "https://prod.vercel.app https://staging.vercel.app https://dev.yourcompany.com http://localhost:4111"
       }
@@ -259,7 +267,8 @@ Organize multiple environments across any hosting providers:
 {
   "mcpServers": {
     "mastra-agent-proxy": {
-      "command": "mcp-agent-proxy",
+      "command": "pnpx",
+      "args": ["@mashh/mcp-agent-proxy"],
       "env": {
         "MASTRA_SERVERS": "https://prod.yourcompany.com https://staging.yourcompany.com http://localhost:4111"
       }
@@ -276,7 +285,8 @@ Works with any self-hosted or private Mastra deployments:
 {
   "mcpServers": {
     "mastra-agent-proxy": {
-      "command": "mcp-agent-proxy",
+      "command": "pnpx",
+      "args": ["@mashh/mcp-agent-proxy"],
       "env": {
         "MASTRA_SERVERS": "https://agents.internal.company.com:8443 http://localhost:4111"
       }

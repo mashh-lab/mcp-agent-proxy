@@ -6,19 +6,16 @@ This guide covers installation methods and basic setup for the MCP Agent Proxy.
 
 Choose your preferred installation method:
 
-### Method 1: PNPM (Recommended)
+### Method 1: PNPX (Recommended - No Installation Required!)
 
-```bash
-pnpm add -g @mashh/mcp-agent-proxy
-```
-
-**Configuration:**
+**Zero installation needed!** Just add the configuration:
 
 ```json
 {
   "mcpServers": {
-    "mcp-agent-proxy": {
-      "command": "mcp-agent-proxy",
+    "mastra-agent-proxy": {
+      "command": "pnpx",
+      "args": ["@mashh/mcp-agent-proxy"],
       "env": {
         "MASTRA_SERVERS": "http://localhost:4111"
       }
@@ -32,25 +29,20 @@ pnpm add -g @mashh/mcp-agent-proxy
 ```json
 {
   "mcpServers": {
-    "mcp-agent-proxy": {
-      "command": "mcp-agent-proxy"
+    "mastra-agent-proxy": {
+      "command": "pnpx",
+      "args": ["@mashh/mcp-agent-proxy"]
     }
   }
 }
 ```
 
-### Method 2: NPM
-
-```bash
-npm install -g @mashh/mcp-agent-proxy
-```
-
-**Configuration:**
+### Method 2: NPX (Alternative - No Installation Required!)
 
 ```json
 {
   "mcpServers": {
-    "mcp-agent-proxy": {
+    "mastra-agent-proxy": {
       "command": "npx",
       "args": ["@mashh/mcp-agent-proxy"],
       "env": {
@@ -61,7 +53,34 @@ npm install -g @mashh/mcp-agent-proxy
 }
 ```
 
-### Method 3: From Source
+### Method 3: Global Installation (Legacy)
+
+If you prefer global installation:
+
+```bash
+# Using pnpm
+pnpm add -g @mashh/mcp-agent-proxy
+
+# Or using npm
+npm install -g @mashh/mcp-agent-proxy
+```
+
+**Configuration:**
+
+```json
+{
+  "mcpServers": {
+    "mastra-agent-proxy": {
+      "command": "mcp-agent-proxy",
+      "env": {
+        "MASTRA_SERVERS": "http://localhost:4111"
+      }
+    }
+  }
+}
+```
+
+### Method 4: From Source
 
 ### Clone and build
 
@@ -169,7 +188,7 @@ mcp-agent-proxy
 MASTRA_SERVERS="http://localhost:4111" mcp-agent-proxy
 ```
 
-## Method 1: PNPM Package (Recommended)
+## Method 1: PNPX Package (Recommended)
 
 ### Global Installation
 
@@ -183,7 +202,7 @@ pnpm add -g @mashh/mcp-agent-proxy
 pnpm add @mashh/mcp-agent-proxy
 ```
 
-### Usage after PNPM installation
+### Usage after PNPX installation
 
 ```bash
 # Global installation
@@ -200,13 +219,14 @@ pnpm exec @mashh/mcp-agent-proxy
 }
 ```
 
-### MCP Client Configuration (PNPM)
+### MCP Client Configuration (PNPX)
 
 ```json
 {
   "mcpServers": {
     "mastra-agent-proxy": {
-      "command": "mcp-agent-proxy",
+      "command": "pnpx",
+      "args": ["@mashh/mcp-agent-proxy"],
       "env": {
         "MASTRA_SERVERS": "http://localhost:4111"
       }
@@ -215,38 +235,41 @@ pnpm exec @mashh/mcp-agent-proxy
 }
 ```
 
-## Method 2: NPM Package (Alternative)
+## Method 2: NPX Package (Alternative)
 
-### Global Installation
+**No installation required!** Use `npx` to run the package directly.
 
-```bash
-npm install -g @mashh/mcp-agent-proxy
-```
+### MCP Client Configuration (NPX)
 
-### Local Installation
-
-```bash
-npm install @mashh/mcp-agent-proxy
-```
-
-### Usage after NPM installation
-
-```bash
-# Global installation
-mcp-agent-proxy
-
-# Local installation (use scoped name with npx)
-npx @mashh/mcp-agent-proxy
-
-# Or in package.json scripts
+```json
 {
-  "scripts": {
-    "start-proxy": "mcp-agent-proxy"
+  "mcpServers": {
+    "mastra-agent-proxy": {
+      "command": "npx",
+      "args": ["@mashh/mcp-agent-proxy"],
+      "env": {
+        "MASTRA_SERVERS": "http://localhost:4111"
+      }
+    }
   }
 }
 ```
 
-### MCP Client Configuration (NPM)
+## Method 3: Global Installation (Legacy)
+
+Only use this if you need global installation for some reason:
+
+### Global Installation
+
+```bash
+# Using pnpm
+pnpm add -g @mashh/mcp-agent-proxy
+
+# Or using npm
+npm install -g @mashh/mcp-agent-proxy
+```
+
+### MCP Client Configuration (Global)
 
 ```json
 {
@@ -315,9 +338,25 @@ curl http://localhost:3001/status | jq .
 
 ## Troubleshooting
 
-### Command Not Found Errors
+### Common Issues
 
-If you get `spawn mcp-agent-proxy ENOENT` errors in your MCP client:
+1. **Network connection failures**
+
+   - Ensure target Mastra servers are running and accessible
+   - Check firewall settings and network connectivity
+
+2. **Port conflicts**
+
+   - Change `MCP_SERVER_PORT` if 3001 is in use
+   - Check with: `lsof -i :3001`
+
+3. **Mastra server connection failures**
+   - Verify each server URL in `MASTRA_SERVERS` is accessible
+   - Check if Mastra servers are running on specified ports
+
+### Legacy Installation Issues
+
+If you're using the legacy global installation method and get command not found errors:
 
 1. **Find the absolute path** to your global installation:
 
@@ -336,12 +375,6 @@ If you get `spawn mcp-agent-proxy ENOENT` errors in your MCP client:
    }
    ```
 
-This method works reliably across all MCP clients (especially Claude Desktop) because it doesn't depend on PATH configuration.
+**Recommendation:** Switch to the `pnpx` method to avoid these issues entirely.
 
 **→ For detailed troubleshooting see [MCP_CONFIGURATION.md](MCP_CONFIGURATION.md#troubleshooting)**
-
-### Port Conflicts
-
-```bash
-MCP_SERVER_PORT=3002 mcp-agent-proxy
-```
