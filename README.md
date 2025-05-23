@@ -184,9 +184,9 @@ Let's say you have that MCP-connected Mastra server running locally on the defau
 
 - User: "Get weather data and analyze it"
 - Your client agent (Cursor, Claude) calls `server0:weatherAgent` (on http://localhost:4111)
-- Your agent calls `server1:analysisAgent` (on https://my.vercel.app)
-- Returns unified analysis from the connected network
-- All through one MCP client configuration
+- `server0:weatherAgent` calls `server1:analysisAgent` (on https://my.vercel.app)
+- `server0:weatherAgent` returns unified response to your client agent
+- All through these thin MCP layers
 
 This is the recursive **"Internet of Agents"** - where each connection unlocks entire ecosystems of AI capabilities.
 
