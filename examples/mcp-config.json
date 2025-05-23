@@ -1,9 +1,9 @@
 {
   "mcpServers": {
-    "mastra-agent-proxy": {
+    "mcp-agent-proxy": {
       "command": "mcp-agent-proxy",
       "env": {
-        "MASTRA_SERVERS_CONFIG": "http://localhost:4111"
+        "MASTRA_SERVERS": "http://localhost:4111"
       }
     }
   }

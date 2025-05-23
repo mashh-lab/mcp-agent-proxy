@@ -165,7 +165,7 @@ src/
 pnpm test
 
 # Test with specific Mastra server
-MASTRA_SERVERS_CONFIG=http://localhost:4111 pnpm test
+MASTRA_SERVERS=http://localhost:4111 pnpm test
 ```
 
 ### Writing Tests
@@ -341,7 +341,7 @@ DEBUG=mastra:* pnpm dev
 For testing multi-server scenarios:
 
 ```env
-MASTRA_SERVERS_CONFIG=http://localhost:4111 http://localhost:4222
+MASTRA_SERVERS=http://localhost:4111 http://localhost:4222
 ```
 
 ## Architecture Overview

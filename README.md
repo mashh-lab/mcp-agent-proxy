@@ -50,7 +50,7 @@ Add to your MCP client's `mcp.json`:
     "mastra-agent-proxy": {
       "command": "mcp-agent-proxy",
       "env": {
-        "MASTRA_SERVERS_CONFIG": "http://localhost:4111"
+        "MASTRA_SERVERS": "http://localhost:4111"
       }
     }
   }
@@ -98,7 +98,7 @@ Configure the proxy server by setting environment variables in your MCP client's
 
 ### Required Environment Variable
 
-- **`MASTRA_SERVERS_CONFIG`** - **Required** - Mastra server URLs to monitor and proxy to. Supports multiple formats:
+- **`MASTRA_SERVERS`** - **Required** - Mastra server URLs to monitor and proxy to. Supports multiple formats:
   - Space separated: `http://localhost:4111 http://localhost:4222`
   - Comma separated: `http://localhost:4111,http://localhost:4222`
   - Comma+space: `http://localhost:4111, http://localhost:4222`
@@ -123,7 +123,7 @@ All other environment variables are optional and have sensible defaults:
     "mastra-agent-proxy": {
       "command": "mcp-agent-proxy",
       "env": {
-        "MASTRA_SERVERS_CONFIG": "http://localhost:4111 http://localhost:4222"
+        "MASTRA_SERVERS": "http://localhost:4111 http://localhost:4222"
       }
     }
   }
@@ -313,7 +313,7 @@ For comprehensive MCP client configuration examples covering all installation me
     "mastra-agent-proxy": {
       "command": "mcp-agent-proxy",
       "env": {
-        "MASTRA_SERVERS_CONFIG": "http://localhost:4111 http://localhost:4222"
+        "MASTRA_SERVERS": "http://localhost:4111 http://localhost:4222"
       }
     }
   }
@@ -333,7 +333,7 @@ For comprehensive MCP client configuration examples covering all installation me
         "-p",
         "3001:3001",
         "-e",
-        "MASTRA_SERVERS_CONFIG=http://host.docker.internal:4111 http://host.docker.internal:4222",
+        "MASTRA_SERVERS=http://localhost:4111 http://localhost:4222",
         "mashh/mcp-agent-proxy:latest"
       ]
     }
