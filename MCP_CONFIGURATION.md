@@ -2,9 +2,25 @@
 
 This guide shows how to configure the MCP Agent Proxy in your MCP client's configuration file (typically `mcp.json`) for each installation method.
 
-**Important:** All environment variables are set in the `"env"` section of your `mcp.json` configuration. Only `MASTRA_SERVERS` is required - all other variables are optional with sensible defaults.
+**Important:** All environment variables are optional and have sensible defaults. The proxy automatically connects to `http://localhost:4111` if no `MASTRA_SERVERS` is specified.
 
 ## Quick Start Examples
+
+### Minimal Configuration (Zero Setup!)
+
+Perfect for standard Mastra setups:
+
+```json
+{
+  "mcpServers": {
+    "mastra-agent-proxy": {
+      "command": "mcp-agent-proxy"
+    }
+  }
+}
+```
+
+This automatically connects to `http://localhost:4111` - no environment variables needed!
 
 ### Method 1: NPM/PNPM Global Installation (Recommended)
 
@@ -37,64 +53,7 @@ This guide shows how to configure the MCP Agent Proxy in your MCP client's confi
 }
 ```
 
-### Method 3: Docker Container
-
-```json
-{
-  "mcpServers": {
-    "mastra-agent-proxy": {
-      "command": "docker",
-      "args": [
-        "run",
-        "--rm",
-        "-p",
-        "3001:3001",
-        "-e",
-        "MASTRA_SERVERS=http://localhost:4111 http://localhost:4222",
-        "mashh/mcp-agent-proxy:latest"
-      ]
-    }
-  }
-}
-```
-
-### Method 4: Docker with Host Network (Linux)
-
-```json
-{
-  "mcpServers": {
-    "mastra-agent-proxy": {
-      "command": "docker",
-      "args": [
-        "run",
-        "--rm",
-        "--network",
-        "host",
-        "-e",
-        "MASTRA_SERVERS=http://localhost:4111 http://localhost:4222",
-        "mashh/mcp-agent-proxy:latest"
-      ]
-    }
-  }
-}
-```
-
-### Method 5: Standalone Binary
-
-```json
-{
-  "mcpServers": {
-    "mastra-agent-proxy": {
-      "command": "/usr/local/bin/mcp-agent-proxy",
-      "env": {
-        "MASTRA_SERVERS": "http://localhost:4111 http://localhost:4222"
-      }
-    }
-  }
-}
-```
-
-### Method 6: From Source (Development)
+### Method 3: From Source (Development)
 
 ```json
 {
@@ -110,7 +69,7 @@ This guide shows how to configure the MCP Agent Proxy in your MCP client's confi
 }
 ```
 
-### Method 7: PNPM with Project Directory
+### Method 4: PNPM with Project Directory
 
 ```json
 {
@@ -257,13 +216,13 @@ You can also use comma-separated URLs if you prefer:
 
 ## Environment Variables Reference
 
-### Required Variable
+### Environment Variables (All Optional)
 
-| Variable         | Description        | Example                                       |
-| ---------------- | ------------------ | --------------------------------------------- |
-| `MASTRA_SERVERS` | Mastra server URLs | `http://localhost:4111 http://localhost:4222` |
+| Variable         | Description        | Default                 | Example                                       |
+| ---------------- | ------------------ | ----------------------- | --------------------------------------------- |
+| `MASTRA_SERVERS` | Mastra server URLs | `http://localhost:4111` | `http://localhost:4111 http://localhost:4222` |
 
-### Optional Variables (All Have Defaults)
+### Other Optional Variables (All Have Defaults)
 
 | Variable                       | Description                              | Default        | Example        |
 | ------------------------------ | ---------------------------------------- | -------------- | -------------- |
@@ -310,12 +269,7 @@ Separate multiple server URLs with spaces or commas:
 "MASTRA_SERVERS": "http://localhost:4111,http://localhost:4222,http://localhost:4333"
 ```
 
-### 3. Docker Networking
-
-- **macOS/Windows**: Use `localhost` to access host services
-- **Linux**: Use `--network host` or connect containers to same network
-
-### 4. Port Configuration
+### 3. Port Configuration
 
 The proxy server uses port 3001 by default. Only change this if you have conflicts:
 
@@ -340,13 +294,7 @@ The proxy server uses port 3001 by default. Only change this if you have conflic
    - Change `MCP_SERVER_PORT` if 3001 is in use
    - Check with: `lsof -i :3001`
 
-3. **Docker connection issues**
-
-   - Use `localhost` on macOS/Windows
-   - Use `--network host` on Linux
-   - Ensure Docker daemon is running
-
-4. **Mastra server connection failures**
+3. **Mastra server connection failures**
    - Verify each server URL in `MASTRA_SERVERS` is accessible
    - Check if Mastra servers are running on specified ports
 
@@ -412,6 +360,20 @@ MASTRA_SERVERS="http://localhost:4111 http://localhost:4222" mcp-agent-proxy
 **Note:** In production, environment variables should be set in your `mcp.json` configuration file, not as shell variables.
 
 ## Real-World Examples
+
+### Minimal Configuration (Zero Setup)
+
+Perfect for standard local Mastra development:
+
+```json
+{
+  "mcpServers": {
+    "mastra-agent-proxy": {
+      "command": "mcp-agent-proxy"
+    }
+  }
+}
+```
 
 ### Single Mastra Server
 

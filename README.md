@@ -42,7 +42,25 @@ npm install -g @mashh/mcp-agent-proxy
 
 ### 2. Configure
 
-Add to your MCP client's `mcp.json`:
+**Option A: Zero Setup (standard local Mastra server)**
+
+Add this minimal configuration to your MCP client's `mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "mastra-agent-proxy": {
+      "command": "mcp-agent-proxy"
+    }
+  }
+}
+```
+
+That's it! The proxy automatically connects to `http://localhost:4111` - perfect for standard Mastra setups.
+
+**Option B: Custom Configuration**
+
+For multiple servers or custom URLs:
 
 ```json
 {
@@ -50,16 +68,14 @@ Add to your MCP client's `mcp.json`:
     "mastra-agent-proxy": {
       "command": "mcp-agent-proxy",
       "env": {
-        "MASTRA_SERVERS": "http://localhost:4111"
+        "MASTRA_SERVERS": "http://localhost:4111 http://localhost:4222"
       }
     }
   }
 }
 ```
 
-That's it! The proxy will connect to your Mastra server and expose all agents as MCP tools.
-
-For detailed installation options (Docker, binaries, etc.), see [INSTALL.md](INSTALL.md).
+For detailed installation options, see [INSTALL.md](INSTALL.md).
 
 ## Installation
 
@@ -90,15 +106,17 @@ This repository has been cleaned up to include only production-ready files:
 - **Single configuration**: Working MCP client configuration examples
 - **Comprehensive documentation**: Everything you need is in this README
 - **Simple testing**: Run `pnpm test` to verify your setup
-- **Multiple distribution methods**: NPM package, Docker, and source
+- **Multiple distribution methods**: NPM package and source
 
 ## Configuration
 
 Configure the proxy server by setting environment variables in your MCP client's configuration file (typically `mcp.json`).
 
-### Required Environment Variable
+### Environment Variables
 
-- **`MASTRA_SERVERS`** - **Required** - Mastra server URLs to monitor and proxy to. Supports multiple formats:
+All environment variables are optional and have sensible defaults:
+
+- **`MASTRA_SERVERS`** - Mastra server URLs to monitor and proxy to. **Default: `http://localhost:4111`**. Supports multiple formats:
   - Space separated: `http://localhost:4111 http://localhost:4222`
   - Comma separated: `http://localhost:4111,http://localhost:4222`
   - Comma+space: `http://localhost:4111, http://localhost:4222`
@@ -420,32 +438,9 @@ For comprehensive MCP client configuration examples covering all installation me
 }
 ```
 
-#### Quick Example (Docker):
-
-```json
-{
-  "mcpServers": {
-    "mastra-agent-proxy": {
-      "command": "docker",
-      "args": [
-        "run",
-        "--rm",
-        "-p",
-        "3001:3001",
-        "-e",
-        "MASTRA_SERVERS=http://localhost:4111 http://localhost:4222",
-        "mashh/mcp-agent-proxy:latest"
-      ]
-    }
-  }
-}
-```
-
 **📖 For detailed configuration examples including:**
 
 - NPM/PNPM installations (global & local)
-- Docker containers (standard & host network)
-- Standalone binaries
 - Source builds
 - Platform-specific configurations
 - Multi-environment setups
@@ -546,9 +541,7 @@ The GitHub Actions workflow will automatically:
 
 - Build and test the package
 - Publish to NPM (using pnpm)
-- Build Docker images for multiple platforms
-- Create standalone binaries for Linux, macOS, and Windows
-- Create a GitHub release with all artifacts
+- Create a GitHub release
 
 ## License
 
