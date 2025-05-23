@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   mcp-agent-proxy:
-    image: mashh-lab/mcp-agent-proxy:latest
+    image: mashh/mcp-agent-proxy:latest
     ports:
       - "3001:3001"
     environment:
