@@ -20,6 +20,7 @@ MCP Client --> Custom MCP Server --> Agent-Proxy Tool --> @mastra/client-js --> 
 ```
 
 The proxy server acts as an intermediary layer that:
+
 1. Receives MCP tool calls from clients
 2. Intelligently routes them to appropriate Mastra servers
 3. Handles agent name conflicts using smart resolution
@@ -28,17 +29,20 @@ The proxy server acts as an intermediary layer that:
 ## Installation
 
 1. Clone the repository:
+
 ```bash
 git clone <repository-url>
 cd mcp-mastra-agents
 ```
 
 2. Install dependencies:
+
 ```bash
 pnpm install
 ```
 
 3. Configure environment (copy and edit):
+
 ```bash
 cp .env .env.local  # Edit the values as needed
 ```
@@ -46,6 +50,7 @@ cp .env .env.local  # Edit the values as needed
 ## Clean Project Structure
 
 This repository has been cleaned up to include only production-ready files:
+
 - **Core functionality**: Located in `src/` directory
 - **Single configuration**: `mcp.json` with the working absolute path format
 - **Comprehensive documentation**: Everything you need is in this README
@@ -96,6 +101,7 @@ pnpm dev
 ```
 
 The server will start and display:
+
 ```
 MCP Server with HTTP/SSE transport listening on port 3001
 SSE Endpoint: http://localhost:3001/mcp/sse
@@ -106,9 +112,11 @@ Available tools: callMastraAgent, listMastraAgents
 ### 2. Available MCP Tools
 
 #### `callMastraAgent`
+
 Proxies requests to a target Mastra agent with intelligent server resolution.
 
 **Input Schema:**
+
 ```typescript
 {
   targetAgentId: string;        // Agent ID or "server:agentId" for conflicts
@@ -125,6 +133,7 @@ Proxies requests to a target Mastra agent with intelligent server resolution.
 ```
 
 **Smart Resolution Behavior:**
+
 - **Plain agent ID** (e.g., `"weatherAgent"`): Automatically finds which server(s) contain the agent
   - If found on one server: Uses that server automatically
   - If found on multiple servers: Uses default server (server0) or first available
@@ -133,46 +142,50 @@ Proxies requests to a target Mastra agent with intelligent server resolution.
 - **Server URL override**: Uses provided `serverUrl` parameter
 
 **Output Schema:**
+
 ```typescript
 {
-  success: true;
-  responseData: any;           // Response from the target agent
-  interactionType: string;     // Confirms interaction type used
-  serverUsed: string;          // Shows which server was used
-  agentIdUsed: string;         // Shows the actual agent ID used
-  fullyQualifiedId: string;    // Shows the full server:agentId format
-  resolutionMethod: string;    // Shows how the server was resolved
+  success: true
+  responseData: any // Response from the target agent
+  interactionType: string // Confirms interaction type used
+  serverUsed: string // Shows which server was used
+  agentIdUsed: string // Shows the actual agent ID used
+  fullyQualifiedId: string // Shows the full server:agentId format
+  resolutionMethod: string // Shows how the server was resolved
 }
 ```
 
 #### `listMastraAgents`
+
 Lists available agents across all configured Mastra servers with conflict detection.
 
 **Input Schema:** `{}` (no input required)
 
 **Output Schema:**
+
 ```typescript
 {
   serverAgents: Array<{
-    serverName: string;         // Server identifier (server0, server1, etc.)
-    serverUrl: string;          // Server URL
-    status: "online" | "offline" | "error";
+    serverName: string // Server identifier (server0, server1, etc.)
+    serverUrl: string // Server URL
+    status: 'online' | 'offline' | 'error'
     agents: Array<{
-      id: string;               // Agent ID
-      name?: string;            // Optional agent name
-    }>;
-    errorMessage?: string;      // Error details if status is "error"
-  }>;
+      id: string // Agent ID
+      name?: string // Optional agent name
+    }>
+    errorMessage?: string // Error details if status is "error"
+  }>
   summary: {
-    totalServers: number;
-    onlineServers: number;
-    totalAgents: number;
-    uniqueAgents: number;
-    agentConflicts: Array<{     // Agents that exist on multiple servers
-      agentId: string;
-      servers: string[];        // List of server names containing this agent
-    }>;
-  };
+    totalServers: number
+    onlineServers: number
+    totalAgents: number
+    uniqueAgents: number
+    agentConflicts: Array<{
+      // Agents that exist on multiple servers
+      agentId: string
+      servers: string[] // List of server names containing this agent
+    }>
+  }
 }
 ```
 
@@ -181,23 +194,23 @@ Lists available agents across all configured Mastra servers with conflict detect
 ```typescript
 // Unique agent - auto-resolves to the only server containing it
 await callMastraAgent({
-  targetAgentId: "uniqueAgent",
+  targetAgentId: 'uniqueAgent',
   // ... other params
-});
+})
 // Result: server0:uniqueAgent (if uniqueAgent only exists on server0)
 
 // Conflicted agent - uses default server
 await callMastraAgent({
-  targetAgentId: "weatherAgent", // Exists on multiple servers
-  // ... other params  
-});
+  targetAgentId: 'weatherAgent', // Exists on multiple servers
+  // ... other params
+})
 // Result: server0:weatherAgent (uses default server)
 
 // Explicit qualification - targets specific server
 await callMastraAgent({
-  targetAgentId: "server1:weatherAgent",
+  targetAgentId: 'server1:weatherAgent',
   // ... other params
-});
+})
 // Result: server1:weatherAgent (explicit targeting)
 ```
 
@@ -210,6 +223,7 @@ pnpm test
 ```
 
 This will:
+
 1. Connect to your MCP proxy server
 2. List available tools
 3. Test the `listMastraAgents` tool
@@ -220,29 +234,33 @@ This will:
 The server can be integrated with any MCP-compliant client:
 
 #### Example with Mastra MCPClient:
+
 ```typescript
-import { MCPClient } from '@mastra/mcp';
+import { MCPClient } from '@mastra/mcp'
 
 const mcpClient = new MCPClient({
   servers: {
     mastraProxy: {
       url: new URL('http://localhost:3001/mcp/sse'),
-    }
-  }
-});
+    },
+  },
+})
 
 // Get available tools
-const tools = await mcpClient.getTools();
+const tools = await mcpClient.getTools()
 
 // Use the proxy tool
-const result = await tools.mastraProxy.find(t => t.id === 'callMastraAgent').execute({
-  targetAgentId: 'your-agent-id',
-  interactionType: 'generate',
-  messages: [{ role: 'user', content: 'Hello!' }],
-});
+const result = await tools.mastraProxy
+  .find((t) => t.id === 'callMastraAgent')
+  .execute({
+    targetAgentId: 'your-agent-id',
+    interactionType: 'generate',
+    messages: [{ role: 'user', content: 'Hello!' }],
+  })
 ```
 
 #### Integration with AI IDEs:
+
 - **Cursor**: Configure MCP server connection
 - **Windsurf**: Add as MCP tool provider
 - **Other MCP clients**: Use HTTP/SSE endpoint
@@ -268,6 +286,7 @@ For Cursor IDE and other MCP clients, configure the proxy server in your `mcp.js
 ```
 
 **Configuration Notes:**
+
 - Replace `/absolute/path/to/your/mcp-mastra-agents` with your actual project path
 - The absolute path format avoids issues with working directory resolution
 - Environment variables in the `env` section configure server URLs and multi-server setup
@@ -324,6 +343,7 @@ The proxy implements comprehensive error handling:
 ### Debug Mode
 
 Enable detailed logging by setting:
+
 ```bash
 DEBUG=mastra:* pnpm start
 ```
