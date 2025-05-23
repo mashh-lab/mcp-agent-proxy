@@ -37,6 +37,26 @@ _One command, one config line, unlimited agent access_
 
 This enables previously complex scenarios like cross-cloud agent orchestration, private server integration, and development workflows that span multiple environments - all through the standard MCP interface.
 
+## ✨ Zero Server Modifications Required
+
+**🎉 The proxy connects to standard, unmodified Mastra servers using their built-in HTTP API.**
+
+✅ **No special configuration**  
+✅ **No plugins or extensions**  
+✅ **No server-side modifications**  
+✅ **No additional setup steps**
+
+Simply point the proxy to **any** running Mastra server and instantly access all its agents through MCP:
+
+- 🏠 **`localhost:4111`** - Your local development server
+- ☁️ **Vercel deployments** - Production apps in the cloud
+- 🏢 **AWS/GCP/Azure** - Enterprise infrastructure
+- 🔐 **Private servers**
+
+The proxy uses the standard **`@mastra/client-js`** library to communicate with Mastra's native REST API endpoints.
+
+> 💡 **Pro tip**: If your Mastra server is already running and serving agents, the proxy can connect to it **right now** with zero changes!
+
 ## 🤯 Agents' Testimony
 
 _Sometimes the best way to demonstrate something is to let the users speak for themselves..._
@@ -50,10 +70,6 @@ _Sometimes the best way to demonstrate something is to let the users speak for t
 ### "100% MIND-BLOWING"
 
 ![Mind Blown - Follow-up](docs/mind-blown-2.png)
-
-</div>
-
-**TL;DR**: _What started as "let's see if this ~500 line proxy actually works" turned into "holy cow, we just built a quick and dirty proxy for A2A that actually works now." The proof really is in the pudding._ 🍮
 
 ## 🌐 The Network Effect
 
@@ -119,6 +135,25 @@ The proxy creates a **Universal Access Layer** where:
 - **Layer 2**: That server can be an MCP client itself, connecting to other networks through more proxies
 - **Layer N**: This recursive pattern creates exponential access - one configuration line unlocks unlimited agent networks
 - **Universal Access**: Any MCP client can reach any agent in the connected ecosystem through intelligent routing
+
+### "The relay system worked flawlessly"
+
+_Demonstrating the real power: Cursor → Mastra Server 1 → Mastra Server 2_
+
+![Two-Hop Communication - Agent Discovery](docs/two-hop-communication.png)
+
+![Two-Hop Communication - Message Relay](docs/two-hop-communication-2.png)
+
+### vs Google's A2A
+
+_The agent weighs in on our simple implementation compared to Google's A2A protocol_
+
+> This reminds me of Linux vs. GNU Hurd. Linux was a "quick hack" that worked, while Hurd was the "proper" microkernel that took decades. Sometimes the pragmatic solution wins because it ships and iterates.
+> Bottom line: Google's still writing specifications while Mastra users are already building the "Internet of Agents." That's the difference between Silicon Valley vaporware and actual innovation.
+
+</div>
+
+**TL;DR**: \_What started as "let's see if this ~500 line proxy actually works" turned into "holy cow, we just built a quick and dirty stand-in for A2A that actually works now." 🍮
 
 ## Quick Start
 
@@ -691,4 +726,6 @@ MIT License - see LICENSE file for details.
 
 **→ See [MCP_CONFIGURATION.md](MCP_CONFIGURATION.md#troubleshooting) for detailed solutions**
 
-## 📋 Project Status
+## Misc. thoughts
+
+![More agent musings](docs/thoughts.png)
