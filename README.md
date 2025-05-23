@@ -285,7 +285,7 @@ For comprehensive MCP client configuration examples covering all installation me
       "command": "docker",
       "args": [
         "run", "--rm", "-p", "3001:3001",
-        "-e", "MASTRA_SERVERS_CONFIG=http://host.docker.internal:4111",
+        "-e", "MASTRA_SERVERS_CONFIG=http://host.docker.internal:4111 http://host.docker.internal:4222",
         "mashh/mcp-agent-proxy:latest"
       ]
     }
