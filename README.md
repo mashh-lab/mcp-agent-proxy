@@ -2,7 +2,7 @@
 
 **_🚀 It's like A2A-Lite!_**
 
-**⚡ ~500 lines of code. Unlimited agent access.**
+**⚡ ~500 lines of code. 2 tools. Unlimited agent access.**
 
 Connect your MCP clients (Cursor, Claude Desktop, other Mastra servers, etc.) to **any** Mastra agent server - whether it's running locally, deployed on Vercel, or your private infrastructure. This gives your client access to any agent on that server as a tool. And since Mastra servers can be MCP clients themselves, you're not just accessing individual agents, but potentially **entire agent networks** recursively through one simple configuration.
 
@@ -30,6 +30,24 @@ _Quick MCP config -> instant agent access_
   }
 }
 ```
+
+## 🎯 Just 2 Tools. Unlimited Possibilities.
+
+**The entire proxy exposes just 2 MCP tools:**
+
+- `listMastraAgents` - Discover what's available
+- `callMastraAgent` - Call any agent anywhere
+
+**That's it.** No complex protocols. No rigid schemas. No predefined workflows.
+
+This **radical simplicity** is the secret sauce:
+
+- **Agents figure it out** - They can discover, explore, and adapt to any agent network
+- **Zero constraints** - No artificial limitations on how agents interact
+- **Emergent behavior** - Complex workflows arise naturally from simple primitives
+- **Future-proof** - Works with agents that don't exist yet
+
+Instead of building a complex A2A protocol, we built **A2A primitives** and let the agents do what they do best: figure out how to use them creatively.
 
 ## Why This Is Powerful
 
