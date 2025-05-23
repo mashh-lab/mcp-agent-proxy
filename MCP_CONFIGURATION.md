@@ -147,6 +147,28 @@ You can also use comma-separated URLs if you prefer:
 }
 ```
 
+## Network Effect Examples
+
+### 🔗 Recursive Agent Networks
+
+For advanced users wanting to create **agents that can access other agent networks**, see these examples:
+
+- `examples/mastra-server-with-mcp.js` - Mastra server code that connects to other agent networks
+- `examples/network-effect-config.json` - MCP client configuration for connecting to network-aware servers
+
+This enables **exponential connectivity** where:
+
+1. Your MCP client connects to one proxy
+2. That proxy connects to a Mastra server
+3. That server's agents can access other Mastra servers the same way via their own proxy
+4. Creating unlimited recursive access to distributed AI capabilities across agent networks.
+
+**Use cases:**
+
+- Cross-environment testing (dev/staging/prod)
+- Workflow orchestration across multiple agent networks
+- Building the "Internet of Agents" with recursive connectivity
+
 ## Cloud/Deployed Server Examples
 
 The MCP Agent Proxy can seamlessly connect to **any Mastra API server**, regardless of where it's deployed. This enables powerful hybrid setups where you can access both development and production agents simultaneously across any combination of local servers, cloud providers, and deployment platforms.

@@ -1,0 +1,31 @@
+{
+  "_comment": "Network Effect Configuration - Connect to a Mastra server that itself connects to other agent networks",
+  "mcpServers": {
+    "mastra-agent-proxy": {
+      "command": "pnpx",
+      "args": ["@mashh/mcp-agent-proxy"],
+      "env": {
+        "_comment": "This Mastra server (localhost:4111) has agents that can access other networks",
+        "MASTRA_SERVERS": "http://localhost:4111"
+      }
+    }
+  },
+
+  "_architecture": {
+    "_comment": "How the network effect works:",
+    "layer1": "Your MCP Client (Cursor) connects to mcp-agent-proxy",
+    "layer2": "mcp-agent-proxy connects to Mastra Server (localhost:4111)",
+    "layer3": "That Mastra Server uses MCPClient to connect to other mcp-agent-proxies",
+    "layer4": "Those proxies connect to more Mastra servers (localhost:4222, prod, staging)",
+    "result": "One config line gives you access to unlimited agent networks"
+  },
+
+  "_example_usage": {
+    "_comment": "What you can do with this setup:",
+    "direct_agents": "Access agents directly on localhost:4111 (NetworkAwareAgent, ConversationAgent)",
+    "networked_agents": "Those agents can call agents on localhost:4222, prod, staging servers",
+    "cross_environment": "Compare agent responses across dev/staging/prod environments",
+    "workflow_orchestration": "Coordinate complex workflows spanning multiple agent networks",
+    "exponential_access": "Each connected server might connect to even more networks"
+  }
+}
