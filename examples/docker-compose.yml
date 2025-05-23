@@ -6,7 +6,7 @@ services:
     ports:
       - '3001:3001'
     environment:
-      - MASTRA_SERVERS_CONFIG=http://host.docker.internal:4111
+      - MASTRA_SERVERS=http://localhost:4111
     restart: unless-stopped
     healthcheck:
       test:

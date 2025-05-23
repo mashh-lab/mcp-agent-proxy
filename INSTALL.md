@@ -1,5 +1,166 @@
 # Installation Guide
 
+This guide covers installation methods and basic setup for the MCP Agent Proxy.
+
+## Quick Start
+
+Choose your preferred installation method:
+
+### Method 1: PNPM (Recommended)
+
+```bash
+pnpm add -g @mashh/mcp-agent-proxy
+```
+
+**Configuration:**
+
+```json
+{
+  "mcpServers": {
+    "mcp-agent-proxy": {
+      "command": "mcp-agent-proxy",
+      "env": {
+        "MASTRA_SERVERS": "http://localhost:4111"
+      }
+    }
+  }
+}
+```
+
+### Method 2: NPM
+
+```bash
+npm install -g @mashh/mcp-agent-proxy
+```
+
+**Configuration:**
+
+```json
+{
+  "mcpServers": {
+    "mcp-agent-proxy": {
+      "command": "npx",
+      "args": ["@mashh/mcp-agent-proxy"],
+      "env": {
+        "MASTRA_SERVERS": "http://localhost:4111"
+      }
+    }
+  }
+}
+```
+
+### Method 3: Docker
+
+```bash
+docker pull mashh/mcp-agent-proxy:latest
+```
+
+**Configuration:**
+
+```json
+{
+  "mcpServers": {
+    "mcp-agent-proxy": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-p",
+        "3001:3001",
+        "-e",
+        "MASTRA_SERVERS=http://localhost:4111",
+        "mashh/mcp-agent-proxy:latest"
+      ]
+    }
+  }
+}
+```
+
+### Method 4: Docker Compose
+
+Create `docker-compose.yml`:
+
+```yaml
+services:
+  mcp-agent-proxy:
+    image: mashh/mcp-agent-proxy:latest
+    ports:
+      - '3001:3001'
+    environment:
+      - MASTRA_SERVERS=http://localhost:4111
+```
+
+### Method 5: Download Binary
+
+Download platform-specific binaries from [GitHub Releases](https://github.com/mashh-lab/mcp-agent-proxy/releases):
+
+**Configuration:**
+
+```json
+{
+  "mcpServers": {
+    "mcp-agent-proxy": {
+      "command": "/path/to/mcp-agent-proxy",
+      "env": {
+        "MASTRA_SERVERS": "http://localhost:4111"
+      }
+    }
+  }
+}
+```
+
+## Environment Variables
+
+After installation, configure the required environment variables:
+
+- **`MASTRA_SERVERS`** - Mastra server URLs (multiple formats supported)
+
+### Format Options
+
+### MASTRA_SERVERS Format Options
+
+The `MASTRA_SERVERS` environment variable supports multiple formats for flexibility:
+
+**Space-separated (recommended):**
+
+```json
+"MASTRA_SERVERS": "http://localhost:4111 http://localhost:4222"
+```
+
+**Comma-separated:**
+
+```json
+"MASTRA_SERVERS": "http://localhost:4111,http://localhost:4222"
+```
+
+**Mixed (comma + space):**
+
+```json
+"MASTRA_SERVERS": "http://localhost:4111, http://localhost:4222"
+```
+
+## Next Steps
+
+1. **Start your Mastra servers** on the configured ports
+2. **Add the configuration** to your MCP client's `mcp.json`
+3. **Test the connection** by using MCP client features
+
+## Getting Help
+
+- Check our [MCP Configuration Guide](MCP_CONFIGURATION.md) for detailed examples
+- Review [Contributing Guidelines](CONTRIBUTING.md) for development setup
+- Open an issue on [GitHub](https://github.com/mashh-lab/mcp-agent-proxy/issues) for support
+
+---
+
+## Command Line Usage
+
+For quick testing, you can run directly:
+
+```bash
+MASTRA_SERVERS="http://localhost:4111" mcp-agent-proxy
+```
+
 ## Method 1: PNPM Package (Recommended)
 
 ### Global Installation
@@ -39,7 +200,7 @@ pnpm exec @mashh/mcp-agent-proxy
     "mastra-agent-proxy": {
       "command": "mcp-agent-proxy",
       "env": {
-        "MASTRA_SERVERS_CONFIG": "http://localhost:4111"
+        "MASTRA_SERVERS": "http://localhost:4111"
       }
     }
   }
@@ -85,7 +246,7 @@ npx @mashh/mcp-agent-proxy
     "mastra-agent-proxy": {
       "command": "mcp-agent-proxy",
       "env": {
-        "MASTRA_SERVERS_CONFIG": "http://localhost:4111"
+        "MASTRA_SERVERS": "http://localhost:4111"
       }
     }
   }
@@ -106,7 +267,7 @@ docker pull mashh/mcp-agent-proxy:latest
 docker run -d \
   --name mcp-agent-proxy \
   -p 3001:3001 \
-  -e MASTRA_SERVERS_CONFIG=http://host.docker.internal:4111 \
+  -e MASTRA_SERVERS=http://localhost:4111 \
   mashh/mcp-agent-proxy:latest
 ```
 
@@ -120,7 +281,7 @@ services:
     ports:
       - '3001:3001'
     environment:
-      - MASTRA_SERVERS_CONFIG=http://host.docker.internal:4111
+      - MASTRA_SERVERS=http://localhost:4111
     restart: unless-stopped
 ```
 
@@ -147,7 +308,7 @@ sudo mv mcp-agent-proxy /usr/local/bin/
     "mastra-agent-proxy": {
       "command": "/usr/local/bin/mcp-agent-proxy",
       "env": {
-        "MASTRA_SERVERS_CONFIG": "http://localhost:4111"
+        "MASTRA_SERVERS": "http://localhost:4111"
       }
     }
   }
@@ -180,7 +341,7 @@ pnpm start
       "command": "node",
       "args": ["/absolute/path/to/mcp-agent-proxy/dist/mcp-server.js"],
       "env": {
-        "MASTRA_SERVERS_CONFIG": "http://localhost:4111"
+        "MASTRA_SERVERS": "http://localhost:4111"
       }
     }
   }
@@ -193,7 +354,7 @@ Configure environment variables in your MCP client's configuration file (typical
 
 ### Required Variable
 
-- **`MASTRA_SERVERS_CONFIG`** - Mastra server URLs (multiple formats supported)
+- **`MASTRA_SERVERS`** - Mastra server URLs (multiple formats supported)
 
 ### Optional Variables (All Have Defaults)
 
@@ -213,7 +374,7 @@ Configure environment variables in your MCP client's configuration file (typical
     "mastra-agent-proxy": {
       "command": "mcp-agent-proxy",
       "env": {
-        "MASTRA_SERVERS_CONFIG": "http://localhost:4111 http://localhost:4222"
+        "MASTRA_SERVERS": "http://localhost:4111 http://localhost:4222"
       }
     }
   }
@@ -229,7 +390,7 @@ Test your installation:
 mcp-agent-proxy --help
 
 # Test with environment variables
-MASTRA_SERVERS_CONFIG="http://localhost:4111" mcp-agent-proxy
+MASTRA_SERVERS="http://localhost:4111" mcp-agent-proxy
 ```
 
 ## Troubleshooting
@@ -258,9 +419,9 @@ npm config get prefix
 echo $PATH
 ```
 
-### MASTRA_SERVERS_CONFIG Format Options
+### MASTRA_SERVERS Format Options
 
-The `MASTRA_SERVERS_CONFIG` environment variable supports multiple formats for flexibility:
+The `MASTRA_SERVERS` environment variable supports multiple formats for flexibility:
 
 - **Space separated** (recommended): `http://localhost:4111 http://localhost:4222`
 - **Comma separated**: `http://localhost:4111,http://localhost:4222`

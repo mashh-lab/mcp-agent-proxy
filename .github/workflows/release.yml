@@ -15,7 +15,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '22'
           cache: 'pnpm'
 
       - name: Install pnpm
@@ -48,7 +48,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '22'
           registry-url: 'https://registry.npmjs.org'
           cache: 'pnpm'
 
@@ -129,7 +129,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '22'
           cache: 'pnpm'
 
       - name: Install pnpm
@@ -148,7 +148,7 @@ jobs:
         run: npm install -g pkg
 
       - name: Build binary
-        run: pkg dist/mcp-server.js --target node18-${{ matrix.target }}-x64 --output mcp-agent-proxy-${{ matrix.target }}${{ matrix.ext }}
+        run: pkg dist/mcp-server.js --target node22-${{ matrix.target }}-x64 --output mcp-agent-proxy-${{ matrix.target }}${{ matrix.ext }}
 
       - name: Upload binary
         if: startsWith(github.ref, 'refs/tags/v')

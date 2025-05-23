@@ -30,7 +30,7 @@ export function getMCPPaths() {
  */
 export function loadServerMappings(): Map<string, string> {
   // Check if custom server configuration is provided
-  const serversConfig = process.env.MASTRA_SERVERS_CONFIG
+  const serversConfig = process.env.MASTRA_SERVERS
 
   if (serversConfig) {
     try {
@@ -53,7 +53,7 @@ export function loadServerMappings(): Map<string, string> {
       if (serverMap.size === 0) {
         // Only log if not using stdio (MCP protocol)
         if (process.env.MCP_TRANSPORT !== 'stdio' && process.stdin.isTTY) {
-          console.log('No valid URLs in MASTRA_SERVERS_CONFIG, using defaults')
+          console.log('No valid URLs in MASTRA_SERVERS, using defaults')
         }
         return getDefaultMappings()
       }
@@ -69,7 +69,7 @@ export function loadServerMappings(): Map<string, string> {
     } catch (error) {
       // Only log errors if not using stdio
       if (process.env.MCP_TRANSPORT !== 'stdio' && process.stdin.isTTY) {
-        console.error('Failed to parse MASTRA_SERVERS_CONFIG:', error)
+        console.error('Failed to parse MASTRA_SERVERS:', error)
         console.log('Supported formats:')
         console.log(
           '  Space separated: "http://localhost:4111 http://localhost:4222"',
