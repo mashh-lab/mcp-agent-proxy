@@ -144,6 +144,151 @@ You can also use comma-separated URLs if you prefer:
 }
 ```
 
+## Cloud/Deployed Server Examples
+
+The MCP Agent Proxy can seamlessly connect to **any Mastra API server**, regardless of where it's deployed. This enables powerful hybrid setups where you can access both development and production agents simultaneously across any combination of local servers, cloud providers, and deployment platforms.
+
+### 📁 Ready-to-Use Examples
+
+**Vercel-Specific Examples:**
+
+- `examples/vercel-config.json` - Single Vercel deployment
+- `examples/vercel-localhost-config.json` - Vercel + local development
+- `examples/vercel-multi-env-config.json` - Production + staging + local environments
+
+**Generic Cloud Examples:**
+
+- `examples/cloud-config.json` - Any cloud provider
+- `examples/cloud-localhost-config.json` - Any cloud + local
+
+### Single Cloud Server
+
+Connect to any deployed Mastra server (examples using different providers):
+
+**Vercel:**
+
+```json
+{
+  "mcpServers": {
+    "mcp-agent-proxy": {
+      "command": "mcp-agent-proxy",
+      "env": {
+        "MASTRA_SERVERS": "https://your-mastra-app.vercel.app"
+      }
+    }
+  }
+}
+```
+
+**Any Cloud Provider:**
+
+```json
+{
+  "mcpServers": {
+    "mcp-agent-proxy": {
+      "command": "mcp-agent-proxy",
+      "env": {
+        "MASTRA_SERVERS": "https://your-mastra-app.anycloudprovider.com"
+      }
+    }
+  }
+}
+```
+
+**Custom Domain/Server:**
+
+```json
+{
+  "mcpServers": {
+    "mcp-agent-proxy": {
+      "command": "mcp-agent-proxy",
+      "env": {
+        "MASTRA_SERVERS": "https://api.yourcompany.com"
+      }
+    }
+  }
+}
+```
+
+### Hybrid: Cloud + Local Development
+
+Perfect for accessing both production agents (any cloud provider) and local development servers:
+
+```json
+{
+  "mcpServers": {
+    "mcp-agent-proxy": {
+      "command": "mcp-agent-proxy",
+      "env": {
+        "MASTRA_SERVERS": "https://your-mastra-app.example.com http://localhost:4111"
+      }
+    }
+  }
+}
+```
+
+This configuration allows you to:
+
+- Test against production agents while developing
+- Compare local vs deployed agent behavior
+- Access different agent variants across environments
+- Handle agent conflicts gracefully (use fully qualified IDs like `server0:agentName`)
+
+### Multiple Cloud Providers
+
+Mix any combination of cloud providers and deployment platforms:
+
+```json
+{
+  "mcpServers": {
+    "mcp-agent-proxy": {
+      "command": "mcp-agent-proxy",
+      "env": {
+        "MASTRA_SERVERS": "https://prod.vercel.app https://staging.vercel.app https://dev.yourcompany.com http://localhost:4111"
+      }
+    }
+  }
+}
+```
+
+### Production vs Staging vs Development
+
+Organize multiple environments across any hosting providers:
+
+```json
+{
+  "mcpServers": {
+    "mcp-agent-proxy": {
+      "command": "mcp-agent-proxy",
+      "env": {
+        "MASTRA_SERVERS": "https://prod.yourcompany.com https://staging.yourcompany.com http://localhost:4111"
+      }
+    }
+  }
+}
+```
+
+### Self-Hosted/Private Server Scenarios
+
+Works with any self-hosted or private Mastra deployments:
+
+```json
+{
+  "mcpServers": {
+    "mcp-agent-proxy": {
+      "command": "mcp-agent-proxy",
+      "env": {
+        "MASTRA_SERVERS": "https://agents.internal.company.com:8443 http://localhost:4111"
+      }
+    }
+  }
+}
+```
+
+**Key Point:** The proxy works with **any HTTP-accessible Mastra server**. Whether it's deployed on Vercel, AWS, Google Cloud, Azure, a private server, or running locally - if it exposes the Mastra API over HTTP/HTTPS, the proxy can connect to it. Vercel is used in our examples, but any cloud provider or hosting solution will work.
+
+**Note:** When connecting to multiple servers with the same agent names, the proxy automatically detects conflicts and provides fully qualified agent IDs (e.g., `server0:weatherAgent`, `server1:weatherAgent`) to avoid ambiguity.
+
 ## Platform-Specific Examples
 
 ### Windows (PowerShell/CMD)
@@ -197,9 +342,9 @@ You can also use comma-separated URLs if you prefer:
 
 ### Environment Variables (All Optional)
 
-| Variable         | Description        | Default                 | Example                                       |
-| ---------------- | ------------------ | ----------------------- | --------------------------------------------- |
-| `MASTRA_SERVERS` | Mastra server URLs | `http://localhost:4111` | `http://localhost:4111 http://localhost:4222` |
+| Variable         | Description        | Default                 | Example                                              |
+| ---------------- | ------------------ | ----------------------- | ---------------------------------------------------- |
+| `MASTRA_SERVERS` | Mastra server URLs | `http://localhost:4111` | `https://your-api.example.com http://localhost:4111` |
 
 ### Other Optional Variables (All Have Defaults)
 
@@ -378,6 +523,116 @@ Perfect for standard local Mastra development:
       "command": "mcp-agent-proxy",
       "env": {
         "MASTRA_SERVERS": "http://localhost:4111 http://localhost:4222"
+      }
+    }
+  }
+}
+```
+
+### Cloud Deployed Server
+
+Connect to any deployed Mastra server (works with any cloud provider):
+
+```json
+{
+  "mcpServers": {
+    "mcp-agent-proxy": {
+      "command": "mcp-agent-proxy",
+      "env": {
+        "MASTRA_SERVERS": "https://your-mastra-app.example.com"
+      }
+    }
+  }
+}
+```
+
+### Hybrid: Production + Development
+
+Access both your deployed agents and local development servers:
+
+```json
+{
+  "mcpServers": {
+    "mcp-agent-proxy": {
+      "command": "mcp-agent-proxy",
+      "env": {
+        "MASTRA_SERVERS": "https://your-mastra-app.example.com http://localhost:4111"
+      }
+    }
+  }
+}
+```
+
+### Command Not Found (`spawn mcp-agent-proxy ENOENT`)
+
+If you see errors like `spawn mcp-agent-proxy ENOENT` in your MCP client logs, it means the client can't find the `mcp-agent-proxy` command. This is common with Claude Desktop.
+
+#### **Solution: Use Absolute Path (Recommended)**
+
+Find the absolute path to your globally installed package:
+
+```bash
+# For npm global installs
+which mcp-agent-proxy
+
+# For pnpm global installs
+which mcp-agent-proxy
+```
+
+Then use the absolute path in your `mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "mastra-agent-proxy": {
+      "command": "/Users/yourusername/.pnpm/mcp-agent-proxy",
+      "env": {
+        "MASTRA_SERVERS": "http://localhost:4111"
+      }
+    }
+  }
+}
+```
+
+This method works reliably across all MCP clients because it doesn't depend on PATH configuration.
+
+#### **Alternative: Local Installation (If needed)**
+
+If global installation doesn't work, install locally:
+
+```bash
+# In your MCP client directory
+npm install @mashh/mcp-agent-proxy
+```
+
+Then use:
+
+```json
+{
+  "mcpServers": {
+    "mastra-agent-proxy": {
+      "command": "npx",
+      "args": ["@mashh/mcp-agent-proxy"],
+      "env": {
+        "MASTRA_SERVERS": "http://localhost:4111"
+      }
+    }
+  }
+}
+```
+
+### Port Conflicts
+
+If port 3001 is in use:
+
+```json
+{
+  "mcpServers": {
+    "mastra-agent-proxy": {
+      "command": "mcp-agent-proxy",
+      "env": {
+        "MASTRA_SERVERS": "http://localhost:4111",
+        "MCP_SERVER_PORT": "3002"
       }
     }
   }

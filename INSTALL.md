@@ -310,38 +310,38 @@ MASTRA_SERVERS="http://localhost:4111" mcp-agent-proxy
 
 # Check health and status (if server is running)
 pnpm health:json     # Quick health check
-pnpm status:json     # Full status with agent info
-pnpm check           # Both health and status
-
-# Or use curl directly
-curl http://localhost:3001/health | jq .
 curl http://localhost:3001/status | jq .
 ```
 
 ## Troubleshooting
+
+### Command Not Found Errors
+
+If you get `spawn mcp-agent-proxy ENOENT` errors in your MCP client:
+
+1. **Find the absolute path** to your global installation:
+
+   ```bash
+   which mcp-agent-proxy
+   ```
+
+2. **Use the absolute path** in your MCP configuration:
+   ```json
+   {
+     "mcpServers": {
+       "mastra-agent-proxy": {
+         "command": "/absolute/path/to/mcp-agent-proxy"
+       }
+     }
+   }
+   ```
+
+This method works reliably across all MCP clients (especially Claude Desktop) because it doesn't depend on PATH configuration.
+
+**→ For detailed troubleshooting see [MCP_CONFIGURATION.md](MCP_CONFIGURATION.md#troubleshooting)**
 
 ### Port Conflicts
 
 ```bash
 MCP_SERVER_PORT=3002 mcp-agent-proxy
 ```
-
-### Path Issues (Global Installation)
-
-```bash
-# For PNPM
-pnpm config get prefix
-echo $PATH
-
-# For NPM
-npm config get prefix
-echo $PATH
-```
-
-### MASTRA_SERVERS Format Options
-
-The `MASTRA_SERVERS` environment variable supports multiple formats for flexibility:
-
-- **Space separated** (recommended): `http://localhost:4111 http://localhost:4222`
-- **Comma separated**: `http://localhost:4111,http://localhost:4222`
-- **Comma + space**: `http://localhost:4111, http://localhost:4222`

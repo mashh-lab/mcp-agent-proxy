@@ -1,5 +1,95 @@
 # MCP Agent Proxy
 
+> **🚀 It's like A2A-Lite!**
+>
+> Connect your MCP clients (Cursor, Claude Desktop, other Mastra servers, etc.) to **any** Mastra agent server - whether it's running locally, deployed on Vercel, or your private infrastructure. Since Mastra servers can be MCP clients themselves, you're not just accessing individual agents, but potentially **entire agent networks** through one simple configuration.
+
+<div align="center">
+
+### 🚀 **Ready to try it?**
+
+**[👉 Jump to Quick Start Guide 👈](#quick-start)**
+
+_One command, one config line, unlimited agent access_
+
+</div>
+
+---
+
+## Why This Is Powerful
+
+**🌐 Infrastructure-Agnostic**: Works with any HTTP-accessible Mastra server - localhost, Vercel, AWS, your private servers, anywhere
+
+**⚡ Hybrid Development**: Test against production agents while coding locally. Compare deployed vs development behavior instantly.
+
+**🧠 Smart Conflict Resolution**: Multiple servers with the same agents? No problem - auto-generates `server0:weatherAgent`, `server1:weatherAgent`
+
+**🔧 Zero Setup**: One line in your `mcp.json` connects you to unlimited agents across unlimited servers
+
+```json
+// Connect to agents anywhere with one configuration line
+"MASTRA_SERVERS": "https://prod.yourcompany.com https://staging.vercel.app http://localhost:4111"
+```
+
+This enables previously complex scenarios like cross-cloud agent orchestration, private server integration, and development workflows that span multiple environments - all through the standard MCP interface.
+
+## 🌐 The Network Effect
+
+Here's where it gets really powerful: **Mastra servers can be MCP clients themselves**. This means you're not just connecting to individual agents - you're connecting to **entire agent networks**.
+
+### Multi-Layer Agent Architecture
+
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────────┐
+│   MCP Client    │───▶│  mcp-agent-proxy │───▶│   Mastra Server     │
+│  (Cursor, etc.) │    │                  │    │                     │
+└─────────────────┘    └──────────────────┘    │ ┌─────────────────┐ │
+                                                │ │   MCPClient     │ │
+                                                │ │                 │ │
+                                                │ └─────────────────┘ │
+                                                │         │           │
+                                                │         ▼           │
+                                                │ ┌─────────────────┐ │
+                                                │ │ Other MCP       │ │
+                                                │ │ Servers/Tools   │ │
+                                                │ └─────────────────┘ │
+                                                └─────────────────────┘
+```
+
+### Exponential Connectivity
+
+When you connect to a Mastra server, you might actually be accessing:
+
+- **Direct agents** running on that server
+- **Aggregated tools** from multiple MCP servers it connects to
+- **Composed workflows** that span multiple agent networks
+- **Distributed intelligence** across cloud providers and private infrastructure
+
+### Real-World Example
+
+```json
+"MASTRA_SERVERS": "https://finance.yourcompany.com https://research.yourcompany.com"
+```
+
+This simple configuration could give you access to:
+
+- **Finance server**: Stock APIs, crypto data, economic indicators (each potentially separate MCP servers)
+- **Research server**: Academic databases, web search, document analysis (again, multiple MCP networks)
+
+**Result**: One configuration line → hundreds of specialized tools across distributed agent networks.
+
+### Distributed Agent Infrastructure
+
+This creates the foundation for **massive distributed AI infrastructure** where:
+
+- ✨ **Agents compose other agents** through standard MCP protocols
+- 🔗 **Networks connect to networks** creating exponential tool access
+- 🌍 **Geographic distribution** becomes seamless (US agents, EU agents, Asia agents)
+- 🏢 **Organizational boundaries** dissolve (internal tools + external services)
+- ⚡ **Development cycles** span from localhost to production networks instantly
+
+---
+
 An MCP (Model Context Protocol) proxy server that enables MCP clients to communicate with Mastra agent servers. This proxy exposes Mastra agents as standardized MCP tools, enabling broad integration with MCP-compliant clients like Cursor, Claude Desktop, and others.
 
 ## Features
@@ -16,15 +106,20 @@ An MCP (Model Context Protocol) proxy server that enables MCP clients to communi
 ## Architecture
 
 ```
-MCP Client --> Custom MCP Server --> Agent-Proxy Tool --> @mastra/client-js --> Target Mastra Server(s) --> Mastra Agents
+MCP Client --> MCP Agent Proxy --> Mastra Server(s) --> Target Agents & Tools
+    │                                      │
+    │                                      └─► MCPClient --> Other MCP Networks
+    │                                                              │
+    └─────────── Exponential Access ──────────────────────────────┘
 ```
 
-The proxy server acts as an intermediary layer that:
+The proxy server acts as a universal access layer that:
 
-1. Receives MCP tool calls from clients
+1. Receives MCP tool calls from any MCP client
 2. Intelligently routes them to appropriate Mastra servers
-3. Handles agent name conflicts using smart resolution
-4. Returns responses in MCP-compliant format
+3. **Unlocks access to entire agent networks** (since Mastra servers can connect to other MCP servers)
+4. Handles agent name conflicts using smart resolution across all connected networks
+5. Returns responses in MCP-compliant format
 
 ## Quick Start
 
@@ -42,7 +137,7 @@ npm install -g @mashh/mcp-agent-proxy
 
 ### 2. Configure
 
-**Option A: Zero Setup (standard local Mastra server)**
+**Option A: Zero Setup (Recommended for local development)**
 
 Add this minimal configuration to your MCP client's `mcp.json`:
 
@@ -58,6 +153,20 @@ Add this minimal configuration to your MCP client's `mcp.json`:
 
 That's it! The proxy automatically connects to `http://localhost:4111` - perfect for standard Mastra setups.
 
+**Note:** If you get `spawn mcp-agent-proxy ENOENT` errors (common with Claude Desktop), use the absolute path instead:
+
+```json
+{
+  "mcpServers": {
+    "mastra-agent-proxy": {
+      "command": "/absolute/path/to/mcp-agent-proxy"
+    }
+  }
+}
+```
+
+Find your path with: `which mcp-agent-proxy`
+
 **Option B: Custom Configuration**
 
 For multiple servers or custom URLs:
@@ -65,7 +174,7 @@ For multiple servers or custom URLs:
 ```json
 {
   "mcpServers": {
-    "mastra-agent-proxy": {
+    "mcp-agent-proxy": {
       "command": "mcp-agent-proxy",
       "env": {
         "MASTRA_SERVERS": "http://localhost:4111 http://localhost:4222"
@@ -74,6 +183,12 @@ For multiple servers or custom URLs:
   }
 }
 ```
+
+**🚀 Vercel Users**: Check out the ready-to-use Vercel examples:
+
+- `examples/vercel-config.json` - Single Vercel deployment
+- `examples/vercel-localhost-config.json` - Vercel + local development
+- `examples/vercel-multi-env-config.json` - Production + staging + local
 
 For detailed installation options, see [INSTALL.md](INSTALL.md).
 
@@ -481,11 +596,29 @@ The proxy implements comprehensive error handling:
 
 ## Use Cases
 
-1. **AI IDE Integration**: Expose Mastra agents to coding assistants
-2. **Development/Production Separation**: Point to different Mastra servers per environment
-3. **Agent Standardization**: Provide consistent MCP interface to diverse agents
-4. **Microservice Architecture**: Decouple agent consumers from implementations
-5. **Cross-Platform Access**: Enable any MCP client to use Mastra agents
+### **🏢 Organizational Scale**
+
+1. **Distributed AI Infrastructure**: Connect departments with specialized agent networks (finance, research, operations) through one interface
+2. **Cross-Cloud Agent Orchestration**: Seamlessly access agents across AWS, Google Cloud, Vercel, and private infrastructure
+3. **Development-to-Production Pipelines**: Test against production agent networks while coding locally
+
+### **🌐 Network Scale**
+
+4. **Agent Network Composition**: Access entire ecosystems where Mastra servers aggregate tools from multiple MCP networks
+5. **Geographic Distribution**: Connect to agent networks across regions (US, EU, Asia) for compliance and performance
+6. **Multi-Vendor Integration**: Unified access to agents from different providers through standard MCP protocols
+
+### **💻 Developer Scale**
+
+7. **AI IDE Integration**: Give coding assistants access to specialized agents for different domains (security, testing, documentation)
+8. **Hybrid Development Workflows**: Compare local agent behavior against staging and production networks instantly
+9. **Agent Standardization**: Provide consistent MCP interface to diverse agent implementations and versions
+
+### **🚀 Ecosystem Scale**
+
+10. **Open Agent Marketplaces**: Enable any MCP client to discover and use agents across the ecosystem
+11. **Composable AI Architecture**: Build applications that span multiple agent networks without vendor lock-in
+12. **Future-Proof Integration**: As the MCP ecosystem grows, automatically gain access to new agent networks
 
 ## Troubleshooting
 
@@ -546,3 +679,17 @@ The GitHub Actions workflow will automatically:
 ## License
 
 MIT License - see LICENSE file for details.
+
+## 🔧 Troubleshooting
+
+**Common Issues:**
+
+- **`spawn mcp-agent-proxy ENOENT`** - Command not found (especially in Claude Desktop)
+  - **Solution**: Use absolute path in your `mcp.json` configuration
+  - Find path with: `which mcp-agent-proxy`
+- **Port conflicts** - Default port 3001 is in use
+- **Connection failures** - Mastra server not running
+
+**→ See [MCP_CONFIGURATION.md](MCP_CONFIGURATION.md#troubleshooting) for detailed solutions**
+
+## 📋 Project Status

@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "mcp-agent-proxy": {
+      "command": "mcp-agent-proxy",
+      "env": {
+        "MASTRA_SERVERS": "https://your-mastra-app.vercel.app"
+      }
+    }
+  }
+}
