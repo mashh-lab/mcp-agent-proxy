@@ -152,6 +152,8 @@ const networkAwareAgent = new Agent({
 })
 ```
 
+Let's say you have that MCP-connected Mastra server running locally on the default 4111 port.
+
 **Then users connect to your network-aware server from an MCP client like Cursor or Claude:**
 
 ```json
