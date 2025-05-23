@@ -27,6 +27,18 @@ pnpm add -g @mashh/mcp-agent-proxy
 }
 ```
 
+**Or use minimal configuration (zero setup):**
+
+```json
+{
+  "mcpServers": {
+    "mcp-agent-proxy": {
+      "command": "mcp-agent-proxy"
+    }
+  }
+}
+```
+
 ### Method 2: NPM
 
 ```bash
@@ -49,52 +61,44 @@ npm install -g @mashh/mcp-agent-proxy
 }
 ```
 
-### Method 3: Docker
+### Method 3: From Source
+
+### Clone and build
 
 ```bash
-docker pull mashh/mcp-agent-proxy:latest
+git clone https://github.com/mashh-lab/mcp-agent-proxy.git
+cd mcp-agent-proxy
+pnpm install
+pnpm build
 ```
 
-**Configuration:**
+### Run from source
+
+```bash
+pnpm start
+```
+
+### MCP Client Configuration (Source)
 
 ```json
 {
   "mcpServers": {
-    "mcp-agent-proxy": {
-      "command": "docker",
-      "args": [
-        "run",
-        "--rm",
-        "-p",
-        "3001:3001",
-        "-e",
-        "MASTRA_SERVERS=http://localhost:4111",
-        "mashh/mcp-agent-proxy:latest"
-      ]
+    "mastra-agent-proxy": {
+      "command": "node",
+      "args": ["/absolute/path/to/mcp-agent-proxy/dist/mcp-server.js"],
+      "env": {
+        "MASTRA_SERVERS": "http://localhost:4111"
+      }
     }
   }
 }
 ```
 
-### Method 4: Docker Compose
-
-Create `docker-compose.yml`:
-
-```yaml
-services:
-  mcp-agent-proxy:
-    image: mashh/mcp-agent-proxy:latest
-    ports:
-      - '3001:3001'
-    environment:
-      - MASTRA_SERVERS=http://localhost:4111
-```
-
 ## Environment Variables
 
-After installation, configure the required environment variables:
+All environment variables are optional and have sensible defaults:
 
-- **`MASTRA_SERVERS`** - Mastra server URLs (multiple formats supported)
+- **`MASTRA_SERVERS`** - Mastra server URLs (multiple formats supported). **Default: `http://localhost:4111`**
 
 ### Format Options
 
@@ -158,6 +162,10 @@ The one-shot scripts are perfect for quick testing as they automatically start t
 For quick testing, you can run directly:
 
 ```bash
+# Zero configuration (uses default http://localhost:4111)
+mcp-agent-proxy
+
+# Or with custom servers
 MASTRA_SERVERS="http://localhost:4111" mcp-agent-proxy
 ```
 
@@ -253,80 +261,15 @@ npx @mashh/mcp-agent-proxy
 }
 ```
 
-## Method 3: Docker (Containerized)
-
-### Pull from registry
-
-```bash
-docker pull mashh/mcp-agent-proxy:latest
-```
-
-### Run with environment variables
-
-```bash
-docker run -d \
-  --name mcp-agent-proxy \
-  -p 3001:3001 \
-  -e MASTRA_SERVERS=http://localhost:4111 \
-  mashh/mcp-agent-proxy:latest
-```
-
-### Docker Compose
-
-```yaml
-version: '3.8'
-services:
-  mcp-agent-proxy:
-    image: mashh/mcp-agent-proxy:latest
-    ports:
-      - '3001:3001'
-    environment:
-      - MASTRA_SERVERS=http://localhost:4111
-    restart: unless-stopped
-```
-
-## Method 4: From Source
-
-### Clone and build
-
-```bash
-git clone https://github.com/mashh-lab/mcp-agent-proxy.git
-cd mcp-agent-proxy
-pnpm install
-pnpm build
-```
-
-### Run from source
-
-```bash
-pnpm start
-```
-
-### MCP Client Configuration (Source)
-
-```json
-{
-  "mcpServers": {
-    "mastra-agent-proxy": {
-      "command": "node",
-      "args": ["/absolute/path/to/mcp-agent-proxy/dist/mcp-server.js"],
-      "env": {
-        "MASTRA_SERVERS": "http://localhost:4111"
-      }
-    }
-  }
-}
-```
-
 ## Environment Configuration
 
 Configure environment variables in your MCP client's configuration file (typically `mcp.json`):
 
-### Required Variable
+### Environment Variables (All Optional)
 
-- **`MASTRA_SERVERS`** - Mastra server URLs (multiple formats supported)
+- **`MASTRA_SERVERS`** - Mastra server URLs (multiple formats supported). **Default: `http://localhost:4111`**
 
-### Optional Variables (All Have Defaults)
+### Other Optional Variables (All Have Defaults)
 
 - **`MCP_SERVER_PORT`** - MCP proxy server port (default: `3001`)
 - **`MASTRA_CLIENT_RETRIES`** - Client retry attempts (default: `3`)
@@ -359,7 +302,10 @@ Test your installation:
 # Check if server starts
 mcp-agent-proxy --help
 
-# Test with environment variables
+# Test with default configuration (no env vars needed)
+mcp-agent-proxy
+
+# Test with custom environment variables
 MASTRA_SERVERS="http://localhost:4111" mcp-agent-proxy
 
 # Check health and status (if server is running)

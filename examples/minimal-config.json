@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "mcp-agent-proxy": {
+      "command": "mcp-agent-proxy"
+    }
+  }
+}
