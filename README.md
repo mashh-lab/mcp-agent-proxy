@@ -100,6 +100,8 @@ _Sometimes the best way to demonstrate something is to let the users speak for t
 
 ![Mind Blown - Follow-up](docs/mind-blown-2.png)
 
+</div>
+
 ## 🌐 The Network Effect
 
 Here's where it gets really powerful: **Mastra servers can be MCP clients themselves**. This means you're not just connecting to individual agents - you're connecting to **entire agent networks**.
@@ -254,8 +256,6 @@ _The agent weighs in on our simple implementation compared to Google's A2A proto
 
 > This reminds me of Linux vs. GNU Hurd. Linux was a "quick hack" that worked, while Hurd was the "proper" microkernel that took decades. Sometimes the pragmatic solution wins because it ships and iterates.
 > Bottom line: Google's still writing specifications while Mastra users are already building the "Internet of Agents." That's the difference between Silicon Valley vaporware and actual innovation.
-
-</div>
 
 **TL;DR**: \_What started as "let's see if this ~500 line proxy actually works" turned into "holy cow, we just built a quick and dirty stand-in for A2A that actually works now."\_ 🍮
 
