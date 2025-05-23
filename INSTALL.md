@@ -90,25 +90,6 @@ services:
       - MASTRA_SERVERS=http://localhost:4111
 ```
 
-### Method 5: Download Binary
-
-Download platform-specific binaries from [GitHub Releases](https://github.com/mashh-lab/mcp-agent-proxy/releases):
-
-**Configuration:**
-
-```json
-{
-  "mcpServers": {
-    "mcp-agent-proxy": {
-      "command": "/path/to/mcp-agent-proxy",
-      "env": {
-        "MASTRA_SERVERS": "http://localhost:4111"
-      }
-    }
-  }
-}
-```
-
 ## Environment Variables
 
 After installation, configure the required environment variables:
@@ -304,37 +285,7 @@ services:
     restart: unless-stopped
 ```
 
-## Method 4: Standalone Binary
-
-### Download and install
-
-```bash
-# Download latest release
-curl -L https://github.com/mashh-lab/mcp-agent-proxy/releases/latest/download/mcp-agent-proxy-linux -o mcp-agent-proxy
-
-# Make executable
-chmod +x mcp-agent-proxy
-
-# Move to PATH
-sudo mv mcp-agent-proxy /usr/local/bin/
-```
-
-### MCP Client Configuration (Binary)
-
-```json
-{
-  "mcpServers": {
-    "mastra-agent-proxy": {
-      "command": "/usr/local/bin/mcp-agent-proxy",
-      "env": {
-        "MASTRA_SERVERS": "http://localhost:4111"
-      }
-    }
-  }
-}
-```
-
-## Method 5: From Source
+## Method 4: From Source
 
 ### Clone and build
 
@@ -422,12 +373,6 @@ curl http://localhost:3001/status | jq .
 ```
 
 ## Troubleshooting
-
-### Permission Issues (Binary)
-
-```bash
-chmod +x mcp-agent-proxy
-```
 
 ### Port Conflicts
 

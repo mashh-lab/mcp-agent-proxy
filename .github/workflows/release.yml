@@ -106,53 +106,8 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  binary-build:
-    needs: build-and-test
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-latest
-            target: linux
-            ext: ''
-          - os: macos-latest
-            target: macos
-            ext: ''
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: dist
-          path: dist/
-
-      - name: Install pkg
-        run: npm install -g pkg
-
-      - name: Build binary
-        run: pkg dist/mcp-server.js --target node20-${{ matrix.target }}-x64 --output mcp-agent-proxy-${{ matrix.target }}${{ matrix.ext }}
-
-      - name: Upload binary
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: actions/upload-artifact@v4
-        with:
-          name: binary-${{ matrix.target }}
-          path: mcp-agent-proxy-${{ matrix.target }}${{ matrix.ext }}
-
   github-release:
-    needs: [npm-publish, docker-build, binary-build]
+    needs: [npm-publish, docker-build]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     steps:
@@ -164,9 +119,6 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          files: |
-            binary-linux/mcp-agent-proxy-linux
-            binary-macos/mcp-agent-proxy-macos
           body: |
             ## Installation
 
@@ -184,10 +136,6 @@ jobs:
             ```bash
             docker pull mashh/mcp-agent-proxy:${{ github.ref_name }}
             ```
-
-            ### Binary Downloads
-            - **Linux**: Download `mcp-agent-proxy-linux`
-            - **macOS**: Download `mcp-agent-proxy-macos`
 
             See [INSTALL.md](INSTALL.md) for detailed installation instructions.
         env:

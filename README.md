@@ -90,7 +90,7 @@ This repository has been cleaned up to include only production-ready files:
 - **Single configuration**: Working MCP client configuration examples
 - **Comprehensive documentation**: Everything you need is in this README
 - **Simple testing**: Run `pnpm test` to verify your setup
-- **Multiple distribution methods**: NPM package, Docker, binaries, and source
+- **Multiple distribution methods**: NPM package, Docker, and source
 
 ## Configuration
 
