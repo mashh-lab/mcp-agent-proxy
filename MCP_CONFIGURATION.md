@@ -170,7 +170,7 @@ Connect to any deployed Mastra server (examples using different providers):
 ```json
 {
   "mcpServers": {
-    "mcp-agent-proxy": {
+    "mastra-agent-proxy": {
       "command": "mcp-agent-proxy",
       "env": {
         "MASTRA_SERVERS": "https://your-mastra-app.vercel.app"
@@ -185,7 +185,7 @@ Connect to any deployed Mastra server (examples using different providers):
 ```json
 {
   "mcpServers": {
-    "mcp-agent-proxy": {
+    "mastra-agent-proxy": {
       "command": "mcp-agent-proxy",
       "env": {
         "MASTRA_SERVERS": "https://your-mastra-app.anycloudprovider.com"
@@ -200,7 +200,7 @@ Connect to any deployed Mastra server (examples using different providers):
 ```json
 {
   "mcpServers": {
-    "mcp-agent-proxy": {
+    "mastra-agent-proxy": {
       "command": "mcp-agent-proxy",
       "env": {
         "MASTRA_SERVERS": "https://api.yourcompany.com"
@@ -217,7 +217,7 @@ Perfect for accessing both production agents (any cloud provider) and local deve
 ```json
 {
   "mcpServers": {
-    "mcp-agent-proxy": {
+    "mastra-agent-proxy": {
       "command": "mcp-agent-proxy",
       "env": {
         "MASTRA_SERVERS": "https://your-mastra-app.example.com http://localhost:4111"
@@ -241,7 +241,7 @@ Mix any combination of cloud providers and deployment platforms:
 ```json
 {
   "mcpServers": {
-    "mcp-agent-proxy": {
+    "mastra-agent-proxy": {
       "command": "mcp-agent-proxy",
       "env": {
         "MASTRA_SERVERS": "https://prod.vercel.app https://staging.vercel.app https://dev.yourcompany.com http://localhost:4111"
@@ -258,7 +258,7 @@ Organize multiple environments across any hosting providers:
 ```json
 {
   "mcpServers": {
-    "mcp-agent-proxy": {
+    "mastra-agent-proxy": {
       "command": "mcp-agent-proxy",
       "env": {
         "MASTRA_SERVERS": "https://prod.yourcompany.com https://staging.yourcompany.com http://localhost:4111"
@@ -275,7 +275,7 @@ Works with any self-hosted or private Mastra deployments:
 ```json
 {
   "mcpServers": {
-    "mcp-agent-proxy": {
+    "mastra-agent-proxy": {
       "command": "mcp-agent-proxy",
       "env": {
         "MASTRA_SERVERS": "https://agents.internal.company.com:8443 http://localhost:4111"
@@ -536,7 +536,7 @@ Connect to any deployed Mastra server (works with any cloud provider):
 ```json
 {
   "mcpServers": {
-    "mcp-agent-proxy": {
+    "mastra-agent-proxy": {
       "command": "mcp-agent-proxy",
       "env": {
         "MASTRA_SERVERS": "https://your-mastra-app.example.com"
@@ -553,7 +553,7 @@ Access both your deployed agents and local development servers:
 ```json
 {
   "mcpServers": {
-    "mcp-agent-proxy": {
+    "mastra-agent-proxy": {
       "command": "mcp-agent-proxy",
       "env": {
         "MASTRA_SERVERS": "https://your-mastra-app.example.com http://localhost:4111"

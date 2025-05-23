@@ -1,8 +1,10 @@
-# MCP Agent Proxy
+# MCP Mastra Agent Proxy Server
 
-> **🚀 It's like A2A-Lite!**
->
-> Connect your MCP clients (Cursor, Claude Desktop, other Mastra servers, etc.) to **any** Mastra agent server - whether it's running locally, deployed on Vercel, or your private infrastructure. Since Mastra servers can be MCP clients themselves, you're not just accessing individual agents, but potentially **entire agent networks** through one simple configuration.
+**_🚀 It's like A2A-Lite!_**
+
+Connect your MCP clients (Cursor, Claude Desktop, other Mastra servers, etc.) to **any** Mastra agent server - whether it's running locally, deployed on Vercel, or your private infrastructure. This gives your client access to any agent on that server as a tool. And since Mastra servers can be MCP clients themselves, you're not just accessing individual agents, but potentially **entire agent networks** through one simple configuration.
+
+> Built for/with [Mastra](https://github.com/mastra-ai/mastra) ❤️
 
 <div align="center">
 
@@ -13,8 +15,6 @@
 _One command, one config line, unlimited agent access_
 
 </div>
-
----
 
 ## Why This Is Powerful
 
@@ -37,25 +37,6 @@ This enables previously complex scenarios like cross-cloud agent orchestration, 
 
 Here's where it gets really powerful: **Mastra servers can be MCP clients themselves**. This means you're not just connecting to individual agents - you're connecting to **entire agent networks**.
 
-### Multi-Layer Agent Architecture
-
-```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────────┐
-│   MCP Client    │───▶│  mcp-agent-proxy │───▶│   Mastra Server     │
-│  (Cursor, etc.) │    │                  │    │                     │
-└─────────────────┘    └──────────────────┘    │ ┌─────────────────┐ │
-                                                │ │   MCPClient     │ │
-                                                │ │                 │ │
-                                                │ └─────────────────┘ │
-                                                │         │           │
-                                                │         ▼           │
-                                                │ ┌─────────────────┐ │
-                                                │ │ Other MCP       │ │
-                                                │ │ Servers/Tools   │ │
-                                                │ └─────────────────┘ │
-                                                └─────────────────────┘
-```
-
 ### Exponential Connectivity
 
 When you connect to a Mastra server, you might actually be accessing:
@@ -64,33 +45,6 @@ When you connect to a Mastra server, you might actually be accessing:
 - **Aggregated tools** from multiple MCP servers it connects to
 - **Composed workflows** that span multiple agent networks
 - **Distributed intelligence** across cloud providers and private infrastructure
-
-### Real-World Example
-
-```json
-"MASTRA_SERVERS": "https://finance.yourcompany.com https://research.yourcompany.com"
-```
-
-This simple configuration could give you access to:
-
-- **Finance server**: Stock APIs, crypto data, economic indicators (each potentially separate MCP servers)
-- **Research server**: Academic databases, web search, document analysis (again, multiple MCP networks)
-
-**Result**: One configuration line → hundreds of specialized tools across distributed agent networks.
-
-### Distributed Agent Infrastructure
-
-This creates the foundation for **massive distributed AI infrastructure** where:
-
-- ✨ **Agents compose other agents** through standard MCP protocols
-- 🔗 **Networks connect to networks** creating exponential tool access
-- 🌍 **Geographic distribution** becomes seamless (US agents, EU agents, Asia agents)
-- 🏢 **Organizational boundaries** dissolve (internal tools + external services)
-- ⚡ **Development cycles** span from localhost to production networks instantly
-
----
-
-An MCP (Model Context Protocol) proxy server that enables MCP clients to communicate with Mastra agent servers. This proxy exposes Mastra agents as standardized MCP tools, enabling broad integration with MCP-compliant clients like Cursor, Claude Desktop, and others.
 
 ## Features
 
@@ -105,21 +59,44 @@ An MCP (Model Context Protocol) proxy server that enables MCP clients to communi
 
 ## Architecture
 
-```
-MCP Client --> MCP Agent Proxy --> Mastra Server(s) --> Target Agents & Tools
-    │                                      │
-    │                                      └─► MCPClient --> Other MCP Networks
-    │                                                              │
-    └─────────── Exponential Access ──────────────────────────────┘
+```mermaid
+graph TD
+    subgraph "Layer 1: Direct Access"
+        A[MCP Client] --> B[mcp-agent-proxy]
+        B --> C[Mastra Server]
+        C --> D[Direct Agents]
+    end
+
+    subgraph "Layer 2: Network Access"
+        C --> E[MCP Client]
+        E --> F[mcp-agent-proxy]
+        F --> G[Connected Networks]
+        G --> H[Network Agents]
+    end
+
+    subgraph "Layer N: Exponential Access"
+        G --> I[MCP Clients...]
+        I --> J[mcp-agent-proxy...]
+        J --> K[More Networks...]
+        K --> L[∞ Agents]
+    end
+
+    A -.->|"Universal Access Layer<br/>One config → All networks"| L
+
+    style A fill:#2196F3,stroke:#1976D2,stroke-width:3px,color:#fff
+    style B fill:#9C27B0,stroke:#7B1FA2,stroke-width:2px,color:#fff
+    style C fill:#4CAF50,stroke:#388E3C,stroke-width:2px,color:#fff
+    style F fill:#9C27B0,stroke:#7B1FA2,stroke-width:2px,color:#fff
+    style J fill:#9C27B0,stroke:#7B1FA2,stroke-width:2px,color:#fff
+    style L fill:#FF5722,stroke:#D84315,stroke-width:3px,color:#fff
 ```
 
-The proxy server acts as a universal access layer that:
+The proxy creates a **Universal Access Layer** where:
 
-1. Receives MCP tool calls from any MCP client
-2. Intelligently routes them to appropriate Mastra servers
-3. **Unlocks access to entire agent networks** (since Mastra servers can connect to other MCP servers)
-4. Handles agent name conflicts using smart resolution across all connected networks
-5. Returns responses in MCP-compliant format
+- **Layer 1**: Your MCP client connects to one proxy, accessing direct agents on a Mastra server
+- **Layer 2**: That server can be an MCP client itself, connecting to other networks through more proxies
+- **Layer N**: This recursive pattern creates exponential access - one configuration line unlocks unlimited agent networks
+- **Universal Access**: Any MCP client can reach any agent in the connected ecosystem through intelligent routing
 
 ## Quick Start
 
@@ -174,7 +151,7 @@ For multiple servers or custom URLs:
 ```json
 {
   "mcpServers": {
-    "mcp-agent-proxy": {
+    "mastra-agent-proxy": {
       "command": "mcp-agent-proxy",
       "env": {
         "MASTRA_SERVERS": "http://localhost:4111 http://localhost:4222"
