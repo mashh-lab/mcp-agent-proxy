@@ -2,32 +2,28 @@
 import { MCPServer } from "@mastra/mcp";
 import http from 'http';
 import { URL } from 'url';
-import { agentProxyTool } from "./tools/agentProxyTool.js";
 import { listMastraAgentsTool } from "./tools/listMastraAgentsTool.js";
+import { agentProxyTool } from "./tools/agentProxyTool.js";
 import { getMCPServerPort, getMCPPaths } from "./config.js";
 
-// Instantiate MCPServer with a name, version, and the tools it will expose
+// Instantiate MCPServer with tools
 const mcpServerInstance = new MCPServer({
   name: "MastraAgentProxyMCPServer",
   version: "1.0.0",
   tools: {
-    callMastraAgent: agentProxyTool,
-    listMastraAgents: listMastraAgentsTool, // Register the optional discovery tool
+    callMastraAgent: agentProxyTool, // Agent proxy tool with smart server resolution
+    listMastraAgents: listMastraAgentsTool, // Multi-server agent listing with conflict detection
   },
 });
 
-// Check if we should use stdio transport
-// This happens when:
-// 1. Explicitly requested via --stdio flag
-// 2. stdin is not a TTY (running as subprocess)
-// 3. MCP_TRANSPORT is set to stdio
+// Improved stdio detection - check if we're being called by an MCP client
 const useStdio = 
   process.argv.includes('--stdio') || 
   process.env.MCP_TRANSPORT === 'stdio' ||
-  (!process.stdin.isTTY && process.env.NODE_ENV !== 'development');
+  (!process.stdin.isTTY && !process.argv.includes('--http'));
 
 if (useStdio) {
-  // Use stdio transport for MCP clients
+  // Use stdio transport for MCP clients - no console logging to avoid JSON protocol interference
   async function startStdioServer() {
     try {
       await mcpServerInstance.startStdio();

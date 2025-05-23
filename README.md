@@ -4,23 +4,26 @@ A location-agnostic MCP (Model Context Protocol) proxy server that allows local 
 
 ## Features
 
+- **Multi-Server Support**: Connect to multiple Mastra servers simultaneously with automatic conflict resolution
+- **Smart Agent Resolution**: Automatically resolves agent names to appropriate servers, with support for fully qualified `server:agentId` format
 - **Location Agnostic**: Connect to Mastra servers running locally (e.g., `localhost:4111`) or remotely via configurable base URL
 - **MCP Compliance**: Exposes Mastra agents as standard MCP tools for broad ecosystem integration
 - **Dual Interaction Support**: Supports both `generate` and `stream` interactions with target agents
-- **Dynamic Discovery**: Optional tool to list available agents from the target Mastra server
+- **Dynamic Discovery**: Tools to list available agents across all configured servers with conflict detection
 - **HTTP/SSE Transport**: Network-accessible via HTTP Server-Sent Events for robust client connections
 - **Type Safety**: Full TypeScript implementation with Zod schema validation
 
 ## Architecture
 
 ```
-MCP Client --> Custom MCP Server --> Agent-Proxy Tool --> @mastra/client-js --> Target Mastra Server --> Mastra Agents
+MCP Client --> Custom MCP Server --> Agent-Proxy Tool --> @mastra/client-js --> Target Mastra Server(s) --> Mastra Agents
 ```
 
 The proxy server acts as an intermediary layer that:
 1. Receives MCP tool calls from clients
-2. Translates them to Mastra agent interactions
-3. Returns responses in MCP-compliant format
+2. Intelligently routes them to appropriate Mastra servers
+3. Handles agent name conflicts using smart resolution
+4. Returns responses in MCP-compliant format
 
 ## Installation
 
@@ -40,13 +43,26 @@ pnpm install
 cp .env .env.local  # Edit the values as needed
 ```
 
+## Clean Project Structure
+
+This repository has been cleaned up to include only production-ready files:
+- **Core functionality**: Located in `src/` directory
+- **Single configuration**: `mcp.json` with the working absolute path format
+- **Comprehensive documentation**: Everything you need is in this README
+- **Simple testing**: Run `pnpm test` to verify your setup
+
 ## Configuration
 
 Set the following environment variables in your `.env` file:
 
 ```env
-# Mastra server configuration
+# Multi-server configuration (JSON array of server URLs)
+MASTRA_SERVERS_CONFIG=["http://localhost:4111", "http://localhost:4222"]
+
+# Primary server (used as default for conflicts)
 MASTRA_SERVER_BASE_URL=http://localhost:4111
+
+# Client configuration
 MASTRA_CLIENT_RETRIES=3
 MASTRA_CLIENT_BACKOFF_MS=300
 MASTRA_CLIENT_MAX_BACKOFF_MS=5000
@@ -62,7 +78,8 @@ MCP_TRANSPORT=http
 
 ### Key Configuration Options
 
-- **`MASTRA_SERVER_BASE_URL`**: URL of your target Mastra server (local or remote)
+- **`MASTRA_SERVERS_CONFIG`**: JSON array of Mastra server URLs to monitor
+- **`MASTRA_SERVER_BASE_URL`**: Primary server URL (used as fallback and default)
 - **`MCP_SERVER_PORT`**: Port for the MCP proxy server to listen on
 - **Retry Settings**: Configure client resilience for network issues
 
@@ -89,22 +106,31 @@ Available tools: callMastraAgent, listMastraAgents
 ### 2. Available MCP Tools
 
 #### `callMastraAgent`
-Proxies requests to a target Mastra agent.
+Proxies requests to a target Mastra agent with intelligent server resolution.
 
 **Input Schema:**
 ```typescript
 {
-  targetAgentId: string;        // ID of the target Mastra agent
+  targetAgentId: string;        // Agent ID or "server:agentId" for conflicts
   interactionType: "generate" | "stream";  // Type of interaction
   messages: Array<{            // Conversation messages
     role: "user" | "assistant" | "system";
     content: string;
   }>;
+  serverUrl?: string;          // Optional server URL override
   threadId?: string;           // Optional conversation thread ID
   resourceId?: string;         // Optional resource ID
   agentOptions?: Record<string, any>; // Additional agent options
 }
 ```
+
+**Smart Resolution Behavior:**
+- **Plain agent ID** (e.g., `"weatherAgent"`): Automatically finds which server(s) contain the agent
+  - If found on one server: Uses that server automatically
+  - If found on multiple servers: Uses default server (server0) or first available
+  - If not found: Returns helpful error with available servers
+- **Qualified agent ID** (e.g., `"server1:weatherAgent"`): Directly targets the specified server
+- **Server URL override**: Uses provided `serverUrl` parameter
 
 **Output Schema:**
 ```typescript
@@ -112,30 +138,75 @@ Proxies requests to a target Mastra agent.
   success: true;
   responseData: any;           // Response from the target agent
   interactionType: string;     // Confirms interaction type used
+  serverUsed: string;          // Shows which server was used
+  agentIdUsed: string;         // Shows the actual agent ID used
+  fullyQualifiedId: string;    // Shows the full server:agentId format
+  resolutionMethod: string;    // Shows how the server was resolved
 }
 ```
 
 #### `listMastraAgents`
-Lists available agents on the target Mastra server.
+Lists available agents across all configured Mastra servers with conflict detection.
 
 **Input Schema:** `{}` (no input required)
 
 **Output Schema:**
 ```typescript
 {
-  agents: Array<{
-    id: string;                // Agent ID
-    name?: string;             // Optional agent name
+  serverAgents: Array<{
+    serverName: string;         // Server identifier (server0, server1, etc.)
+    serverUrl: string;          // Server URL
+    status: "online" | "offline" | "error";
+    agents: Array<{
+      id: string;               // Agent ID
+      name?: string;            // Optional agent name
+    }>;
+    errorMessage?: string;      // Error details if status is "error"
   }>;
+  summary: {
+    totalServers: number;
+    onlineServers: number;
+    totalAgents: number;
+    uniqueAgents: number;
+    agentConflicts: Array<{     // Agents that exist on multiple servers
+      agentId: string;
+      servers: string[];        // List of server names containing this agent
+    }>;
+  };
 }
 ```
 
-### 3. Testing with the Test Client
+### 3. Smart Agent Resolution Examples
+
+```typescript
+// Unique agent - auto-resolves to the only server containing it
+await callMastraAgent({
+  targetAgentId: "uniqueAgent",
+  // ... other params
+});
+// Result: server0:uniqueAgent (if uniqueAgent only exists on server0)
+
+// Conflicted agent - uses default server
+await callMastraAgent({
+  targetAgentId: "weatherAgent", // Exists on multiple servers
+  // ... other params  
+});
+// Result: server0:weatherAgent (uses default server)
+
+// Explicit qualification - targets specific server
+await callMastraAgent({
+  targetAgentId: "server1:weatherAgent",
+  // ... other params
+});
+// Result: server1:weatherAgent (explicit targeting)
+```
+
+### 4. Testing with the Test Client
 
 Run the included test client to verify functionality:
 
 ```bash
-pnpm test-client
+pnpm test
 ```
 
 This will:
@@ -144,7 +215,7 @@ This will:
 3. Test the `listMastraAgents` tool
 4. Test the `callMastraAgent` tool with a sample request
 
-### 4. Integration with MCP Clients
+### 5. Integration with MCP Clients
 
 The server can be integrated with any MCP-compliant client:
 
@@ -175,6 +246,31 @@ const result = await tools.mastraProxy.find(t => t.id === 'callMastraAgent').exe
 - **Cursor**: Configure MCP server connection
 - **Windsurf**: Add as MCP tool provider
 - **Other MCP clients**: Use HTTP/SSE endpoint
+
+#### MCP Client Configuration
+
+For Cursor IDE and other MCP clients, configure the proxy server in your `mcp.json` file. **Important**: Use absolute paths in the `args` field rather than relative paths with `cwd`, as this is the format that works reliably:
+
+```json
+{
+  "mcpServers": {
+    "mastra-agent-proxy": {
+      "command": "node",
+      "args": ["/absolute/path/to/your/mcp-mastra-agents/dist/mcp-server.js"],
+      "env": {
+        "MASTRA_SERVER_BASE_URL": "http://localhost:4111",
+        "MCP_SERVER_PORT": "3001",
+        "MASTRA_SERVERS_CONFIG": "[\"http://localhost:4111\", \"http://localhost:4222\"]"
+      }
+    }
+  }
+}
+```
+
+**Configuration Notes:**
+- Replace `/absolute/path/to/your/mcp-mastra-agents` with your actual project path
+- The absolute path format avoids issues with working directory resolution
+- Environment variables in the `env` section configure server URLs and multi-server setup
 
 ## Development
 
