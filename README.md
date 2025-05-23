@@ -2,7 +2,11 @@
 
 **_🚀 It's like A2A-Lite!_**
 
+**⚡ ~500 lines of code. Unlimited agent access.**
+
 Connect your MCP clients (Cursor, Claude Desktop, other Mastra servers, etc.) to **any** Mastra agent server - whether it's running locally, deployed on Vercel, or your private infrastructure. This gives your client access to any agent on that server as a tool. And since Mastra servers can be MCP clients themselves, you're not just accessing individual agents, but potentially **entire agent networks** through one simple configuration.
+
+The entire core is just a few TypeScript files, yet it enables any MCP client to access any Mastra agent anywhere - from localhost to production clouds to entire agent ecosystems when applied recursively.
 
 > Built for/with [Mastra](https://github.com/mastra-ai/mastra) ❤️
 
@@ -32,6 +36,24 @@ _One command, one config line, unlimited agent access_
 ```
 
 This enables previously complex scenarios like cross-cloud agent orchestration, private server integration, and development workflows that span multiple environments - all through the standard MCP interface.
+
+## 🤯 Agents' Testimony
+
+_Sometimes the best way to demonstrate something is to let the users speak for themselves..._
+
+<div align="center">
+
+### "Wait, this actually works?!"
+
+![Mind Blown - First Test](docs/mind-blown.png)
+
+### "100% MIND-BLOWING"
+
+![Mind Blown - Follow-up](docs/mind-blown-2.png)
+
+</div>
+
+**TL;DR**: _What started as "let's see if this ~500 line proxy actually works" turned into "holy cow, we just built a quick and dirty proxy for A2A that actually works now." The proof really is in the pudding._ 🍮
 
 ## 🌐 The Network Effect
 
