@@ -1,6 +1,6 @@
-# MCP Mastra Agent Proxy Server
+# MCP Agent Proxy
 
-A location-agnostic MCP (Model Context Protocol) proxy server that allows local agents to communicate with local or remote Mastra servers. This proxy exposes Mastra agents as standardized MCP tools, enabling broad integration with MCP-compliant clients.
+An MCP (Model Context Protocol) proxy server that enables MCP clients to communicate with Mastra agent servers. This proxy exposes Mastra agents as standardized MCP tools, enabling broad integration with MCP-compliant clients like Cursor, Claude Desktop, and others.
 
 ## Features
 
@@ -32,7 +32,7 @@ The proxy server acts as an intermediary layer that:
 
 ```bash
 git clone <repository-url>
-cd mcp-mastra-agents
+cd mcp-agent-proxy
 ```
 
 2. Install dependencies:
@@ -274,7 +274,7 @@ For Cursor IDE and other MCP clients, configure the proxy server in your `mcp.js
   "mcpServers": {
     "mastra-agent-proxy": {
       "command": "node",
-      "args": ["/absolute/path/to/your/mcp-mastra-agents/dist/mcp-server.js"],
+      "args": ["/absolute/path/to/your/mcp-agent-proxy/dist/mcp-server.js"],
       "env": {
         "MASTRA_SERVER_BASE_URL": "http://localhost:4111",
         "MCP_SERVER_PORT": "3001",
@@ -287,7 +287,7 @@ For Cursor IDE and other MCP clients, configure the proxy server in your `mcp.js
 
 **Configuration Notes:**
 
-- Replace `/absolute/path/to/your/mcp-mastra-agents` with your actual project path
+- Replace `/absolute/path/to/your/mcp-agent-proxy` with your actual project path
 - The absolute path format avoids issues with working directory resolution
 - Environment variables in the `env` section configure server URLs and multi-server setup
 

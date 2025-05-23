@@ -1,8 +1,8 @@
 {
-  "name": "mcp-mastra-agents",
+  "name": "mcp-agent-proxy",
   "version": "1.0.0",
   "type": "module",
-  "description": "MCP proxy server that allows local agents to communicate with local or remote Mastra servers",
+  "description": "MCP proxy server that allows MCP clients to communicate with Mastra agent servers",
   "main": "dist/mcp-server.js",
   "scripts": {
     "build": "tsup src/mcp-server.ts --format esm,cjs --out-dir dist --dts --clean",
@@ -16,9 +16,10 @@
   },
   "keywords": [
     "mcp",
+    "agent-proxy",
     "mastra",
-    "proxy",
-    "agents"
+    "proxy-server",
+    "model-context-protocol"
   ],
   "author": "",
   "license": "ISC",

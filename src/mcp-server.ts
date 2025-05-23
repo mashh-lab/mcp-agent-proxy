@@ -2,13 +2,13 @@
 import { MCPServer } from '@mastra/mcp'
 import http from 'http'
 import { URL } from 'url'
-import { listMastraAgentsTool } from './tools/listMastraAgentsTool.js'
-import { agentProxyTool } from './tools/agentProxyTool.js'
+import { listMastraAgentsTool } from './tools/list-mastra-agents-tool.js'
+import { agentProxyTool } from './tools/agent-proxy-tool.js'
 import { getMCPServerPort, getMCPPaths } from './config.js'
 
 // Instantiate MCPServer with tools
 const mcpServerInstance = new MCPServer({
-  name: 'MastraAgentProxyMCPServer',
+  name: 'mcp-agent-proxy',
   version: '1.0.0',
   tools: {
     callMastraAgent: agentProxyTool, // Agent proxy tool with smart server resolution

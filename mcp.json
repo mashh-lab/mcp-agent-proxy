@@ -2,7 +2,7 @@
   "mcpServers": {
     "mastra-agent-proxy": {
       "command": "node",
-      "args": ["/Users/ian/Dev/mcp-mastra-agents/dist/mcp-server.js"],
+      "args": ["/Users/ian/Dev/mcp-agent-proxy/dist/mcp-server.js"],
       "env": {
         "MASTRA_SERVER_BASE_URL": "http://localhost:4111",
         "MCP_SERVER_PORT": "3001",
