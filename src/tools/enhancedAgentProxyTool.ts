@@ -29,7 +29,38 @@ const enhancedAgentProxyOutputSchema = z.object({
   serverUsed: z.string(), // Shows which server was used
   agentIdUsed: z.string(), // Shows the actual agent ID used (without server prefix)
   fullyQualifiedId: z.string(), // Shows the full server:agentId format
+  resolutionMethod: z.string(), // Shows how the server was resolved
 });
+
+/**
+ * Smart agent resolution: finds which server(s) contain the given agent ID
+ */
+async function findAgentServers(agentId: string, serverMap: Map<string, string>): Promise<Map<string, string>> {
+  const foundServers = new Map<string, string>(); // serverName -> serverUrl
+
+  for (const [serverName, serverUrl] of serverMap.entries()) {
+    try {
+      const clientConfig = {
+        baseUrl: serverUrl,
+        retries: 1, // Quick check
+        backoffMs: 100,
+        maxBackoffMs: 500,
+      };
+
+      const mastraClient = new MastraClient(clientConfig);
+      const agentsData = await mastraClient.getAgents();
+
+      if (agentsData && Object.keys(agentsData).includes(agentId)) {
+        foundServers.set(serverName, serverUrl);
+      }
+    } catch (error) {
+      // Server offline or error - skip
+      continue;
+    }
+  }
+
+  return foundServers;
+}
 
 export const enhancedAgentProxyTool = createTool({
   id: "callMastraAgent",
@@ -47,35 +78,64 @@ export const enhancedAgentProxyTool = createTool({
       let serverToUse: string;
       let actualAgentId: string;
       let fullyQualifiedId: string;
+      let resolutionMethod: string;
 
       if (targetAgentId.includes(':')) {
         // Handle fully qualified ID (server:agentId)
         const [serverName, agentId] = targetAgentId.split(':', 2);
         actualAgentId = agentId;
         fullyQualifiedId = targetAgentId;
+        resolutionMethod = "explicit_qualification";
         
         // Resolve server URL from name
         if (SERVER_MAP.has(serverName)) {
           serverToUse = SERVER_MAP.get(serverName)!;
         } else if (serverUrl) {
           serverToUse = serverUrl;
+          resolutionMethod = "explicit_url_override";
         } else {
           throw new Error(`Unknown server '${serverName}'. Available servers: ${Array.from(SERVER_MAP.keys()).join(', ')}. Or provide serverUrl parameter.`);
         }
       } else {
-        // Handle plain agent ID - use first server (server0) as default
+        // Handle plain agent ID - use smart resolution
         actualAgentId = targetAgentId;
         
-        // Use server0 as default, or explicit serverUrl override
         if (serverUrl) {
+          // Explicit server URL override
           serverToUse = serverUrl;
+          resolutionMethod = "explicit_url_override";
+          const serverName = Array.from(SERVER_MAP.entries()).find(([_, url]) => url === serverToUse)?.[0] || "custom";
+          fullyQualifiedId = `${serverName}:${actualAgentId}`;
         } else {
-          serverToUse = SERVER_MAP.get('server0') || "http://localhost:4111";
+          // Smart resolution: find which server(s) contain this agent
+          const foundServers = await findAgentServers(actualAgentId, SERVER_MAP);
+          
+          if (foundServers.size === 0) {
+            // Agent not found on any server
+            const availableServers = Array.from(SERVER_MAP.keys()).join(', ');
+            throw new Error(`Agent '${actualAgentId}' not found on any configured server. Available servers: ${availableServers}. Use 'server:agentId' format or check agent name.`);
+          } else if (foundServers.size === 1) {
+            // Agent found on exactly one server - use it automatically
+            const [serverName, serverUrl] = Array.from(foundServers.entries())[0];
+            serverToUse = serverUrl;
+            fullyQualifiedId = `${serverName}:${actualAgentId}`;
+            resolutionMethod = "unique_auto_resolution";
+          } else {
+            // Agent found on multiple servers - use default server (server0)
+            const defaultServerName = 'server0';
+            if (foundServers.has(defaultServerName)) {
+              serverToUse = foundServers.get(defaultServerName)!;
+              fullyQualifiedId = `${defaultServerName}:${actualAgentId}`;
+              resolutionMethod = "conflict_default_server";
+            } else {
+              // Default server doesn't have the agent, use first found server
+              const [firstServerName, firstServerUrl] = Array.from(foundServers.entries())[0];
+              serverToUse = firstServerUrl;
+              fullyQualifiedId = `${firstServerName}:${actualAgentId}`;
+              resolutionMethod = "conflict_first_available";
+            }
+          }
         }
-        
-        // Determine server name for fully qualified ID
-        const serverName = Array.from(SERVER_MAP.entries()).find(([_, url]) => url === serverToUse)?.[0] || "server0";
-        fullyQualifiedId = `${serverName}:${actualAgentId}`;
       }
 
       const clientConfig = {
@@ -117,6 +177,7 @@ export const enhancedAgentProxyTool = createTool({
         serverUsed: serverToUse,
         agentIdUsed: actualAgentId,
         fullyQualifiedId,
+        resolutionMethod,
       };
 
     } catch (error: any) {
