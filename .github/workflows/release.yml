@@ -16,10 +16,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: 'pnpm'
 
-      - name: Install pnpm
-        run: npm install -g pnpm
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -50,10 +49,9 @@ jobs:
         with:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org'
-          cache: 'pnpm'
 
-      - name: Install pnpm
-        run: npm install -g pnpm
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -120,9 +118,6 @@ jobs:
           - os: macos-latest
             target: macos
             ext: ''
-          - os: windows-latest
-            target: windows
-            ext: '.exe'
     steps:
       - uses: actions/checkout@v4
 
@@ -130,10 +125,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: 'pnpm'
 
-      - name: Install pnpm
-        run: npm install -g pnpm
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -173,7 +167,6 @@ jobs:
           files: |
             binary-linux/mcp-agent-proxy-linux
             binary-macos/mcp-agent-proxy-macos
-            binary-windows/mcp-agent-proxy-windows.exe
           body: |
             ## Installation
 
@@ -194,8 +187,7 @@ jobs:
 
             ### Binary Downloads
             - **Linux**: Download `mcp-agent-proxy-linux`
-            - **macOS**: Download `mcp-agent-proxy-macos` 
-            - **Windows**: Download `mcp-agent-proxy-windows.exe`
+            - **macOS**: Download `mcp-agent-proxy-macos`
 
             See [INSTALL.md](INSTALL.md) for detailed installation instructions.
         env:
