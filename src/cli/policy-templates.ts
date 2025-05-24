@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 // BGP Policy Template CLI
 // Command-line interface for policy template management
 
