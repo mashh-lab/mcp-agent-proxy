@@ -4,6 +4,14 @@
 import { BGPSession } from './session.js'
 import { BGPUpdate, AgentRoute } from './types.js'
 import { PolicyEngine, PolicyConfig } from './policy.js'
+import {
+  getAllPolicyTemplates,
+  getPolicyTemplate,
+  searchPolicyTemplates,
+  getPolicyTemplateCategories,
+  applyPolicyTemplate,
+  getPolicyTemplateStats,
+} from './policy-templates.js'
 import { logger } from '../config.js'
 
 export interface BGPServerConfig {
@@ -106,6 +114,32 @@ export class BGPServer {
     // Health and Status
     this.endpoints.set('GET /bgp/status', this.handleGetStatus.bind(this))
     this.endpoints.set('GET /bgp/stats', this.handleGetStats.bind(this))
+
+    // Policy Template Discovery (works without policy engine)
+    this.endpoints.set(
+      'GET /bgp/policy-templates',
+      this.handleGetPolicyTemplates.bind(this),
+    )
+    this.endpoints.set(
+      'GET /bgp/policy-templates/categories',
+      this.handleGetTemplateCategories.bind(this),
+    )
+    this.endpoints.set(
+      'GET /bgp/policy-templates/search',
+      this.handleSearchTemplates.bind(this),
+    )
+    this.endpoints.set(
+      'GET /bgp/policy-templates/:templateId',
+      this.handleGetPolicyTemplate.bind(this),
+    )
+    this.endpoints.set(
+      'GET /bgp/policy-templates/stats',
+      this.handleGetTemplateStats.bind(this),
+    )
+    this.endpoints.set(
+      'POST /bgp/policy-templates/:templateId/apply',
+      this.handleApplyTemplate.bind(this),
+    )
   }
 
   /**
@@ -1159,6 +1193,224 @@ export class BGPServer {
             med: route.med,
           })),
         },
+      },
+    }
+  }
+
+  /**
+   * POST /bgp/policy-templates/:templateId/apply - Apply a policy template
+   */
+  private async handleApplyTemplate(
+    req: BGPEndpointRequest,
+  ): Promise<BGPEndpointResponse> {
+    if (!this.policyEngine) {
+      return {
+        status: 503,
+        headers: { 'Content-Type': 'application/json' },
+        body: { error: 'Policy engine not configured' },
+      }
+    }
+
+    const params = this.extractParams(
+      'POST /bgp/policy-templates/:templateId/apply',
+      `${req.method} ${req.path}`,
+    )
+    const templateId = params.templateId
+    const body = req.body as {
+      enabledOnly?: boolean
+      priorityOffset?: number
+      namePrefix?: string
+      testRoutes?: AgentRoute[]
+    }
+
+    const template = getPolicyTemplate(templateId)
+
+    if (!template) {
+      return {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+        body: { error: `Policy template '${templateId}' not found` },
+      }
+    }
+
+    try {
+      // Apply template to get policies
+      const policies = applyPolicyTemplate(templateId, {
+        enabledOnly: body?.enabledOnly,
+        priorityOffset: body?.priorityOffset,
+        namePrefix: body?.namePrefix,
+      })
+
+      // Add policies to the policy engine
+      let addedPolicies = 0
+      for (const policy of policies) {
+        if (this.policyEngine.addPolicy(policy)) {
+          addedPolicies++
+        }
+      }
+
+      // If test routes provided, test the template
+      let testResults
+      if (body?.testRoutes && Array.isArray(body.testRoutes)) {
+        const acceptedRoutes = this.policyEngine.applyPolicies(body.testRoutes)
+        const rejectedCount = body.testRoutes.length - acceptedRoutes.length
+
+        testResults = {
+          totalRoutes: body.testRoutes.length,
+          acceptedRoutes: acceptedRoutes.length,
+          rejectedRoutes: rejectedCount,
+          routeDetails: acceptedRoutes.map((route) => ({
+            agentId: route.agentId,
+            capabilities: route.capabilities,
+            asPath: route.asPath,
+            localPref: route.localPref,
+            med: route.med,
+          })),
+        }
+      }
+
+      return {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+        body: {
+          localASN: this.config.localASN,
+          templateId: template.id,
+          templateName: template.name,
+          appliedPolicies: addedPolicies,
+          totalPolicies: policies.length,
+          policies: policies.map((policy) => ({
+            name: policy.name,
+            description: policy.description,
+            enabled: policy.enabled,
+            priority: policy.priority,
+          })),
+          ...(testResults && { testResults }),
+        },
+      }
+    } catch (error) {
+      return {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+        body: {
+          error: 'Failed to apply policy template',
+          message: error instanceof Error ? error.message : 'Unknown error',
+        },
+      }
+    }
+  }
+
+  // =================================
+  // POLICY TEMPLATE ENDPOINT HANDLERS
+  // =================================
+
+  /**
+   * GET /bgp/policy-templates - Get all policy templates
+   */
+  private async handleGetPolicyTemplates(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _req: BGPEndpointRequest,
+  ): Promise<BGPEndpointResponse> {
+    const templates = getAllPolicyTemplates()
+
+    return {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+      body: {
+        localASN: this.config.localASN,
+        totalTemplates: templates.length,
+        templates: templates,
+      },
+    }
+  }
+
+  /**
+   * GET /bgp/policy-templates/categories - Get all policy template categories
+   */
+  private async handleGetTemplateCategories(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _req: BGPEndpointRequest,
+  ): Promise<BGPEndpointResponse> {
+    const categories = getPolicyTemplateCategories()
+
+    return {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+      body: {
+        localASN: this.config.localASN,
+        totalCategories: categories.length,
+        categories: categories,
+      },
+    }
+  }
+
+  /**
+   * GET /bgp/policy-templates/search - Search for policy templates
+   */
+  private async handleSearchTemplates(
+    req: BGPEndpointRequest,
+  ): Promise<BGPEndpointResponse> {
+    const query = req.query?.query as string
+    const templates = searchPolicyTemplates(query)
+
+    return {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+      body: {
+        localASN: this.config.localASN,
+        totalTemplates: templates.length,
+        query: query,
+        templates: templates,
+      },
+    }
+  }
+
+  /**
+   * GET /bgp/policy-templates/:templateId - Get a policy template by ID
+   */
+  private async handleGetPolicyTemplate(
+    req: BGPEndpointRequest,
+  ): Promise<BGPEndpointResponse> {
+    const params = this.extractParams(
+      'GET /bgp/policy-templates/:templateId',
+      `${req.method} ${req.path}`,
+    )
+    const templateId = params.templateId
+    const template = getPolicyTemplate(templateId)
+
+    if (template) {
+      return {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+        body: {
+          localASN: this.config.localASN,
+          templateId: template.id,
+          template: template,
+        },
+      }
+    } else {
+      return {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+        body: { error: `Policy template ID ${templateId} not found` },
+      }
+    }
+  }
+
+  /**
+   * GET /bgp/policy-templates/stats - Get policy template statistics
+   */
+  private async handleGetTemplateStats(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _req: BGPEndpointRequest,
+  ): Promise<BGPEndpointResponse> {
+    const stats = getPolicyTemplateStats()
+
+    return {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+      body: {
+        localASN: this.config.localASN,
+        templateStats: stats,
       },
     }
   }

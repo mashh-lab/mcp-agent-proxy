@@ -302,8 +302,12 @@ export class PolicyEngine {
     // Performance criteria
     if (match.minLocalPref && route.localPref < match.minLocalPref) return false
     if (match.maxMED && route.med > match.maxMED) return false
-    if (match.maxASPathLength && route.asPath.length > match.maxASPathLength)
-      return false
+
+    // AS Path length matching - match routes that exceed the maximum
+    if (match.maxASPathLength) {
+      // This policy only matches routes that exceed the maximum path length
+      if (route.asPath.length <= match.maxASPathLength) return false
+    }
 
     // Time-based matching
     if (!this.matchesTimeConstraints(match)) return false
