@@ -6,11 +6,13 @@ import {
   listMastraAgentsTool,
   getMastraAgentsInfo,
 } from './tools/list-mastra-agents-tool.js'
-import { agentProxyTool } from './tools/agent-proxy-tool.js'
+import { agentProxyTool, setPolicyEngine } from './tools/agent-proxy-tool.js'
 import {
   getMCPServerPort,
   getMCPPaths,
   getBGPConfig,
+  getEnhancedBGPConfig,
+  loadPoliciesFromFile,
   logger,
 } from './config.js'
 
@@ -19,33 +21,58 @@ import { BGPSession } from './bgp/session.js'
 import { AgentAdvertisementManager } from './bgp/advertisement.js'
 import { RealTimeDiscoveryManager } from './bgp/discovery.js'
 import { BGPServer } from './bgp/server.js'
+import { PolicyEngine } from './bgp/policy.js'
 
 // Global BGP infrastructure instances
 let bgpSession: BGPSession | null = null
 let advertisementManager: AgentAdvertisementManager | null = null
 let discoveryManager: RealTimeDiscoveryManager | null = null
 let bgpServer: BGPServer | null = null
+let policyEngine: PolicyEngine | null = null
 
 /**
- * Initialize BGP infrastructure for agent networking
+ * Initialize BGP infrastructure components
  */
-async function initializeBGPInfrastructure(): Promise<{
-  session: BGPSession
-  advertisement: AgentAdvertisementManager
-  discovery: RealTimeDiscoveryManager
-  server: BGPServer
-}> {
-  const bgpConfig = getBGPConfig()
+async function initializeBGPInfrastructure() {
+  logger.log('🚀 Initializing BGP-powered agent network...')
 
-  logger.log(`🚀 Initializing BGP-powered agent network...`)
+  const bgpConfig = getBGPConfig()
+  const enhancedConfig = getEnhancedBGPConfig()
+
   logger.log(`📍 Local AS: ${bgpConfig.localASN}`)
   logger.log(`🆔 Router ID: ${bgpConfig.routerId}`)
 
-  // 1. Initialize BGP Session Management
-  const session = new BGPSession(bgpConfig.localASN, bgpConfig.routerId)
+  // 1. Initialize BGP Session Manager
+  bgpSession = new BGPSession(bgpConfig.localASN, bgpConfig.routerId)
 
-  // 2. Initialize Agent Advertisement Manager
-  const advertisement = new AgentAdvertisementManager(session, {
+  // 2. Initialize Policy Engine
+  if (enhancedConfig.policy.enabled) {
+    logger.log('🧠 Initializing BGP policy engine...')
+    policyEngine = new PolicyEngine(enhancedConfig.policy.maxHistorySize)
+
+    // Load policies from configuration
+    const policiesToLoad = [...enhancedConfig.policy.defaultPolicies]
+
+    // Load additional policies from file if specified
+    if (enhancedConfig.policy.policyFile) {
+      const filePolicies = loadPoliciesFromFile(
+        enhancedConfig.policy.policyFile,
+      )
+      policiesToLoad.push(...filePolicies)
+    }
+
+    if (policiesToLoad.length > 0) {
+      policyEngine.loadPolicies(policiesToLoad)
+      logger.log(`🎯 Loaded ${policiesToLoad.length} routing policies`)
+    } else {
+      logger.log('⚠️ No policies loaded - using default accept behavior')
+    }
+  } else {
+    logger.log('⚠️ Policy engine disabled by configuration')
+  }
+
+  // 3. Initialize Agent Advertisement Manager
+  advertisementManager = new AgentAdvertisementManager(bgpSession, {
     localASN: bgpConfig.localASN,
     routerId: bgpConfig.routerId,
     hostname: 'localhost',
@@ -53,49 +80,47 @@ async function initializeBGPInfrastructure(): Promise<{
     advertisementInterval: 5 * 60 * 1000, // 5 minutes
   })
 
-  // 3. Initialize Real-Time Discovery Manager
-  const discovery = new RealTimeDiscoveryManager(session, advertisement, {
-    localASN: bgpConfig.localASN,
-    routerId: bgpConfig.routerId,
-    realTimeUpdates: true,
-    discoveryInterval: 30 * 1000, // 30 seconds
-    healthThreshold: 'degraded',
-    maxHops: 5,
-    enableBroadcast: true,
-  })
+  // 4. Initialize Real-Time Discovery Manager
+  discoveryManager = new RealTimeDiscoveryManager(
+    bgpSession,
+    advertisementManager,
+    {
+      localASN: bgpConfig.localASN,
+      routerId: bgpConfig.routerId,
+      realTimeUpdates: true,
+      discoveryInterval: 30 * 1000, // 30 seconds
+      healthThreshold: 'degraded',
+      maxHops: 5,
+      enableBroadcast: true,
+    },
+  )
 
-  // 4. Initialize BGP Server (for inter-AS communication)
-  const server = new BGPServer({
+  // 5. Initialize BGP Server (for inter-AS communication)
+  bgpServer = new BGPServer({
     localASN: bgpConfig.localASN,
     routerId: bgpConfig.routerId,
     port: 1179, // BGP port
     hostname: 'localhost',
   })
 
-  // Set up event handlers for coordination
-  discovery.on('agentDiscovered', (agent) => {
-    logger.log(
-      `🔍 Discovered agent: ${agent.agent.agentId} from AS${agent.sourceASN}`,
-    )
-  })
+  // Configure BGP server with policy engine if available
+  if (policyEngine) {
+    bgpServer.configurePolicyEngine(policyEngine)
 
-  discovery.on('agentLost', (agent) => {
-    logger.log(
-      `❌ Agent lost: ${agent.agent.agentId} from AS${agent.sourceASN}`,
-    )
-  })
+    // Configure agent routing tools to use the policy engine
+    setPolicyEngine(policyEngine)
+    logger.log('🎯 Policy engine connected to agent routing tools')
+  }
 
-  session.on('sessionEstablished', (peerASN) => {
-    logger.log(`🤝 BGP session established with AS${peerASN}`)
-  })
+  logger.log('✅ BGP infrastructure initialized successfully!')
 
-  session.on('peerRemoved', (peerASN) => {
-    logger.log(`👋 BGP peer AS${peerASN} disconnected`)
-  })
-
-  logger.log(`✅ BGP infrastructure initialized successfully!`)
-
-  return { session, advertisement, discovery, server }
+  return {
+    session: bgpSession,
+    advertisement: advertisementManager,
+    discovery: discoveryManager,
+    server: bgpServer,
+    policy: policyEngine,
+  }
 }
 
 /**

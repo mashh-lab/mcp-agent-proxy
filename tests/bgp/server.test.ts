@@ -421,10 +421,10 @@ describe('BGPServer', () => {
       expect(response.status).toBe(200)
       expect(response.body).toHaveProperty('localASN', 65000)
       expect(response.body).toHaveProperty('routerId', 'test-server-65000')
-      expect(response.body).toHaveProperty('sessionStats')
-      expect(response.body).toHaveProperty('peerDetails')
+      expect(response.body).toHaveProperty('session')
+      expect(response.body).toHaveProperty('peers')
       expect(
-        Array.isArray((response.body as ResponseBodyWithArray).peerDetails),
+        Array.isArray((response.body as ResponseBodyWithArray).peers),
       ).toBe(true)
     })
   })

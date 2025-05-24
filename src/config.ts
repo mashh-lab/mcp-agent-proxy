@@ -1,6 +1,7 @@
 import dotenv from 'dotenv'
 import fs from 'fs'
 import { ServerConfig, PRIVATE_ASN_RANGES } from './bgp/types.js'
+import { PolicyConfig } from './bgp/policy.js'
 
 dotenv.config() // Load environment variables from .env file
 
@@ -178,6 +179,28 @@ export function loadServerMappingsLegacy(): Map<string, string> {
 }
 
 /**
+ * BGP Policy Configuration
+ */
+export interface BGPPolicyConfig {
+  enabled: boolean
+  defaultPolicies: PolicyConfig[]
+  policyFile?: string // Path to JSON policy file
+  maxHistorySize: number
+}
+
+/**
+ * Enhanced BGP Configuration with Policy Support
+ */
+export interface EnhancedBGPConfig {
+  localASN: number
+  routerId: string
+  keepaliveTime: number
+  holdTime: number
+  connectRetryTime: number
+  policy: BGPPolicyConfig
+}
+
+/**
  * Get BGP configuration for the proxy itself
  */
 export function getBGPConfig() {
@@ -202,36 +225,138 @@ function generateRouterID(): string {
 }
 
 /**
- * Load routing policy configuration
+ * Get enhanced BGP configuration including policy support
  */
-export function loadRoutingPolicy() {
-  const policyFile = process.env.AGENT_ROUTING_POLICY
+export function getEnhancedBGPConfig(): EnhancedBGPConfig {
+  const basicConfig = getBGPConfig()
 
-  if (policyFile) {
+  return {
+    localASN: basicConfig.localASN,
+    routerId: basicConfig.routerId,
+    keepaliveTime: basicConfig.keepAliveInterval,
+    holdTime: basicConfig.holdTime,
+    connectRetryTime: basicConfig.connectRetryTime,
+    policy: getBGPPolicyConfig(),
+  }
+}
+
+/**
+ * Get BGP policy configuration from environment
+ */
+export function getBGPPolicyConfig(): BGPPolicyConfig {
+  const enabled = process.env.BGP_POLICY_ENABLED !== 'false' // Default to enabled
+  const policyFile = process.env.BGP_POLICY_FILE
+  const maxHistorySize = parseInt(
+    process.env.BGP_POLICY_HISTORY_SIZE || '1000',
+    10,
+  )
+
+  let defaultPolicies: PolicyConfig[] = []
+
+  // Load default policies from environment or use sensible defaults
+  if (process.env.BGP_DEFAULT_POLICIES) {
     try {
-      const policyData = JSON.parse(fs.readFileSync(policyFile, 'utf8'))
-      return policyData
+      defaultPolicies = JSON.parse(process.env.BGP_DEFAULT_POLICIES)
     } catch (error) {
-      logger.error('Failed to load routing policy:', error)
+      logger.warn(
+        'Failed to parse BGP_DEFAULT_POLICIES, using built-in defaults:',
+        error,
+      )
+      defaultPolicies = getBuiltInDefaultPolicies()
     }
+  } else {
+    defaultPolicies = getBuiltInDefaultPolicies()
   }
 
-  // Default policy - allow everything for now
   return {
-    import: [
-      {
-        name: 'default-import',
-        match: {},
-        action: { action: 'accept' },
+    enabled,
+    defaultPolicies,
+    policyFile,
+    maxHistorySize,
+  }
+}
+
+/**
+ * Get built-in default policies for common scenarios
+ */
+function getBuiltInDefaultPolicies(): PolicyConfig[] {
+  return [
+    {
+      name: 'prefer-healthy-agents',
+      description: 'Prefer healthy agents over degraded ones',
+      enabled: true,
+      priority: 100,
+      match: {
+        healthStatus: 'healthy',
       },
-    ],
-    export: [
-      {
-        name: 'default-export',
-        match: {},
-        action: { action: 'accept' },
+      action: {
+        action: 'modify',
+        setLocalPref: 150, // Boost preference for healthy agents
+        logDecision: false,
       },
-    ],
+    },
+    {
+      name: 'avoid-unhealthy-agents',
+      description: 'Reject unhealthy agents to prevent routing failures',
+      enabled: true,
+      priority: 200,
+      match: {
+        healthStatus: 'unhealthy',
+      },
+      action: {
+        action: 'reject',
+        logDecision: true,
+        alertOnMatch: true,
+      },
+    },
+    {
+      name: 'limit-long-paths',
+      description: 'Reject routes with too many AS hops to prevent loops',
+      enabled: true,
+      priority: 150,
+      match: {
+        maxASPathLength: 10, // Prevent excessively long paths
+      },
+      action: {
+        action: 'reject',
+        logDecision: true,
+      },
+    },
+  ]
+}
+
+/**
+ * Load policies from a JSON file
+ */
+export function loadPoliciesFromFile(filePath: string): PolicyConfig[] {
+  try {
+    const fileContent = fs.readFileSync(filePath, 'utf8')
+    const policies = JSON.parse(fileContent) as PolicyConfig[]
+
+    logger.log(`Loaded ${policies.length} policies from ${filePath}`)
+    return policies
+  } catch (error) {
+    logger.error(`Failed to load policies from ${filePath}:`, error)
+    return []
+  }
+}
+
+/**
+ * Save policies to a JSON file
+ */
+export function savePolicesToFile(
+  policies: PolicyConfig[],
+  filePath: string,
+): boolean {
+  try {
+    const fileContent = JSON.stringify(policies, null, 2)
+    fs.writeFileSync(filePath, fileContent, 'utf8')
+
+    logger.log(`Saved ${policies.length} policies to ${filePath}`)
+    return true
+  } catch (error) {
+    logger.error(`Failed to save policies to ${filePath}:`, error)
+    return false
   }
 }
 

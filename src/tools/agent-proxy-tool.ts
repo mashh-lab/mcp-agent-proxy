@@ -11,6 +11,22 @@ import { ServerConfig } from '../bgp/types.js'
 import { AgentPathTracker } from '../bgp/path-tracking.js'
 import { AgentRoute } from '../bgp/types.js'
 
+// Global reference to policy engine (set by BGP infrastructure)
+let globalPolicyEngine: import('../bgp/policy.js').PolicyEngine | null = null
+
+/**
+ * Set the global policy engine for use in agent routing
+ * Called by BGP infrastructure during initialization
+ */
+export function setPolicyEngine(
+  policyEngine: import('../bgp/policy.js').PolicyEngine | null,
+): void {
+  globalPolicyEngine = policyEngine
+  if (policyEngine) {
+    logger.log('BGP: Policy engine configured for agent routing')
+  }
+}
+
 // Input schema with support for fully qualified agent IDs
 const agentProxyInputSchema = z.object({
   targetAgentId: z
@@ -56,7 +72,7 @@ const agentProxyOutputSchema = z.object({
   }),
 })
 
-// BGP-aware agent resolution with path tracking
+// BGP-aware agent resolution with path tracking and policy filtering
 async function findBestAgentRoute(
   agentId: string,
   requiredCapabilities: string[] = [],
@@ -68,13 +84,40 @@ async function findBestAgentRoute(
   const pathTracker = new AgentPathTracker(bgpConfig.localASN, servers)
 
   // Discover agent with AS path tracking (prevents loops)
-  const routes = await pathTracker.discoverAgentWithPath(agentId)
+  let routes = await pathTracker.discoverAgentWithPath(agentId)
 
   if (routes.length === 0) {
     return null
   }
 
-  // Apply BGP-style path selection algorithm
+  // Apply policy engine filtering if available
+  if (globalPolicyEngine) {
+    logger.log(
+      `BGP: Applying ${globalPolicyEngine.getPolicies().length} policies to ${routes.length} candidate routes`,
+    )
+
+    const originalCount = routes.length
+    routes = globalPolicyEngine.applyPolicies(routes)
+
+    if (routes.length === 0) {
+      logger.log(
+        `BGP: All ${originalCount} routes rejected by policies for agent ${agentId}`,
+      )
+      return null
+    }
+
+    if (routes.length < originalCount) {
+      logger.log(
+        `BGP: Policies filtered ${originalCount - routes.length} routes, accepting ${routes.length} for agent ${agentId}`,
+      )
+    }
+  } else {
+    logger.log(
+      'BGP: No policy engine configured, using default route selection',
+    )
+  }
+
+  // Apply BGP-style path selection algorithm to remaining routes
   const bestRoute = selectBestRoute(routes, requiredCapabilities)
 
   logger.log(

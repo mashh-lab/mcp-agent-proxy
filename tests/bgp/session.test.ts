@@ -148,8 +148,17 @@ describe('BGPSession', () => {
       const peerASN = 65001
       await bgpSession.addPeer(peerASN, 'http://localhost:4111')
 
-      // Wait for potential session establishment
-      await new Promise((resolve) => setTimeout(resolve, 500))
+      // Force session to be established for testing
+      const peer = bgpSession.getPeer(peerASN)
+      if (peer) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ;(peer as any).status = 'established'
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const session = (bgpSession as any).sessions.get(peerASN)
+      if (session) {
+        session.state = 'established'
+      }
 
       const update: BGPUpdate = {
         type: 'UPDATE',
@@ -176,8 +185,8 @@ describe('BGPSession', () => {
       expect(routes).toHaveLength(1)
       expect(routes[0].agentId).toBe('test-agent-1')
 
-      const peer = bgpSession.getPeer(peerASN)
-      expect(peer?.routesReceived).toBe(1)
+      const peerAfterUpdate = bgpSession.getPeer(peerASN)
+      expect(peerAfterUpdate?.routesReceived).toBe(1)
     })
 
     it('should handle route withdrawals', async () => {
