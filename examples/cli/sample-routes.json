@@ -1,0 +1,90 @@
+[
+  {
+    "agentId": "coding-agent-1",
+    "capabilities": ["javascript", "typescript", "react"],
+    "asPath": [65001],
+    "nextHop": "http://localhost:4001",
+    "localPref": 150,
+    "med": 10,
+    "communities": ["health:healthy", "region:us-east"],
+    "originTime": "2024-12-19T18:00:00.000Z",
+    "pathAttributes": {}
+  },
+  {
+    "agentId": "database-agent-1",
+    "capabilities": ["postgresql", "mysql", "database"],
+    "asPath": [65002],
+    "nextHop": "http://localhost:4002",
+    "localPref": 120,
+    "med": 5,
+    "communities": ["health:healthy", "region:us-west"],
+    "originTime": "2024-12-19T18:00:00.000Z",
+    "pathAttributes": {}
+  },
+  {
+    "agentId": "unhealthy-agent-1",
+    "capabilities": ["analysis", "reporting"],
+    "asPath": [65003],
+    "nextHop": "http://localhost:4003",
+    "localPref": 100,
+    "med": 100,
+    "communities": ["health:unhealthy", "region:eu-west"],
+    "originTime": "2024-12-19T18:00:00.000Z",
+    "pathAttributes": {}
+  },
+  {
+    "agentId": "long-path-agent",
+    "capabilities": ["coding", "analysis"],
+    "asPath": [65004, 65005, 65006, 65007, 65008, 65009, 65010, 65011, 65012],
+    "nextHop": "http://localhost:4004",
+    "localPref": 80,
+    "med": 200,
+    "communities": ["health:healthy", "region:asia-pacific"],
+    "originTime": "2024-12-19T18:00:00.000Z",
+    "pathAttributes": {}
+  },
+  {
+    "agentId": "degraded-agent-1",
+    "capabilities": ["financial", "calculation"],
+    "asPath": [65013, 65014],
+    "nextHop": "http://localhost:4005",
+    "localPref": 90,
+    "med": 50,
+    "communities": ["health:degraded", "region:us-central"],
+    "originTime": "2024-12-19T18:00:00.000Z",
+    "pathAttributes": {}
+  },
+  {
+    "agentId": "production-agent-1",
+    "capabilities": ["production", "deployment"],
+    "asPath": [65015],
+    "nextHop": "http://localhost:4006",
+    "localPref": 200,
+    "med": 0,
+    "communities": ["health:healthy", "env:production", "region:us-east"],
+    "originTime": "2024-12-19T18:00:00.000Z",
+    "pathAttributes": {}
+  },
+  {
+    "agentId": "development-agent-1",
+    "capabilities": ["development", "testing", "staging"],
+    "asPath": [65016],
+    "nextHop": "http://localhost:4007",
+    "localPref": 110,
+    "med": 20,
+    "communities": ["health:healthy", "env:development", "region:us-west"],
+    "originTime": "2024-12-19T18:00:00.000Z",
+    "pathAttributes": {}
+  },
+  {
+    "agentId": "high-performance-agent",
+    "capabilities": ["performance", "optimization"],
+    "asPath": [65017],
+    "nextHop": "http://localhost:4008",
+    "localPref": 180,
+    "med": 2,
+    "communities": ["health:healthy", "perf:high", "region:us-east"],
+    "originTime": "2024-12-19T18:00:00.000Z",
+    "pathAttributes": {}
+  }
+]

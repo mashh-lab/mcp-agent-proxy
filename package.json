@@ -5,7 +5,8 @@
   "description": "MCP proxy server that allows MCP clients to communicate with Mastra agent servers",
   "main": "dist/mcp-server.js",
   "bin": {
-    "mcp-agent-proxy": "dist/mcp-server.js"
+    "mcp-agent-proxy": "dist/mcp-server.js",
+    "bgp-policy-templates": "dist/cli/policy-templates.js"
   },
   "publishConfig": {
     "access": "public"
@@ -30,7 +31,7 @@
     "url": "https://github.com/mashh-lab/mcp-agent-proxy/issues"
   },
   "scripts": {
-    "build": "tsup src/mcp-server.ts --format esm,cjs --out-dir dist --dts --clean",
+    "build": "tsup src/mcp-server.ts src/cli/policy-templates.ts --format esm,cjs --out-dir dist --dts --clean",
     "start": "pnpm build && node dist/mcp-server.js",
     "dev": "pnpm build && node dist/mcp-server.js",
     "test": "vitest",

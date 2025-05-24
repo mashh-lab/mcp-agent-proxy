@@ -201,6 +201,64 @@ This is the recursive **"Internet of Agents"** - where each connection unlocks e
 - **HTTP/SSE Transport**: Network-accessible via HTTP Server-Sent Events for robust client connections
 - **Type Safety**: Full TypeScript implementation with Zod schema validation
 
+## 🎛️ BGP Policy Templates CLI
+
+**NEW!** This package now includes a powerful command-line interface for managing BGP routing policies in agent networks.
+
+### ⚡ Quick CLI Start
+
+```bash
+# Install globally for CLI access
+npm install -g @mashh/mcp-agent-proxy
+
+# Use the CLI
+bgp-policy-templates --help
+```
+
+### 🚀 Key CLI Features
+
+- **📋 Template Discovery** - Browse 15+ ready-made policy templates across 5 categories
+- **🧙 Interactive Wizard** - Get personalized template recommendations based on your needs
+- **⚡ Instant Application** - Apply enterprise-grade policies with one command
+- **🔧 Customization** - Priority offsets, name prefixes, enabled-only filtering
+- **🧪 Route Testing** - Validate policies against sample routes before deployment
+- **💾 File Output** - Generate JSON configurations for production deployment
+
+### 📚 Template Categories
+
+- **🔒 Security** - Protect against threats and unauthorized access
+- **⚡ Performance** - Optimize routing for speed and efficiency
+- **🛡️ Reliability** - Ensure high availability and fault tolerance
+- **🧪 Development** - Flexible policies for testing environments
+- **🏭 Production** - Strict policies for enterprise deployments
+
+### 🎯 CLI Examples
+
+```bash
+# Browse available templates
+bgp-policy-templates list
+
+# Interactive wizard for beginners
+bgp-policy-templates wizard
+
+# Apply security template with validation
+bgp-policy-templates apply security-basic --validate -o policies.json
+
+# Test policies against sample routes
+bgp-policy-templates apply security-basic --test-file routes.json
+
+# Performance optimization with customization
+bgp-policy-templates apply performance-optimization \
+  --name-prefix "prod-" \
+  --priority-offset 1000
+```
+
+### 📖 Complete CLI Guide
+
+For comprehensive CLI documentation including installation, usage examples, and integration workflows:
+
+**→ [CLI Guide](docs/CLI_GUIDE.md)** | **→ [CLI Examples](examples/cli/)**
+
 ## Architecture
 
 ```mermaid
