@@ -9,6 +9,8 @@ import {
   getMastraAgentsInfo,
 } from './tools/list-mastra-agents-tool.js'
 import { agentProxyTool } from './tools/agent-proxy-tool.js'
+import { learnMastraServerTool } from './tools/add-server-tool.js'
+import { forgetMastraServerTool } from './tools/remove-server-tool.js'
 import { getMCPServerPort, getMCPPaths, logger } from './config.js'
 
 // Instantiate MCPServer with tools
@@ -18,6 +20,8 @@ const mcpServerInstance = new MCPServer({
   tools: {
     callMastraAgent: agentProxyTool, // Agent proxy tool with smart server resolution
     listMastraAgents: listMastraAgentsTool, // Multi-server agent listing with conflict detection
+    learnMastraServer: learnMastraServerTool, // Dynamic server learning tool
+    forgetMastraServer: forgetMastraServerTool, // Dynamic server forgetting tool
   },
 })
 
@@ -98,7 +102,12 @@ async function startServer() {
                 message: MESSAGE_PATH,
               },
               agents: agentListResult,
-              tools: ['callMastraAgent', 'listMastraAgents'],
+              tools: [
+                'callMastraAgent',
+                'listMastraAgents',
+                'learnMastraServer',
+                'forgetMastraServer',
+              ],
             }),
           )
         } catch (error) {
@@ -154,7 +163,9 @@ async function startServer() {
       logger.log(`Message Endpoint: http://localhost:${PORT}${MESSAGE_PATH}`)
       logger.log(`Health Check: http://localhost:${PORT}/health`)
       logger.log(`Status Endpoint: http://localhost:${PORT}/status`)
-      logger.log('Available tools: callMastraAgent, listMastraAgents')
+      logger.log(
+        'Available tools: callMastraAgent, listMastraAgents, learnMastraServer, forgetMastraServer',
+      )
     })
 
     // Graceful shutdown
@@ -178,6 +189,15 @@ async function startServer() {
 
 // Export the server instance and startup function for programmatic use
 export { mcpServerInstance, startServer }
+
+// Export config functions for testing and programmatic use
+export {
+  addDynamicServer,
+  removeDynamicServer,
+  getDynamicServers,
+  loadServerMappings,
+  clearDynamicServers,
+} from './config.js'
 
 // Only start the server if this file is run directly (not imported)
 // Cross-compatible approach for both ESM and CJS builds

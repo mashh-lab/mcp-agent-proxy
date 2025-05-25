@@ -1,17 +1,24 @@
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { MastraClient } from '@mastra/client-js'
-import { loadServerMappings, getRetryConfig } from '../config.js'
+import {
+  loadServerMappings,
+  getRetryConfig,
+  getDynamicServers,
+} from '../config.js'
 
 /**
  * Generate servers from configurable server mappings
  */
 function getServersFromConfig() {
   const serverMappings = loadServerMappings()
+  const dynamicServers = getDynamicServers()
+
   return Array.from(serverMappings.entries()).map(([name, url]) => ({
     name,
     url,
     description: `Mastra Server (${name})`,
+    isDynamic: dynamicServers.has(name),
   }))
 }
 
@@ -61,6 +68,7 @@ export async function getMastraAgentsInfo() {
         serverDescription: server.description,
         agents,
         status: 'online' as const,
+        isDynamic: server.isDynamic,
       })
 
       totalAgents += agents.length
@@ -73,6 +81,7 @@ export async function getMastraAgentsInfo() {
         agents: [],
         status: 'error' as const,
         error: error instanceof Error ? error.message : 'Unknown error',
+        isDynamic: server.isDynamic,
       })
     }
   }
@@ -85,10 +94,16 @@ export async function getMastraAgentsInfo() {
       servers,
     }))
 
+  // Count dynamic vs static servers
+  const dynamicServerCount = serversToCheck.filter((s) => s.isDynamic).length
+  const staticServerCount = serversToCheck.length - dynamicServerCount
+
   return {
     serverAgents,
     summary: {
       totalServers: serversToCheck.length,
+      staticServers: staticServerCount,
+      dynamicServers: dynamicServerCount,
       onlineServers,
       totalAgents,
       agentConflicts,
@@ -111,10 +126,21 @@ const listAgentsOutputSchema = z.object({
       ),
       status: z.enum(['online', 'offline', 'error']),
       error: z.string().optional(),
+      isDynamic: z
+        .boolean()
+        .describe(
+          'Whether this server was learned dynamically via learnMastraServer tool',
+        ),
     }),
   ),
   summary: z.object({
     totalServers: z.number(),
+    staticServers: z
+      .number()
+      .describe('Servers configured via MASTRA_SERVERS environment variable'),
+    dynamicServers: z
+      .number()
+      .describe('Servers learned dynamically via learnMastraServer tool'),
     onlineServers: z.number(),
     totalAgents: z.number(),
     agentConflicts: z.array(
