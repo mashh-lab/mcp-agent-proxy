@@ -2,6 +2,13 @@ import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
 import { MastraClient } from '@mastra/client-js'
 import { getServersFromConfig, getRetryConfig } from '../config.js'
+import {
+  getBGPNetworkAgents,
+  getBGPLocalAgents,
+  isBGPAvailable,
+  getBGPNetworkStatus,
+} from './bgp-integration.js'
+import { logger } from '../config.js'
 
 /**
  * Get agent information from all configured Mastra servers with BGP awareness
@@ -75,6 +82,95 @@ export async function getMastraAgentsInfo() {
     }
   }
 
+  // Add BGP-discovered agents if BGP infrastructure is available
+  if (isBGPAvailable()) {
+    try {
+      const bgpNetworkAgents = await getBGPNetworkAgents()
+      const bgpLocalAgents = await getBGPLocalAgents()
+      const bgpStatus = await getBGPNetworkStatus()
+
+      // Add BGP network agents as virtual servers
+      if (bgpNetworkAgents.length > 0) {
+        // Group agents by source ASN
+        const agentsByASN = new Map<number, typeof bgpNetworkAgents>()
+
+        for (const networkAgent of bgpNetworkAgents) {
+          if (!agentsByASN.has(networkAgent.sourceASN)) {
+            agentsByASN.set(networkAgent.sourceASN, [])
+          }
+          agentsByASN.get(networkAgent.sourceASN)!.push(networkAgent)
+        }
+
+        // Create virtual server entries for each BGP AS
+        for (const [asn, agents] of agentsByASN.entries()) {
+          const bgpAgents = agents.map((networkAgent) => {
+            const agentId = networkAgent.agent.agentId
+
+            // Track BGP agent conflicts
+            if (!agentIdMap.has(agentId)) {
+              agentIdMap.set(agentId, [])
+            }
+            agentIdMap.get(agentId)!.push(`bgp-as${asn}`)
+
+            return {
+              id: agentId,
+              name: agentId, // BGP agents don't have separate names
+              fullyQualifiedId: `bgp-as${asn}:${agentId}`,
+              // BGP-specific metadata
+              bgpRoute: {
+                asPath: networkAgent.route.asPath,
+                nextHop: networkAgent.route.nextHop,
+                localPref: networkAgent.route.localPref,
+                med: networkAgent.route.med,
+              },
+            }
+          })
+
+          serverAgents.push({
+            serverName: `bgp-as${asn}`,
+            serverUrl: agents[0]?.agent.serverUrl || `bgp://as${asn}`,
+            serverDescription: `BGP-discovered agents from AS${asn}`,
+            asn: asn,
+            region: 'bgp-network',
+            priority: 200, // Lower priority than direct servers
+            agents: bgpAgents,
+            status: 'online' as const,
+            // BGP-specific metadata
+            bgpDiscovered: true,
+            bgpMetrics: {
+              totalRoutes: agents.length,
+              avgPathLength:
+                agents.reduce((sum, a) => sum + a.route.asPath.length, 0) /
+                agents.length,
+            },
+          })
+
+          totalAgents += bgpAgents.length
+          onlineServers++
+        }
+      }
+
+      // Add BGP status information to summary
+      if (bgpStatus) {
+        // Add BGP network summary to the response
+        const bgpSummary = {
+          bgpEnabled: true,
+          localASN: bgpStatus.localASN,
+          peersConnected: bgpStatus.peersConnected,
+          routesLearned: bgpStatus.routesLearned,
+          localAgentsAdvertised: bgpStatus.localAgentsAdvertised,
+          networkAgentsDiscovered: bgpStatus.networkAgentsDiscovered,
+        }
+
+        // We'll add this to the summary below
+        Object.assign(serverAgents, { bgpSummary })
+      }
+    } catch (error) {
+      logger.error('Failed to get BGP agents:', error)
+      // Continue without BGP agents - don't fail the entire operation
+    }
+  }
+
   // Identify conflicts (agents with same ID on multiple servers/ASes)
   const agentConflicts = Array.from(agentIdMap.entries())
     .filter(([, servers]) => servers.length > 1)
@@ -85,28 +181,57 @@ export async function getMastraAgentsInfo() {
       conflictingASNs: servers
         .map((serverName) => {
           const server = serversToCheck.find((s) => s.name === serverName)
-          return server ? server.asn : null
+          if (server) return server.asn
+
+          // Handle BGP virtual servers
+          const bgpMatch = serverName.match(/^bgp-as(\d+)$/)
+          if (bgpMatch) return parseInt(bgpMatch[1])
+
+          return null
         })
         .filter((asn) => asn !== null) as number[],
     }))
 
+  const summary = {
+    totalServers: serversToCheck.length,
+    onlineServers,
+    totalAgents,
+    agentConflicts,
+    // BGP network summary
+    asNumbers: serversToCheck.map((s) => s.asn),
+    regions: [
+      ...new Set(
+        serversToCheck
+          .map((s) => s.region)
+          .filter((region): region is string => region !== undefined),
+      ),
+    ],
+  }
+
+  // Add BGP summary if available
+  if (isBGPAvailable()) {
+    try {
+      const bgpStatus = await getBGPNetworkStatus()
+      if (bgpStatus) {
+        Object.assign(summary, {
+          bgp: {
+            enabled: true,
+            localASN: bgpStatus.localASN,
+            peersConnected: bgpStatus.peersConnected,
+            routesLearned: bgpStatus.routesLearned,
+            localAgentsAdvertised: bgpStatus.localAgentsAdvertised,
+            networkAgentsDiscovered: bgpStatus.networkAgentsDiscovered,
+          },
+        })
+      }
+    } catch (error) {
+      logger.error('Failed to get BGP status for summary:', error)
+    }
+  }
+
   return {
     serverAgents,
-    summary: {
-      totalServers: serversToCheck.length,
-      onlineServers,
-      totalAgents,
-      agentConflicts,
-      // BGP network summary
-      asNumbers: serversToCheck.map((s) => s.asn),
-      regions: [
-        ...new Set(
-          serversToCheck
-            .map((s) => s.region)
-            .filter((region): region is string => region !== undefined),
-        ),
-      ],
-    },
+    summary,
   }
 }
 

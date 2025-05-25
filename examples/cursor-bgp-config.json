@@ -1,0 +1,32 @@
+{
+  "_comment": "Cursor Configuration for BGP-Powered Agent Networking",
+  "mcpServers": {
+    "bgp-agent-proxy": {
+      "command": "node",
+      "args": ["/Users/ian/Dev/mcp-agent-proxy/dist/mcp-server.js"],
+      "env": {
+        "MASTRA_SERVERS": "http://localhost:4111 http://localhost:4222",
+        "MCP_SERVER_PORT": "3001",
+        "MCP_TRANSPORT": "http"
+      }
+    }
+  },
+
+  "_architecture": {
+    "_comment": "Multi-hop BGP agent networking validation:",
+    "hop1": "Cursor -> BGP MCP Server (localhost:3001)",
+    "hop2": "BGP MCP Server -> Mastra Server (localhost:4111)",
+    "hop3": "Mastra Server (4111) -> Mastra Server (localhost:4222)",
+    "hop4": "Mastra Server (4222) -> Target Agent",
+    "result": "4-hop agent communication with BGP routing intelligence"
+  },
+
+  "_bgp_features": {
+    "_comment": "BGP capabilities being tested:",
+    "discovery": "Real-time agent discovery across both servers",
+    "routing": "Intelligent path selection with health monitoring",
+    "load_balancing": "Multi-path load balancing across 6 algorithms",
+    "policies": "Enterprise-grade routing policies",
+    "monitoring": "Real-time health and performance tracking"
+  }
+}

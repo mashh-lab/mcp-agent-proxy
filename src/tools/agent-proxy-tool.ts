@@ -10,6 +10,11 @@ import {
 import { ServerConfig } from '../bgp/types.js'
 import { AgentPathTracker } from '../bgp/path-tracking.js'
 import { AgentRoute } from '../bgp/types.js'
+import {
+  findBGPRoute,
+  getBGPRoutingInfo,
+  isBGPAvailable,
+} from './bgp-integration.js'
 
 // Global reference to policy engine (set by BGP infrastructure)
 let globalPolicyEngine: import('../bgp/policy.js').PolicyEngine | null = null
@@ -69,6 +74,16 @@ const agentProxyOutputSchema = z.object({
     region: z.string().optional(), // Region of chosen server
     priority: z.number().optional(), // Priority of chosen server
     availableAlternatives: z.number(), // Number of other servers with this agent
+    // BGP-specific routing info
+    bgpRoute: z
+      .object({
+        hasBGPRoute: z.boolean(),
+        asPath: z.array(z.number()).optional(),
+        nextHop: z.string().optional(),
+        localPref: z.number().optional(),
+        med: z.number().optional(),
+      })
+      .optional(),
   }),
 })
 
@@ -77,6 +92,18 @@ async function findBestAgentRoute(
   agentId: string,
   requiredCapabilities: string[] = [],
 ): Promise<AgentRoute | null> {
+  // First, try BGP route discovery if available
+  if (isBGPAvailable()) {
+    const bgpRoute = await findBGPRoute(agentId)
+    if (bgpRoute) {
+      logger.log(
+        `BGP: Found BGP route for agent ${agentId} via AS path [${bgpRoute.asPath.join('→')}]`,
+      )
+      return bgpRoute
+    }
+  }
+
+  // Fallback to traditional server discovery
   const servers = getServersFromConfig()
   const bgpConfig = getBGPConfig()
 
@@ -92,10 +119,6 @@ async function findBestAgentRoute(
 
   // Apply policy engine filtering if available
   if (globalPolicyEngine) {
-    logger.log(
-      `BGP: Applying ${globalPolicyEngine.getPolicies().length} policies to ${routes.length} candidate routes`,
-    )
-
     const originalCount = routes.length
     routes = globalPolicyEngine.applyPolicies(routes)
 
@@ -105,25 +128,10 @@ async function findBestAgentRoute(
       )
       return null
     }
-
-    if (routes.length < originalCount) {
-      logger.log(
-        `BGP: Policies filtered ${originalCount - routes.length} routes, accepting ${routes.length} for agent ${agentId}`,
-      )
-    }
-  } else {
-    logger.log(
-      'BGP: No policy engine configured, using default route selection',
-    )
   }
 
   // Apply BGP-style path selection algorithm to remaining routes
   const bestRoute = selectBestRoute(routes, requiredCapabilities)
-
-  logger.log(
-    `BGP: Selected route for ${agentId} through AS path [${bestRoute.asPath.join(' → ')}] ` +
-      `with local pref ${bestRoute.localPref}, MED ${bestRoute.med}`,
-  )
 
   return bestRoute
 }
@@ -232,6 +240,25 @@ function extractRequiredCapabilities(
   return capabilities
 }
 
+/**
+ * Convert BGP route to server configuration for client connection
+ */
+function bgpRouteToServerConfig(route: AgentRoute): ServerConfig {
+  // Extract server info from BGP route
+  const nextHopUrl = route.nextHop.startsWith('http')
+    ? route.nextHop
+    : `http://${route.nextHop}`
+
+  return {
+    name: `bgp-route-as${route.asPath[route.asPath.length - 1]}`,
+    url: nextHopUrl,
+    asn: route.asPath[route.asPath.length - 1], // Source AS
+    description: `BGP-routed server via AS path [${route.asPath.join('→')}]`,
+    region: 'bgp-network',
+    priority: 200 - route.localPref, // Convert local pref to priority
+  }
+}
+
 export const agentProxyTool = createTool({
   id: 'callMastraAgent',
   description:
@@ -262,30 +289,61 @@ export const agentProxyTool = createTool({
       let fullyQualifiedId: string
       let resolutionMethod: string
       let availableAlternatives = 0
+      let bgpRoutingInfo: {
+        hasBGPRoute: boolean
+        asPath?: number[]
+        nextHop?: string
+        localPref?: number
+        med?: number
+      } = { hasBGPRoute: false }
 
       if (targetAgentId.includes(':')) {
-        // Handle fully qualified ID (server:agentId)
+        // Handle fully qualified ID (server:agentId or bgp-as123:agentId)
         const [serverName, agentId] = targetAgentId.split(':', 2)
         actualAgentId = agentId
         fullyQualifiedId = targetAgentId
         resolutionMethod = 'explicit_qualification'
 
-        // Resolve server from name
-        if (serverMap.has(serverName)) {
-          serverToUse = serverMap.get(serverName)!
-        } else if (serverUrl) {
-          // Create temporary server config for explicit URL
-          serverToUse = {
-            name: 'custom',
-            url: serverUrl,
-            asn: 0, // Unknown AS
-            description: 'Custom URL override',
+        // Check if this is a BGP virtual server
+        const bgpMatch = serverName.match(/^bgp-as(\d+)$/)
+        if (bgpMatch) {
+          // This is a BGP-discovered agent
+          const sourceASN = parseInt(bgpMatch[1])
+          const bgpRoute = await findBGPRoute(actualAgentId)
+
+          if (bgpRoute && bgpRoute.asPath.includes(sourceASN)) {
+            serverToUse = bgpRouteToServerConfig(bgpRoute)
+            resolutionMethod = `bgp_explicit_as${sourceASN}`
+            bgpRoutingInfo = {
+              hasBGPRoute: true,
+              asPath: bgpRoute.asPath,
+              nextHop: bgpRoute.nextHop,
+              localPref: bgpRoute.localPref,
+              med: bgpRoute.med,
+            }
+          } else {
+            throw new Error(
+              `BGP route not found for agent ${actualAgentId} in AS${sourceASN}`,
+            )
           }
-          resolutionMethod = 'explicit_url_override'
         } else {
-          throw new Error(
-            `Unknown server '${serverName}'. Available servers: ${Array.from(serverMap.keys()).join(', ')}. Or provide serverUrl parameter.`,
-          )
+          // Regular server resolution
+          if (serverMap.has(serverName)) {
+            serverToUse = serverMap.get(serverName)!
+          } else if (serverUrl) {
+            // Create temporary server config for explicit URL
+            serverToUse = {
+              name: 'custom',
+              url: serverUrl,
+              asn: 0, // Unknown AS
+              description: 'Custom URL override',
+            }
+            resolutionMethod = 'explicit_url_override'
+          } else {
+            throw new Error(
+              `Unknown server '${serverName}'. Available servers: ${Array.from(serverMap.keys()).join(', ')}. Or provide serverUrl parameter.`,
+            )
+          }
         }
       } else {
         // Handle plain agent ID - use BGP-aware smart resolution
@@ -318,21 +376,38 @@ export const agentProxyTool = createTool({
             )
           }
 
-          // Use BGP-selected route
-          const serverName =
-            (bestRoute.pathAttributes.get('server_name') as string) || 'unknown'
-          const matchingServer = servers.find((s) => s.name === serverName)
+          // Check if this is a BGP route
+          const bgpInfo = await getBGPRoutingInfo(actualAgentId)
+          if (bgpInfo?.hasBGPRoute && bgpInfo.route) {
+            // Use BGP routing
+            serverToUse = bgpRouteToServerConfig(bgpInfo.route)
+            fullyQualifiedId = `bgp-as${bgpInfo.sourceASN}:${actualAgentId}`
+            resolutionMethod = `bgp_route_[${bgpInfo.asPath?.join('→')}]_pref_${bgpInfo.localPref}_med_${bgpInfo.med}`
+            bgpRoutingInfo = {
+              hasBGPRoute: true,
+              asPath: bgpInfo.asPath,
+              nextHop: bgpInfo.nextHop,
+              localPref: bgpInfo.localPref,
+              med: bgpInfo.med,
+            }
+          } else {
+            // Use traditional BGP-selected route
+            const serverName =
+              (bestRoute.pathAttributes.get('server_name') as string) ||
+              'unknown'
+            const matchingServer = servers.find((s) => s.name === serverName)
 
-          if (!matchingServer) {
-            throw new Error(
-              `Internal error: Could not find server config for ${serverName}`,
-            )
+            if (!matchingServer) {
+              throw new Error(
+                `Internal error: Could not find server config for ${serverName}`,
+              )
+            }
+
+            serverToUse = matchingServer
+            fullyQualifiedId = `${serverName}:${actualAgentId}`
+            resolutionMethod = `bgp_path_[${bestRoute.asPath.join('→')}]_pref_${bestRoute.localPref}_med_${bestRoute.med}`
+            availableAlternatives = 0 // BGP selects single best path
           }
-
-          serverToUse = matchingServer
-          fullyQualifiedId = `${serverName}:${actualAgentId}`
-          resolutionMethod = `bgp_path_[${bestRoute.asPath.join('→')}]_pref_${bestRoute.localPref}_med_${bestRoute.med}`
-          availableAlternatives = 0 // BGP selects single best path
         }
       }
 
@@ -449,6 +524,7 @@ export const agentProxyTool = createTool({
           region: serverToUse.region,
           priority: serverToUse.priority,
           availableAlternatives,
+          bgpRoute: bgpRoutingInfo,
         },
       }
     } catch (error: unknown) {

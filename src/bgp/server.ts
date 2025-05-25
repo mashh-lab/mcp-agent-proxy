@@ -13,6 +13,8 @@ import {
   getPolicyTemplateStats,
 } from './policy-templates.js'
 import { logger } from '../config.js'
+import http from 'http'
+import { URL } from 'url'
 
 export interface BGPServerConfig {
   port: number
@@ -43,19 +45,18 @@ export class BGPServer {
   private bgpSession: BGPSession
   private config: BGPServerConfig
   private policyEngine?: PolicyEngine
+  private httpServer?: http.Server
+  private isListening = false
   private endpoints = new Map<
     string,
     (req: BGPEndpointRequest) => Promise<BGPEndpointResponse>
   >()
 
-  constructor(config: BGPServerConfig) {
+  constructor(config: BGPServerConfig, bgpSession?: BGPSession) {
     this.config = config
-    this.bgpSession = new BGPSession(config.localASN, config.routerId)
+    this.bgpSession =
+      bgpSession || new BGPSession(config.localASN, config.routerId)
     this.setupEndpoints()
-
-    logger.log(
-      `BGP: Server initialized for AS${config.localASN} on ${config.hostname || 'localhost'}:${config.port}`,
-    )
   }
 
   /**
@@ -64,7 +65,6 @@ export class BGPServer {
   configurePolicyEngine(policyEngine: PolicyEngine): void {
     this.policyEngine = policyEngine
     this.setupPolicyEndpoints()
-    logger.log('BGP: Policy engine configured with HTTP endpoints')
   }
 
   /**
@@ -187,8 +187,102 @@ export class BGPServer {
       'POST /bgp/policies/test',
       this.handleTestPolicies.bind(this),
     )
+  }
 
-    logger.log('BGP: Policy management endpoints configured')
+  /**
+   * Start BGP HTTP server listening for connections
+   */
+  async startListening(): Promise<void> {
+    if (this.isListening) {
+      return
+    }
+
+    this.httpServer = http.createServer(this.handleHTTPRequest.bind(this))
+
+    return new Promise((resolve, reject) => {
+      this.httpServer!.listen(
+        this.config.port,
+        this.config.hostname || 'localhost',
+        () => {
+          this.isListening = true
+          logger.log(
+            `🌐 BGP Server listening on ${this.config.hostname || 'localhost'}:${this.config.port}`,
+          )
+          resolve()
+        },
+      )
+
+      this.httpServer!.on('error', (error) => {
+        logger.log(`❌ BGP Server failed to start: ${error.message}`)
+        reject(error)
+      })
+    })
+  }
+
+  /**
+   * Handle incoming HTTP requests to BGP endpoints
+   */
+  private async handleHTTPRequest(
+    req: http.IncomingMessage,
+    res: http.ServerResponse,
+  ): Promise<void> {
+    try {
+      // Parse request
+      const url = new URL(req.url || '/', `http://${req.headers.host}`)
+      const method = req.method || 'GET'
+
+      // Read request body for POST/PUT requests
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let body: any = undefined
+      if (method === 'POST' || method === 'PUT') {
+        body = await this.readRequestBody(req)
+      }
+
+      // Create BGP request object
+      const bgpRequest: BGPEndpointRequest = {
+        method: method as 'GET' | 'POST' | 'PUT' | 'DELETE',
+        path: url.pathname,
+        headers: req.headers as Record<string, string>,
+        body: body,
+        query: Object.fromEntries(url.searchParams.entries()),
+      }
+
+      // Handle request through BGP endpoint routing
+      const response = await this.handleRequest(bgpRequest)
+
+      // Send response
+      res.writeHead(response.status, response.headers)
+      if (response.body) {
+        res.end(JSON.stringify(response.body))
+      } else {
+        res.end()
+      }
+    } catch {
+      console.log('BGP: HTTP request error')
+      res.writeHead(500, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ error: 'Internal BGP server error' }))
+    }
+  }
+
+  /**
+   * Read request body as JSON
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private async readRequestBody(req: http.IncomingMessage): Promise<any> {
+    return new Promise((resolve, reject) => {
+      let body = ''
+      req.on('data', (chunk) => {
+        body += chunk.toString()
+      })
+      req.on('end', () => {
+        try {
+          resolve(body ? JSON.parse(body) : undefined)
+        } catch {
+          reject(new Error('Invalid JSON in request body'))
+        }
+      })
+      req.on('error', reject)
+    })
   }
 
   /**
@@ -773,11 +867,41 @@ export class BGPServer {
   }
 
   /**
-   * Shutdown BGP server
+   * Stop BGP server and cleanup
    */
   async shutdown(): Promise<void> {
-    logger.log('BGP: Shutting down BGP server')
-    await this.bgpSession.shutdown()
+    logger.log('🛑 Shutting down BGP server...')
+
+    if (this.httpServer && this.isListening) {
+      return new Promise((resolve) => {
+        this.httpServer!.close(() => {
+          this.isListening = false
+          logger.log('✅ BGP server shutdown complete')
+          resolve()
+        })
+      })
+    }
+  }
+
+  /**
+   * Check if BGP server is listening
+   */
+  isServerListening(): boolean {
+    return this.isListening
+  }
+
+  /**
+   * Get server listening address
+   */
+  getServerAddress(): { hostname: string; port: number } | null {
+    if (!this.isListening || !this.httpServer) {
+      return null
+    }
+
+    return {
+      hostname: this.config.hostname || 'localhost',
+      port: this.config.port,
+    }
   }
 
   // =================================

@@ -204,8 +204,15 @@ export interface EnhancedBGPConfig {
  * Get BGP configuration for the proxy itself
  */
 export function getBGPConfig() {
+  // Generate dynamic ASN based on MCP server port to avoid conflicts
+  const mcpPort = getMCPServerPort()
+  const dynamicASN = parseInt(
+    process.env.BGP_ASN || (64512 + (mcpPort - 3001)).toString(),
+    10,
+  )
+
   return {
-    localASN: parseInt(process.env.BGP_ASN || '65000', 10), // Our proxy's AS number
+    localASN: dynamicASN, // Dynamic AS number based on server port
     routerId: process.env.BGP_ROUTER_ID || generateRouterID(),
     holdTime: parseInt(process.env.BGP_HOLD_TIME || '90', 10), // seconds
     keepAliveInterval: parseInt(process.env.BGP_KEEPALIVE_INTERVAL || '30', 10), // seconds

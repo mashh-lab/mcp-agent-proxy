@@ -143,11 +143,11 @@ describe('BGP Configuration System', () => {
     it('should return default BGP configuration', () => {
       const config = getBGPConfig()
 
-      expect(config.localASN).toBe(65000) // Default proxy AS
+      expect(config.localASN).toBe(64512) // Dynamic AS for default port 3001
       expect(config.holdTime).toBe(90)
       expect(config.keepAliveInterval).toBe(30)
       expect(config.connectRetryTime).toBe(30)
-      expect(config.routerId).toContain('mcp-agent-proxy')
+      expect(config.routerId).toMatch(/mcp-agent-proxy:\d+/)
     })
 
     it('should use custom BGP_ASN when provided', () => {

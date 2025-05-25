@@ -1,0 +1,31 @@
+{
+  "_comment": "Cursor Configuration for PURE BGP Agent Discovery",
+  "mcpServers": {
+    "bgp-agent-proxy": {
+      "command": "node",
+      "args": ["/Users/ian/Dev/mcp-agent-proxy/dist/mcp-server.js"],
+      "env": {
+        "MASTRA_SERVERS": "http://localhost:4111",
+        "MCP_SERVER_PORT": "3001"
+      }
+    }
+  },
+
+  "_test_scenario": {
+    "_comment": "Pure BGP agent networking test:",
+    "setup": "Cursor connects ONLY to AS64512 (port 3001)",
+    "bgp_peering": "AS64512 <-> AS64513 via BGP (ports 1179<->1180)",
+    "discovery": "AS64512 should discover agents on AS64513 via BGP routing",
+    "routing": "Agents on AS64513 accessible through BGP path selection",
+    "validation": "If this works, we have true BGP-powered agent internet!"
+  },
+
+  "_bgp_architecture": {
+    "_comment": "BGP routing path:",
+    "client": "Cursor -> MCP Server (AS64512, port 3001)",
+    "local_agents": "Direct access to agents on Mastra 4111",
+    "bgp_discovery": "BGP routing discovers agents on AS64513",
+    "remote_access": "Route calls to AS64513 agents via BGP path",
+    "result": "Network-wide agent access through BGP routing only"
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "_comment": "MCP Configuration for Mastra Server on Port 4111 (Agent Host for AS64512)",
+  "mcpServers": {
+    "local-agents": {
+      "command": "node",
+      "args": ["/path/to/your/local/agents/mcp-server.js"],
+      "env": {
+        "PORT": "4111"
+      }
+    }
+  },
+
+  "_architecture_role": {
+    "_comment": "This Mastra server's role in BGP network:",
+    "purpose": "Agent hosting server for AS64512 BGP proxy",
+    "connection": "BGP Proxy AS64512 (port 3001) -> This Mastra (port 4111)",
+    "agents": "Hosts local agents that get advertised via BGP",
+    "discovery": "AS64512 discovers agents here and advertises them to AS64513"
+  },
+
+  "_bgp_integration": {
+    "_comment": "BGP integration details:",
+    "bgp_proxy": "AS64512 connects to this server via MASTRA_SERVERS env var",
+    "advertisement": "Local agents get advertised to BGP network automatically",
+    "routing": "Remote clients can reach these agents via BGP routing",
+    "no_bgp_config": "This server doesn't need BGP config - the proxy handles it"
+  },
+
+  "_network_topology": {
+    "_comment": "How this creates the multi-hop network:",
+    "mastra_4111": "This Mastra server (localhost:4111)",
+    "mcp_proxy": "Connects to BGP MCP Server (localhost:3002)",
+    "target_server": "Which routes to Mastra Server (localhost:4222)",
+    "result": "Mastra 4111 can reach agents on Mastra 4222 via BGP routing"
+  },
+
+  "_usage_example": {
+    "_comment": "From Cursor, you can now:",
+    "step1": "Call an agent on this Mastra server (4111)",
+    "step2": "That agent uses MCP to call through BGP proxy",
+    "step3": "BGP proxy routes to target server (4222)",
+    "step4": "Target agent executes and returns through the chain",
+    "hops": "4 total hops with BGP intelligence at hop 2-3"
+  }
+}

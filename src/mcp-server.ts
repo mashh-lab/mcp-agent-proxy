@@ -1,4 +1,4 @@
-// src/mcp-server.ts - BGP-Powered MCP Server
+// src/mcp-server.ts - BGP-Powered MCP Server with Hybrid Transport
 import { MCPServer } from '@mastra/mcp'
 import http from 'http'
 import { URL } from 'url'
@@ -7,431 +7,455 @@ import {
   getMastraAgentsInfo,
 } from './tools/list-mastra-agents-tool.js'
 import { agentProxyTool, setPolicyEngine } from './tools/agent-proxy-tool.js'
+import { setBGPInfrastructure } from './tools/bgp-integration.js'
 import {
   getMCPServerPort,
   getMCPPaths,
-  getBGPConfig,
   getEnhancedBGPConfig,
   loadPoliciesFromFile,
-  logger,
 } from './config.js'
 
 // BGP Infrastructure
-import { BGPSession } from './bgp/session.js'
+import { BGPSession, BGPSessionState } from './bgp/session.js'
 import { AgentAdvertisementManager } from './bgp/advertisement.js'
 import { RealTimeDiscoveryManager } from './bgp/discovery.js'
 import { BGPServer } from './bgp/server.js'
 import { PolicyEngine } from './bgp/policy.js'
+import { LocalAgentDiscovery } from './bgp/local-discovery.js'
 
-// Global BGP infrastructure instances
+// BGP Infrastructure State
 let bgpSession: BGPSession | null = null
 let advertisementManager: AgentAdvertisementManager | null = null
 let discoveryManager: RealTimeDiscoveryManager | null = null
+let localDiscovery: LocalAgentDiscovery | null = null
 let bgpServer: BGPServer | null = null
 let policyEngine: PolicyEngine | null = null
 
-/**
- * Initialize BGP infrastructure components
- */
-async function initializeBGPInfrastructure() {
-  logger.log('🚀 Initializing BGP-powered agent network...')
-
-  const bgpConfig = getBGPConfig()
-  const enhancedConfig = getEnhancedBGPConfig()
-
-  logger.log(`📍 Local AS: ${bgpConfig.localASN}`)
-  logger.log(`🆔 Router ID: ${bgpConfig.routerId}`)
-
-  // 1. Initialize BGP Session Manager
-  bgpSession = new BGPSession(bgpConfig.localASN, bgpConfig.routerId)
-
-  // 2. Initialize Policy Engine
-  if (enhancedConfig.policy.enabled) {
-    logger.log('🧠 Initializing BGP policy engine...')
-    policyEngine = new PolicyEngine(enhancedConfig.policy.maxHistorySize)
-
-    // Load policies from configuration
-    const policiesToLoad = [...enhancedConfig.policy.defaultPolicies]
-
-    // Load additional policies from file if specified
-    if (enhancedConfig.policy.policyFile) {
-      const filePolicies = loadPoliciesFromFile(
-        enhancedConfig.policy.policyFile,
-      )
-      policiesToLoad.push(...filePolicies)
-    }
-
-    if (policiesToLoad.length > 0) {
-      policyEngine.loadPolicies(policiesToLoad)
-      logger.log(`🎯 Loaded ${policiesToLoad.length} routing policies`)
-    } else {
-      logger.log('⚠️ No policies loaded - using default accept behavior')
-    }
-  } else {
-    logger.log('⚠️ Policy engine disabled by configuration')
+// Helper function for safe logging in MCP stdio mode
+function safeLog(message: string, ...args: any[]) {
+  if (process.env.MCP_TRANSPORT !== 'stdio' && process.stdin.isTTY) {
+    console.log(message, ...args)
   }
+}
 
-  // 3. Initialize Agent Advertisement Manager
-  advertisementManager = new AgentAdvertisementManager(bgpSession, {
-    localASN: bgpConfig.localASN,
-    routerId: bgpConfig.routerId,
-    hostname: 'localhost',
-    port: getMCPServerPort(),
-    advertisementInterval: 5 * 60 * 1000, // 5 minutes
-  })
+function safeError(message: string, ...args: any[]) {
+  if (process.env.MCP_TRANSPORT !== 'stdio' && process.stdin.isTTY) {
+    console.error(message, ...args)
+  }
+}
 
-  // 4. Initialize Real-Time Discovery Manager
-  discoveryManager = new RealTimeDiscoveryManager(
-    bgpSession,
-    advertisementManager,
-    {
+/**
+ * Initialize BGP Infrastructure (works in both stdio and HTTP modes)
+ */
+async function initializeBGPInfrastructure(): Promise<void> {
+  try {
+    const bgpConfig = getEnhancedBGPConfig()
+    safeLog(
+      `🚀 BGP Agent Network initializing - AS${bgpConfig.localASN} (${bgpConfig.routerId})`,
+    )
+
+    // Initialize BGP Session Manager
+    bgpSession = new BGPSession(bgpConfig.localASN, bgpConfig.routerId)
+
+    // Initialize Policy Engine
+    policyEngine = new PolicyEngine(bgpConfig.localASN)
+
+    // Load routing policies - use built-in defaults if no file specified
+    const policies = bgpConfig.policy.policyFile
+      ? loadPoliciesFromFile(bgpConfig.policy.policyFile)
+      : bgpConfig.policy.defaultPolicies
+
+    for (const policy of policies) {
+      policyEngine.addPolicy(policy)
+    }
+    safeLog(`🎯 Loaded ${policies.length} routing policies`)
+
+    // Initialize Advertisement Manager
+    // Determine the correct Mastra server port based on ASN
+    const mastraPort = bgpConfig.localASN === 64512 ? 4111 : 4222
+    advertisementManager = new AgentAdvertisementManager(bgpSession, {
       localASN: bgpConfig.localASN,
       routerId: bgpConfig.routerId,
-      realTimeUpdates: true,
-      discoveryInterval: 30 * 1000, // 30 seconds
-      healthThreshold: 'degraded',
-      maxHops: 5,
-      enableBroadcast: true,
-    },
-  )
+      hostname: 'localhost',
+      port: mastraPort, // Use Mastra server port, not MCP server port
+      advertisementInterval: 5 * 60 * 1000, // 5 minutes
+    })
 
-  // 5. Initialize BGP Server (for inter-AS communication)
-  bgpServer = new BGPServer({
-    localASN: bgpConfig.localASN,
-    routerId: bgpConfig.routerId,
-    port: 1179, // BGP port
-    hostname: 'localhost',
+    // Initialize Local Agent Discovery (bridges MCP → BGP)
+    const mastraServers =
+      process.env.MASTRA_SERVERS?.split(/[,\s]+/).filter(Boolean) || []
+    if (mastraServers.length > 0) {
+      localDiscovery = new LocalAgentDiscovery(advertisementManager, {
+        localASN: bgpConfig.localASN,
+        routerId: bgpConfig.routerId,
+        mastraServers: mastraServers,
+        discoveryInterval: 30000, // 30 seconds
+        healthCheckInterval: 60000, // 1 minute
+      })
+
+      await localDiscovery.start()
+    }
+
+    // Initialize Real-time Discovery Manager
+    discoveryManager = new RealTimeDiscoveryManager(
+      bgpSession,
+      advertisementManager,
+      {
+        localASN: bgpConfig.localASN,
+        routerId: bgpConfig.routerId,
+        realTimeUpdates: true,
+        discoveryInterval: 30 * 1000, // 30 seconds
+        healthThreshold: 'degraded',
+        maxHops: 5,
+        enableBroadcast: true,
+      },
+    )
+
+    // Initialize BGP Server
+    const bgpPort = 1179 + (bgpConfig.localASN - 64512) // Dynamic port based on ASN
+    bgpServer = new BGPServer(
+      {
+        localASN: bgpConfig.localASN,
+        routerId: bgpConfig.routerId,
+        port: bgpPort,
+        hostname: 'localhost',
+      },
+      bgpSession,
+    ) // Pass the existing BGP session
+
+    // Start BGP HTTP server
+    await bgpServer.startListening()
+
+    // Configure policy engine
+    if (policyEngine) {
+      bgpServer.configurePolicyEngine(policyEngine)
+      setPolicyEngine(policyEngine)
+    }
+
+    // Configure BGP infrastructure for MCP tools
+    setBGPInfrastructure(bgpSession, discoveryManager, advertisementManager)
+
+    // Test BGP integration immediately after setting it up
+    try {
+      const { isBGPAvailable, getBGPAgentRoutes } = await import(
+        './tools/bgp-integration.js'
+      )
+      const isAvailable = isBGPAvailable()
+      const routes = await getBGPAgentRoutes()
+      safeLog(
+        `🧪 BGP Integration Test: Available=${isAvailable}, Routes=${routes.length}`,
+      )
+    } catch (error) {
+      safeError('BGP Integration Test Failed:', error)
+    }
+
+    safeLog('✅ BGP infrastructure ready')
+
+    // Auto-configure BGP peering
+    await configureBGPPeering(bgpConfig)
+  } catch (error) {
+    safeError('Failed to initialize BGP infrastructure:', error)
+    throw error
+  }
+}
+
+/**
+ * Auto-configure BGP peering based on local ASN
+ */
+async function configureBGPPeering(bgpConfig: {
+  localASN: number
+  routerId: string
+}): Promise<void> {
+  if (!bgpSession) {
+    throw new Error('BGP session not initialized')
+  }
+
+  // Determine peer ASN based on local ASN
+  const peerASN = bgpConfig.localASN === 64512 ? 64513 : 64512
+  const peerPort = peerASN === 64512 ? 1179 : 1180
+  const peerAddress = `localhost:${peerPort}`
+
+  try {
+    // Add BGP peer (this automatically attempts to establish the session)
+    await bgpSession.addPeer(peerASN, peerAddress)
+    safeLog(`🤝 BGP peering configured with AS${peerASN}`)
+
+    // Show peering status
+    const peeringStatus = {
+      localASN: bgpConfig.localASN,
+      routerId: bgpConfig.routerId,
+      peers: Array.from(bgpSession.getPeers().values()).map((peer) => ({
+        asn: peer.asn,
+        address: peer.address,
+        status: peer.status,
+        lastUpdate: new Date().toISOString(),
+        routesReceived: 0,
+        routesSent: 0,
+      })),
+    }
+
+    safeLog('📊 BGP Peering Status:', JSON.stringify(peeringStatus, null, 2))
+
+    safeLog(
+      `🌐 BGP peering established! Local AS${bgpConfig.localASN} ↔ Remote AS${peerASN}`,
+    )
+  } catch (error) {
+    safeError(`Failed to configure BGP peering:`, error)
+  }
+}
+
+// Handle graceful shutdown
+async function gracefulShutdown(): Promise<void> {
+  safeLog('🛑 Shutting down BGP-powered MCP server...')
+
+  try {
+    // Shutdown local discovery
+    if (localDiscovery) {
+      await localDiscovery.stop()
+    }
+
+    // Shutdown discovery manager
+    if (discoveryManager) {
+      await discoveryManager.shutdown()
+    }
+
+    // Shutdown advertisement manager
+    if (advertisementManager) {
+      await advertisementManager.shutdown()
+    }
+
+    // Shutdown BGP server
+    if (bgpServer) {
+      await bgpServer.shutdown()
+    }
+
+    // Shutdown BGP sessions
+    if (bgpSession) {
+      bgpSession.shutdown()
+    }
+
+    safeLog('✅ BGP-powered MCP server shutdown complete.')
+  } catch (error) {
+    safeError('Error during shutdown:', error)
+  }
+}
+
+// Handle process signals
+process.on('SIGINT', gracefulShutdown)
+process.on('SIGTERM', gracefulShutdown)
+
+/**
+ * Start MCP Server with BGP Infrastructure
+ */
+async function startServer(): Promise<void> {
+  // Initialize BGP infrastructure first (works in both modes)
+  await initializeBGPInfrastructure()
+
+  // Determine transport mode
+  const args = process.argv.slice(2)
+  const useHttpMode = args.includes('--http') || args.includes('--sse')
+
+  if (useHttpMode) {
+    // HTTP/SSE Mode (for testing and direct HTTP access)
+    await startHttpServer()
+  } else {
+    // Stdio Mode (for MCP clients like Cursor/Claude)
+    // BGP infrastructure runs as background services in the same process
+    await startStdioServer()
+  }
+}
+
+/**
+ * Start MCP Server in HTTP/SSE mode
+ */
+async function startHttpServer(): Promise<void> {
+  const mcpPort = getMCPServerPort()
+  const server = new MCPServer({
+    name: 'bgp-agent-proxy',
+    version: '1.0.0',
+    tools: {
+      listMastraAgents: listMastraAgentsTool,
+      callMastraAgent: agentProxyTool,
+    },
   })
 
-  // Configure BGP server with policy engine if available
-  if (policyEngine) {
-    bgpServer.configurePolicyEngine(policyEngine)
+  // Create HTTP server for MCP
+  const httpServer = http.createServer()
 
-    // Configure agent routing tools to use the policy engine
-    setPolicyEngine(policyEngine)
-    logger.log('🎯 Policy engine connected to agent routing tools')
-  }
+  // Add BGP status endpoints to MCP HTTP server
+  httpServer.on('request', async (req, res) => {
+    const url = new URL(req.url!, `http://${req.headers.host}`)
 
-  logger.log('✅ BGP infrastructure initialized successfully!')
-
-  return {
-    session: bgpSession,
-    advertisement: advertisementManager,
-    discovery: discoveryManager,
-    server: bgpServer,
-    policy: policyEngine,
-  }
-}
-
-/**
- * Get the initialized BGP discovery manager
- * This function provides access to BGP discovery for the tools
- */
-export function getBGPDiscovery(): RealTimeDiscoveryManager | null {
-  return discoveryManager
-}
-
-/**
- * Get the initialized BGP advertisement manager
- * This function provides access to BGP advertisement for the tools
- */
-export function getBGPAdvertisement(): AgentAdvertisementManager | null {
-  return advertisementManager
-}
-
-/**
- * Get BGP network statistics
- */
-export function getBGPNetworkStats() {
-  if (!discoveryManager || !advertisementManager || !bgpSession) {
-    return { status: 'not_initialized' }
-  }
-
-  const discoveryStats = discoveryManager.getDiscoveryStats()
-  const advertisementStats = advertisementManager.getAdvertisementStats()
-  const sessionStats = bgpSession.getSessionStats()
-
-  return {
-    status: 'active',
-    localAS: getBGPConfig().localASN,
-    discovery: discoveryStats,
-    advertisement: advertisementStats,
-    sessions: sessionStats,
-    timestamp: new Date().toISOString(),
-  }
-}
-
-// Instantiate MCPServer with BGP-aware tools
-const mcpServerInstance = new MCPServer({
-  name: 'mcp-agent-proxy',
-  version: '1.0.0',
-  tools: {
-    callMastraAgent: agentProxyTool, // BGP-aware agent proxy with intelligent routing
-    listMastraAgents: listMastraAgentsTool, // Multi-server agent listing with BGP conflict detection
-  },
-})
-
-/**
- * Main server startup function
- * Only executes when called directly, not when imported
- */
-async function startServer() {
-  // Initialize BGP infrastructure first
-  try {
-    const bgpInfrastructure = await initializeBGPInfrastructure()
-
-    // Store global references for tool access
-    bgpSession = bgpInfrastructure.session
-    advertisementManager = bgpInfrastructure.advertisement
-    discoveryManager = bgpInfrastructure.discovery
-    bgpServer = bgpInfrastructure.server
-
-    logger.log(`🌐 BGP Agent Network ready!`)
-  } catch (error) {
-    logger.error('Failed to initialize BGP infrastructure:', error)
-    process.exit(1)
-  }
-
-  // Improved stdio detection - check if we're being called by an MCP client
-  const useStdio =
-    process.argv.includes('--stdio') ||
-    process.env.MCP_TRANSPORT === 'stdio' ||
-    (!process.stdin.isTTY && !process.argv.includes('--http'))
-
-  if (useStdio) {
-    // Use stdio transport for MCP clients - no console logging to avoid JSON protocol interference
-    async function startStdioServer() {
-      try {
-        await mcpServerInstance.startStdio()
-      } catch {
-        process.exit(1)
-      }
+    if (url.pathname === '/health') {
+      res.writeHead(200, { 'Content-Type': 'application/json' })
+      res.end(
+        JSON.stringify({
+          status: 'healthy',
+          timestamp: new Date().toISOString(),
+          bgp: {
+            localASN: bgpSession?.getLocalASN(),
+            routerId: bgpSession?.getRouterID(),
+            peersConnected: bgpSession?.getPeers().size || 0,
+            agentsRegistered: advertisementManager?.getLocalAgents().size || 0,
+          },
+        }),
+      )
+      return
     }
 
-    startStdioServer()
-  } else {
-    // Use HTTP/SSE transport for direct testing
-    const PORT = getMCPServerPort()
-    const { ssePath: SSE_PATH, messagePath: MESSAGE_PATH } = getMCPPaths()
-
-    const httpServer = http.createServer(async (req, res) => {
-      if (!req.url) {
-        res.writeHead(400, { 'Content-Type': 'text/plain' })
-        res.end('Bad Request: URL is missing')
-        return
-      }
-      const requestUrl = new URL(
-        req.url,
-        `http://${req.headers.host || `localhost:${PORT}`}`,
+    if (url.pathname === '/status') {
+      res.writeHead(200, { 'Content-Type': 'application/json' })
+      res.end(
+        JSON.stringify({
+          server: 'BGP-powered MCP Server',
+          status: 'running',
+          timestamp: new Date().toISOString(),
+          transport: 'http',
+          agents: getMastraAgentsInfo(),
+          bgp: {
+            localASN: bgpSession?.getLocalASN(),
+            routerId: bgpSession?.getRouterID(),
+            peers: Array.from(bgpSession?.getPeers().values() || []),
+            registeredAgents: Array.from(
+              advertisementManager?.getLocalAgents().values() || [],
+            ),
+          },
+        }),
       )
+      return
+    }
 
-      // Health check endpoint (fast, basic liveness check)
-      if (requestUrl.pathname === '/health') {
-        res.writeHead(200, { 'Content-Type': 'application/json' })
-        res.end(
-          JSON.stringify({
-            status: 'healthy',
-            service: 'mcp-agent-proxy',
-            version: '1.0.0',
-            timestamp: new Date().toISOString(),
-            uptime: process.uptime(),
-            bgp: {
-              enabled: true,
-              localAS: getBGPConfig().localASN,
-              routerId: getBGPConfig().routerId,
+    if (url.pathname === '/bgp-status') {
+      res.writeHead(200, { 'Content-Type': 'application/json' })
+      res.end(
+        JSON.stringify({
+          bgp: {
+            localASN: bgpSession?.getLocalASN(),
+            routerId: bgpSession?.getRouterID(),
+            session: {
+              peersTotal: bgpSession?.getPeers().size || 0,
+              peersEstablished: Array.from(
+                bgpSession?.getSessions().values() || [],
+              ).filter((s) => s.state === BGPSessionState.ESTABLISHED).length,
+              sessionsActive: bgpSession?.getSessions().size || 0,
             },
-            endpoints: {
-              sse: SSE_PATH,
-              message: MESSAGE_PATH,
-              status: '/status',
-              bgpStatus: '/bgp-status',
+            advertisement: {
+              totalLocalAgents:
+                advertisementManager?.getLocalAgents().size || 0,
+              capabilities: Array.from(
+                new Set(
+                  Array.from(
+                    advertisementManager?.getLocalAgents().values() || [],
+                  ).flatMap((a) => a.capabilities),
+                ),
+              ),
+              lastAdvertisement: null, // Add if needed
             },
-          }),
-        )
-        return
-      }
-
-      // BGP Status endpoint (BGP network information)
-      if (requestUrl.pathname === '/bgp-status') {
-        try {
-          const bgpStats = getBGPNetworkStats()
-
-          res.writeHead(200, { 'Content-Type': 'application/json' })
-          res.end(
-            JSON.stringify({
-              status: 'healthy',
-              service: 'mcp-agent-proxy-bgp',
-              version: '1.0.0',
-              timestamp: new Date().toISOString(),
-              bgp: bgpStats,
-            }),
-          )
-        } catch (error) {
-          res.writeHead(503, { 'Content-Type': 'application/json' })
-          res.end(
-            JSON.stringify({
-              status: 'degraded',
-              service: 'mcp-agent-proxy-bgp',
-              error: 'Failed to retrieve BGP status',
-              details: error instanceof Error ? error.message : 'Unknown error',
-            }),
-          )
-        }
-        return
-      }
-
-      // Status endpoint (comprehensive, includes agent information)
-      if (requestUrl.pathname === '/status') {
-        try {
-          // Get current agent status from all Mastra servers
-          const agentListResult = await getMastraAgentsInfo()
-          const bgpStats = getBGPNetworkStats()
-
-          res.writeHead(200, { 'Content-Type': 'application/json' })
-          res.end(
-            JSON.stringify({
-              status: 'healthy',
-              service: 'mcp-agent-proxy',
-              version: '1.0.0',
-              timestamp: new Date().toISOString(),
-              uptime: process.uptime(),
-              endpoints: {
-                sse: SSE_PATH,
-                message: MESSAGE_PATH,
-                bgpStatus: '/bgp-status',
-              },
-              agents: agentListResult,
-              bgp: bgpStats,
-              tools: ['callMastraAgent', 'listMastraAgents'],
-            }),
-          )
-        } catch (error) {
-          res.writeHead(503, { 'Content-Type': 'application/json' })
-          res.end(
-            JSON.stringify({
-              status: 'degraded',
-              service: 'mcp-agent-proxy',
-              version: '1.0.0',
-              timestamp: new Date().toISOString(),
-              uptime: process.uptime(),
-              error: 'Failed to retrieve agent information',
-              details: error instanceof Error ? error.message : 'Unknown error',
-            }),
-          )
-        }
-        return
-      }
-
-      // Route requests to MCPServer's SSE handler if paths match
-      if (
-        requestUrl.pathname === SSE_PATH ||
-        requestUrl.pathname === MESSAGE_PATH
-      ) {
-        try {
-          await mcpServerInstance.startSSE({
-            url: requestUrl,
-            ssePath: SSE_PATH,
-            messagePath: MESSAGE_PATH,
-            req,
-            res,
-          })
-        } catch (error) {
-          logger.error(
-            `Error in MCPServer startSSE for ${requestUrl.pathname}:`,
-            error,
-          )
-          if (!res.headersSent) {
-            res.writeHead(500, { 'Content-Type': 'text/plain' })
-            res.end('Internal Server Error handling MCP request')
-          }
-        }
-      } else {
-        // Handle other HTTP routes or return 404
-        res.writeHead(404, { 'Content-Type': 'text/plain' })
-        res.end('Not Found')
-      }
-    })
-
-    httpServer.listen(PORT, () => {
-      logger.log(
-        `🚀 MCP Server with BGP-powered agent networking listening on port ${PORT}`,
+            discovery: {
+              totalRemoteAgents: discoveryManager?.getNetworkAgents().size || 0,
+              remoteCapabilities: Array.from(
+                new Set(
+                  Array.from(
+                    discoveryManager?.getNetworkAgents().values() || [],
+                  ).flatMap((a) => a.agent.capabilities),
+                ),
+              ),
+              lastDiscovery: null, // Add if needed
+            },
+          },
+        }),
       )
-      logger.log(`📡 SSE Endpoint: http://localhost:${PORT}${SSE_PATH}`)
-      logger.log(`📨 Message Endpoint: http://localhost:${PORT}${MESSAGE_PATH}`)
-      logger.log(`❤️ Health Check: http://localhost:${PORT}/health`)
-      logger.log(`📊 Status Endpoint: http://localhost:${PORT}/status`)
-      logger.log(`🌐 BGP Status: http://localhost:${PORT}/bgp-status`)
-      logger.log(
-        `🛠️ Available tools: callMastraAgent (BGP-aware), listMastraAgents (BGP-aware)`,
-      )
-      logger.log(
-        `🎯 Local AS: ${getBGPConfig().localASN} | Router ID: ${getBGPConfig().routerId}`,
-      )
-    })
+      return
+    }
 
-    // Enhanced graceful shutdown with BGP cleanup
-    const gracefulShutdown = async () => {
-      logger.log('\n🛑 Shutting down BGP-powered MCP server...')
-
+    // Handle MCP SSE and message endpoints
+    const { ssePath, messagePath } = getMCPPaths()
+    if (url.pathname === ssePath || url.pathname === messagePath) {
       try {
-        // Shutdown BGP infrastructure first
-        if (discoveryManager) {
-          logger.log('📡 Shutting down discovery manager...')
-          await discoveryManager.shutdown()
-        }
-
-        if (advertisementManager) {
-          logger.log('📢 Shutting down advertisement manager...')
-          await advertisementManager.shutdown()
-        }
-
-        if (bgpServer) {
-          logger.log('🌐 Shutting down BGP server...')
-          await bgpServer.shutdown()
-        }
-
-        if (bgpSession) {
-          logger.log('🤝 Shutting down BGP sessions...')
-          await bgpSession.shutdown()
-        }
-
-        // Then shutdown HTTP server
-        httpServer.close(() => {
-          logger.log('✅ BGP-powered MCP server shutdown complete.')
-          process.exit(0)
+        await server.startSSE({
+          url,
+          ssePath,
+          messagePath,
+          req,
+          res,
         })
       } catch (error) {
-        logger.error('❌ Error during shutdown:', error)
-        process.exit(1)
+        safeError('Error handling MCP request:', error)
+        if (!res.headersSent) {
+          res.writeHead(500, { 'Content-Type': 'text/plain' })
+          res.end('Internal Server Error')
+        }
       }
+      return
     }
 
-    process.on('SIGINT', gracefulShutdown)
-    process.on('SIGTERM', gracefulShutdown)
+    // 404 for other paths
+    res.writeHead(404, { 'Content-Type': 'text/plain' })
+    res.end('Not Found')
+  })
+
+  // Start HTTP server
+  httpServer.listen(mcpPort, 'localhost', () => {
+    safeLog(`🚀 BGP-powered MCP Server running on http://localhost:${mcpPort}`)
+    safeLog(
+      `🌐 BGP Router ID: ${bgpSession?.getRouterID()} (AS${bgpSession?.getLocalASN()})`,
+    )
+    safeLog(`📡 BGP Listener: ${bgpSession?.getRouterID()}:${mcpPort}`)
+    safeLog(`❤️ Health Check: http://localhost:${mcpPort}/health`)
+    safeLog(`📊 Status Endpoint: http://localhost:${mcpPort}/status`)
+    safeLog(`🌐 BGP Status: http://localhost:${mcpPort}/bgp-status`)
+    safeLog(`📚 Documentation: https://github.com/your-org/mcp-agent-proxy`)
+    safeLog(`🎯 Ready for agent discovery and BGP-powered routing! 🚀`)
+  })
+}
+
+/**
+ * Start MCP Server in stdio mode (for MCP clients like Cursor/Claude)
+ * BGP infrastructure runs as background services within the same process
+ */
+async function startStdioServer(): Promise<void> {
+  // Set transport mode for logging suppression
+  process.env.MCP_TRANSPORT = 'stdio'
+
+  const server = new MCPServer({
+    name: 'bgp-agent-proxy',
+    version: '1.0.0',
+    tools: {
+      listMastraAgents: listMastraAgentsTool,
+      callMastraAgent: agentProxyTool,
+    },
+  })
+
+  // Start BGP HTTP servers as background services within this process
+  // This allows the MCP tools to access the BGP infrastructure directly
+  const bgpConfig = getEnhancedBGPConfig()
+
+  // Start BGP HTTP server for this AS (for peer communication)
+  const bgpPort = 1179 + (bgpConfig.localASN - 64512)
+  if (bgpServer) {
+    // BGP server is already initialized, just make sure it's listening
+    if (!bgpServer.isServerListening()) {
+      await bgpServer.startListening()
+    }
   }
-}
 
-// Export the server instance and startup function for programmatic use
-export { mcpServerInstance, startServer }
+  // Start MCP server with stdio transport
+  await server.startStdio()
 
-// Only start the server if this file is run directly (not imported)
-// Cross-compatible approach for both ESM and CJS builds
-function isMainModule(): boolean {
-  // Check if process.argv[1] ends with our expected filenames
-  // This works reliably in both ESM and CJS without import.meta
-  return !!(
-    (
-      process.argv[1] &&
-      (process.argv[1].endsWith('/mcp-server.js') ||
-        process.argv[1].endsWith('/mcp-server.cjs') ||
-        process.argv[1].endsWith('\\mcp-server.js') ||
-        process.argv[1].endsWith('\\mcp-server.cjs') ||
-        process.argv[1].endsWith('mcp-agent-proxy') || // For NPM global installs
-        process.argv[1].includes('mcp-server'))
-    ) // Catch other variations
+  safeLog(`🚀 MCP Server with BGP-powered agent networking (stdio mode)`)
+  safeLog(
+    `🌐 BGP Router: AS${bgpSession?.getLocalASN()} (${bgpSession?.getRouterID()})`,
   )
+  safeLog(`📡 BGP Listener: ${bgpSession?.getRouterID()}:${bgpPort}`)
+  safeLog(
+    `🎯 Routing Policies: ${policyEngine?.getPolicies().length || 0} active`,
+  )
+  safeLog(`📡 Ready for MCP client connections (Cursor, Claude, etc.)`)
+  safeLog(`🎯 NEW AGENT INTERNET ACTIVATED! 🚀`)
 }
 
-if (isMainModule()) {
-  startServer()
-}
+// Start the server
+startServer().catch((error) => {
+  safeError('Failed to start BGP-powered MCP server:', error)
+  process.exit(1)
+})

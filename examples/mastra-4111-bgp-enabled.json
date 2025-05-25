@@ -1,0 +1,38 @@
+{
+  "_comment": "BGP-Enabled Mastra Server on Port 4111 (Alternative Configuration)",
+  "mcpServers": {
+    "local-agents": {
+      "command": "node",
+      "args": ["/path/to/your/local/agents/mcp-server.js"],
+      "env": {
+        "PORT": "4111"
+      }
+    },
+    "bgp-agent-network": {
+      "command": "node",
+      "args": ["/Users/ian/Dev/mcp-agent-proxy/dist/mcp-server.js"],
+      "env": {
+        "MASTRA_SERVERS": "http://localhost:4112",
+        "MCP_SERVER_PORT": "3002",
+        "BGP_LOCAL_ASN": "64513",
+        "MCP_TRANSPORT": "http"
+      }
+    }
+  },
+
+  "_architecture_benefits": {
+    "_comment": "Benefits of BGP-enabled Mastra:",
+    "direct_bgp": "Mastra server can directly participate in BGP network",
+    "agent_discovery": "Can discover agents from other AS without external proxy",
+    "redundancy": "Multiple BGP entry points for resilience",
+    "full_network": "Every Mastra server becomes a BGP node"
+  },
+
+  "_vs_simple_config": {
+    "_comment": "Comparison with simple agent host:",
+    "simple": "Mastra just hosts agents, BGP proxy handles routing",
+    "bgp_enabled": "Mastra hosts agents AND can route to other AS directly",
+    "complexity": "BGP-enabled is more complex but more capable",
+    "use_case": "Choose based on whether you want Mastra to be BGP-aware"
+  }
+}

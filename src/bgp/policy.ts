@@ -128,8 +128,6 @@ export class PolicyEngine {
       decisionsByPolicy: new Map(),
       averageDecisionTime: 0,
     }
-
-    logger.log('BGP: Policy engine initialized')
   }
 
   /**
@@ -145,11 +143,6 @@ export class PolicyEngine {
     this.updateStats()
 
     logger.log(`BGP: Loaded ${validPolicies.length} routing policies`)
-    for (const policy of validPolicies) {
-      logger.log(
-        `BGP: Policy "${policy.name}" (priority: ${policy.priority}, enabled: ${policy.enabled})`,
-      )
-    }
   }
 
   /**
@@ -417,24 +410,18 @@ export class PolicyEngine {
    */
   private validatePolicy(policy: PolicyConfig): boolean {
     if (!policy.name || typeof policy.name !== 'string') {
-      logger.log(`BGP: Invalid policy - missing or invalid name`)
       return false
     }
 
     if (typeof policy.priority !== 'number') {
-      logger.log(
-        `BGP: Invalid policy "${policy.name}" - priority must be a number`,
-      )
       return false
     }
 
     if (!policy.action || !policy.action.action) {
-      logger.log(`BGP: Invalid policy "${policy.name}" - missing action`)
       return false
     }
 
     if (!['accept', 'reject', 'modify'].includes(policy.action.action)) {
-      logger.log(`BGP: Invalid policy "${policy.name}" - invalid action type`)
       return false
     }
 
@@ -557,7 +544,6 @@ export class PolicyEngine {
 
     if (this.policies.length < initialLength) {
       this.updateStats()
-      logger.log(`BGP: Removed policy "${name}"`)
       return true
     }
 
@@ -572,7 +558,6 @@ export class PolicyEngine {
     if (policy) {
       policy.enabled = enabled
       this.updateStats()
-      logger.log(`BGP: ${enabled ? 'Enabled' : 'Disabled'} policy "${name}"`)
       return true
     }
     return false
@@ -584,7 +569,6 @@ export class PolicyEngine {
   clearPolicies(): void {
     this.policies = []
     this.updateStats()
-    logger.log('BGP: Cleared all policies')
   }
 
   /**
@@ -602,10 +586,7 @@ export class PolicyEngine {
       const policies = JSON.parse(json) as PolicyConfig[]
       this.loadPolicies(policies)
       return true
-    } catch (error) {
-      logger.log(
-        `BGP: Failed to import policies: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      )
+    } catch {
       return false
     }
   }

@@ -46,9 +46,6 @@ export class BGPSession extends EventEmitter {
   ) {
     super()
     this.startKeepaliveTimer()
-    logger.log(
-      `BGP: Session manager initialized for AS${localASN} (${routerId})`,
-    )
   }
 
   /**
@@ -56,7 +53,7 @@ export class BGPSession extends EventEmitter {
    */
   async addPeer(peerASN: number, peerAddress: string): Promise<void> {
     if (this.peers.has(peerASN)) {
-      logger.log(`BGP: Peer AS${peerASN} already exists, updating address`)
+      logger.log(`BGP: Updating peer AS${peerASN} address`)
     }
 
     const peer: AgentPeer = {
@@ -76,7 +73,7 @@ export class BGPSession extends EventEmitter {
       routes: new Map(),
     })
 
-    logger.log(`BGP: Added peer AS${peerASN} at ${peerAddress}`)
+    logger.log(`BGP: Added peer AS${peerASN}`)
 
     // Attempt to establish session
     await this.connectToPeer(peerASN)
@@ -215,10 +212,22 @@ export class BGPSession extends EventEmitter {
     }
 
     try {
-      // In real implementation, send over HTTP/WebSocket
-      logger.log(
-        `BGP: Sending UPDATE to AS${peerASN} (${update.advertisedRoutes?.length || 0} routes, ${update.withdrawnRoutes?.length || 0} withdrawals)`,
-      )
+      // Calculate BGP port for peer (AS64512->1179, AS64513->1180)
+      const bgpPort = 1179 + (peerASN - 64512)
+      const peerUrl = `http://localhost:${bgpPort}/bgp/routes/update`
+
+      // Send actual HTTP request to peer BGP server
+      const response = await fetch(peerUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(update),
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
 
       peer.routesSent += update.advertisedRoutes?.length || 0
       peer.lastUpdate = new Date()
@@ -240,7 +249,6 @@ export class BGPSession extends EventEmitter {
     const session = this.sessions.get(peerASN)
 
     if (!peer || !session || session.state !== BGPSessionState.ESTABLISHED) {
-      logger.log(`BGP: Ignoring UPDATE from non-established peer AS${peerASN}`)
       return
     }
 
@@ -249,10 +257,6 @@ export class BGPSession extends EventEmitter {
       for (const route of update.advertisedRoutes) {
         session.routes.set(route.agentId, route)
         peer.routesReceived++
-
-        logger.log(
-          `BGP: Learned route to ${route.agentId} via AS${peerASN} (path: [${route.asPath.join(' → ')}])`,
-        )
       }
     }
 
@@ -260,7 +264,6 @@ export class BGPSession extends EventEmitter {
     if (update.withdrawnRoutes) {
       for (const agentId of update.withdrawnRoutes) {
         session.routes.delete(agentId)
-        logger.log(`BGP: Withdrew route to ${agentId} from AS${peerASN}`)
       }
     }
 
@@ -329,9 +332,7 @@ export class BGPSession extends EventEmitter {
 
         // Check if peer is still alive (hold time exceeded)
         if (timeSinceLastKeepalive > BGP_DEFAULTS.HOLD_TIME) {
-          logger.log(
-            `BGP: Hold timer expired for AS${peerASN}, closing session`,
-          )
+          logger.log(`BGP: Hold timer expired for AS${peerASN}`)
           this.handleSessionError(peerASN, new Error('Hold timer expired'))
           continue
         }
@@ -406,6 +407,35 @@ export class BGPSession extends EventEmitter {
     }
 
     return stats
+  }
+
+  /**
+   * Get local AS number
+   */
+  getLocalASN(): number {
+    return this.localASN
+  }
+
+  /**
+   * Get router ID
+   */
+  getRouterID(): string {
+    return this.routerId
+  }
+
+  /**
+   * Get all sessions
+   */
+  getSessions(): Map<
+    number,
+    {
+      state: BGPSessionState
+      lastKeepalive: Date
+      connectAttempts: number
+      routes: Map<string, AgentRoute>
+    }
+  > {
+    return new Map(this.sessions)
   }
 
   /**
