@@ -155,7 +155,7 @@ const listAgentsOutputSchema = z.object({
 export const listMastraAgentsTool = createTool({
   id: 'listMastraAgents',
   description:
-    'Lists available agents on all configured Mastra servers. Supports both single and multi-server setups with automatic conflict detection.',
+    'Lists available agents on all configured Mastra servers. Supports both single and multi-server setups with automatic conflict detection. Shows both static servers (from environment config) and dynamic servers (learned via learnMastraServer). Use this to discover what agents are available across your network, and pay attention to agent descriptions that might mention other agent networks you could learn about.',
   inputSchema: z.object({}), // No input needed
   outputSchema: listAgentsOutputSchema,
   execute: async () => {

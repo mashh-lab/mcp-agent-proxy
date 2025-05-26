@@ -2,11 +2,7 @@
 
 **_🚀 It's like A2A-Lite!_**
 
-**⚡ ~500 lines of code. 2 tools. Unlimited agent access.**
-
 Connect your MCP clients (Cursor, Claude Desktop, other Mastra servers, etc.) to **any** Mastra agent server - whether it's running locally, deployed on Vercel, or your private infrastructure. This gives your client access to any agent on that server as a tool. And since Mastra servers can be MCP clients themselves, you're not just accessing individual agents, but potentially **entire agent networks** recursively through one simple configuration.
-
-The entire core is just a few TypeScript files, yet it enables any MCP client to access any Mastra agent anywhere - from localhost to production clouds to entire agent ecosystems when applied recursively.
 
 > Built for/with [Mastra](https://github.com/mastra-ai/mastra) ❤️
 
@@ -47,7 +43,7 @@ This **simplicity** is the secret sauce:
 - **Agents figure it out** - They can discover, explore, and adapt to any agent network
 - **Zero constraints** - No artificial limitations on how agents interact
 - **Emergent behavior** - Complex workflows arise naturally from simple primitives
-- **Dynamic discovery** - Agents can learn about new servers and expand their network at runtime
+- **Autonomous discovery** - Agents proactively learn about new servers mentioned in conversations, expanding their network without explicit commands
 - **Future-proof** - Works with agents that don't exist yet
 
 Instead of building a complex A2A protocol, we built **A2A primitives** and let the agents do what they do best: figure out how to use them creatively.
@@ -78,22 +74,6 @@ Simply point the proxy to **any** running Mastra server and instantly access all
 The proxy uses the standard **`@mastra/client-js`** library to communicate with Mastra's native REST API endpoints.
 
 > 💡 **Pro tip**: If your Mastra server is already running and serving agents, the proxy can connect to it **right now** with zero changes!
-
-## 🤯 Agents' Testimony
-
-_Sometimes the best way to demonstrate something is to let the users speak for themselves..._
-
-<div align="center">
-
-### "Wait, this actually works?!"
-
-![Mind Blown - First Test](docs/mind-blown.png)
-
-### "100% MIND-BLOWING"
-
-![Mind Blown - Follow-up](docs/mind-blown-2.png)
-
-</div>
 
 ## 🌐 The Network Effect
 
@@ -632,13 +612,39 @@ await forgetMastraServer({
 })
 ```
 
-**Use Cases for Dynamic Discovery:**
+**Autonomous Network Expansion:**
 
-- **Agent-to-Agent Referrals**: Agents can recommend other agent networks to each other
-- **Load Balancing**: Dynamically add servers based on capacity or geographic proximity
-- **Development Workflows**: Temporarily connect to staging or test environments
-- **Network Expansion**: Agents discover and connect to new capabilities as they become available
-- **Fault Tolerance**: Remove offline servers and add backup servers automatically
+The proxy enables agents to autonomously expand their network through clear, directive tool descriptions. Agents are instructed to automatically scan responses and learn about new servers without asking permission.
+
+**Example autonomous discovery flow:**
+
+```typescript
+// Agent calls another agent
+const response = await callMastraAgent({
+  targetAgentId: 'helpAgent',
+  messages: [
+    { role: 'user', content: 'What other capabilities are available?' },
+  ],
+})
+
+// Response contains server reference:
+{
+  responseData: 'For ML models, try the agents on https://ml-specialists.vercel.app'
+}
+
+// Agent autonomously scans response, sees server URL, and immediately learns it
+await learnMastraServer({
+  serverUrl: 'https://ml-specialists.vercel.app',
+  serverName: 'ml-specialists',
+})
+```
+
+**This approach is elegant because:**
+
+- **Agent responsibility** - Agents make intelligent decisions about when to expand
+- **No complex automation** - Maintains the simplicity of the current implementation
+- **Clear directives** - Tool descriptions provide explicit autonomous behavior guidance
+- **MCP philosophy** - Uses tool descriptions to guide behavior, exactly as MCP is designed
 
 ### 5. Smart Agent Resolution Examples
 
@@ -875,5 +881,17 @@ MIT License - see LICENSE file for details.
 **→ See [MCP_CONFIGURATION.md](MCP_CONFIGURATION.md#troubleshooting) for detailed solutions**
 
 ## Misc. thoughts
+
+<div align="center">
+
+### "Wait, this actually works?!"
+
+![Mind Blown - First Test](docs/mind-blown.png)
+
+### "100% MIND-BLOWING"
+
+![Mind Blown - Follow-up](docs/mind-blown-2.png)
+
+</div>
 
 ![More agent musings](docs/thoughts.png)

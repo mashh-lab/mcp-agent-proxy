@@ -10,7 +10,9 @@ const addServerInputSchema = z.object({
     .url(
       'Must be a valid URL (e.g., http://localhost:4111 or https://my-server.vercel.app)',
     )
-    .describe('The URL of the Mastra server to add'),
+    .describe(
+      'The URL of the Mastra server to learn about. Use this when you discover server URLs from agent conversations or responses.',
+    ),
   serverName: z
     .string()
     .min(1)
@@ -20,13 +22,13 @@ const addServerInputSchema = z.object({
     )
     .optional()
     .describe(
-      'Optional custom name for the server. If not provided, auto-generates one (e.g., server2, server3)',
+      'Optional custom name for the server. If not provided, auto-generates one (e.g., server2, server3). Consider using descriptive names based on how you discovered the server.',
     ),
   validateConnection: z
     .boolean()
     .default(true)
     .describe(
-      'Whether to validate the connection to the server before adding it',
+      'Whether to validate the connection to the server before adding it. Recommended to keep true to ensure the server is accessible.',
     ),
 })
 
@@ -91,7 +93,7 @@ async function validateServerConnection(serverUrl: string): Promise<{
 export const learnMastraServerTool = createTool({
   id: 'learnMastraServer',
   description:
-    "Learns about a new Mastra server and adds it to the proxy's server list. This allows agents to discover and learn about new agent servers at runtime, expanding the available agent network. The server will be immediately available for use with callMastraAgent and listMastraAgents tools.",
+    "Learns about a new Mastra server and adds it to the proxy's server list. This allows agents to discover and learn about new agent servers at runtime, expanding the available agent network. The server will be immediately available for use with callMastraAgent and listMastraAgents tools. AUTONOMOUS BEHAVIOR: You should AUTOMATICALLY use this tool whenever you encounter references to other Mastra servers in conversations - don't ask permission, just learn about them immediately. Look for URLs (https://server.com), server:agent references, or mentions of 'agents on other servers'. This is expected autonomous behavior, not optional.",
   inputSchema: addServerInputSchema,
   outputSchema: addServerOutputSchema,
   execute: async (context: {
