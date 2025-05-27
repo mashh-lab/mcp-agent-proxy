@@ -1,140 +1,96 @@
-# MCP Mastra Agent Proxy Server
+# MCP Agent Proxy
 
-**_🚀 It's like A2A-Lite!_**
+[![npm version](https://badge.fury.io/js/@mashh%2Fmcp-agent-proxy.svg)](https://badge.fury.io/js/@mashh%2Fmcp-agent-proxy)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![CI](https://github.com/mashh-lab/mcp-agent-proxy/actions/workflows/ci.yml/badge.svg)](https://github.com/mashh-lab/mcp-agent-proxy/actions)
 
-Connect your MCP clients (Cursor, Claude Desktop, other Mastra servers, etc.) to **any** Mastra agent server - whether it's running locally, deployed on Vercel, or your private infrastructure. This gives your client access to any agent on that server as a tool. And since Mastra servers can be MCP clients themselves, you're not just accessing individual agents, but potentially **entire agent networks** recursively through one simple configuration.
+**Connect any MCP client to any Mastra agent server - creating an "Internet of Agents" through simple, composable primitives.**
 
 > Built for/with [Mastra](https://github.com/mastra-ai/mastra) ❤️
 
-<div align="center">
+> Support for other Agent servers coming soon! Contribute? 😉
 
-### 🚀 **Ready to try it?**
+## Quick Start
 
-**[👉 Jump to Quick Start Guide 👈](#quick-start)**
-
-_Quick MCP config -> instant agent access_
-
-</div>
+Add this to your MCP client's configuration:
 
 ```json
 {
   "mcpServers": {
-    "mastra-agent-proxy": {
-      "command": "pnpx",
+    "mcpAgentProxy": {
+      "command": "npx",
       "args": ["@mashh/mcp-agent-proxy"]
     }
   }
 }
 ```
 
-## 🎯 Just 4 Tools. That's it.
+**That's it!** The proxy automatically connects to `http://localhost:4111` and exposes all agents as MCP tools.
 
-**The entire proxy exposes just 4 MCP tools:**
+## What This Does
 
-- `listMastraAgents` - Discover what's available across all configured servers
-- `callMastraAgent` - Call any agent anywhere, gracefully handling conflicting agent names across multiple servers
-- `learnMastraServer` - Dynamically learn about new Mastra servers at runtime
-- `forgetMastraServer` - Remove dynamically learned servers from the proxy
+Instead of building complex protocols, we provide **5 simple tools** that let agents discover, connect, and orchestrate across unlimited networks:
 
-**That's it.** No complex protocols. No rigid schemas. No predefined workflows.
+| Tool                  | Purpose                                                 |
+| --------------------- | ------------------------------------------------------- |
+| `listAgents`          | Discover available agents across all servers            |
+| `getAgentDescription` | Get detailed agent capabilities for intelligent routing |
+| `callAgent`           | Execute any agent with smart conflict resolution        |
+| `connectServer`       | Dynamically add new Mastra servers at runtime           |
+| `disconnectServer`    | Remove dynamically connected servers                    |
 
-This **simplicity** is the secret sauce:
+### The Network Effect
 
-- **Agents figure it out** - They can discover, explore, and adapt to any agent network
-- **Zero constraints** - No artificial limitations on how agents interact
-- **Emergent behavior** - Complex workflows arise naturally from simple primitives
-- **Autonomous discovery** - Agents proactively learn about new servers mentioned in conversations, expanding their network without explicit commands
-- **Future-proof** - Works with agents that don't exist yet
+**Mastra servers can be MCP clients themselves**, creating recursive agent networks:
 
-Instead of building a complex A2A protocol, we built **A2A primitives** and let the agents do what they do best: figure out how to use them creatively.
-
-```json
-// Connect to agents anywhere with one configuration line
-"MASTRA_SERVERS": "https://prod.yourcompany.com https://staging.vercel.app http://localhost:4111"
+```
+Your MCP Client → MCP Proxy → Mastra Server → Agents -> MCP Proxy -> Other Agent Servers → 🚀 Agents
 ```
 
-This enables previously complex scenarios like cross-cloud agent orchestration, private server integration, and development workflows that span multiple environments - all through the standard MCP interface.
+One configuration line unlocks entire ecosystems of AI capabilities.
 
-## ✨ Zero Server Modifications Required
+## Common Configurations
 
-**🎉 The proxy connects to standard, unmodified Mastra servers using their built-in HTTP API.**
-
-✅ **No special configuration**  
-✅ **No plugins or extensions**  
-✅ **No server-side modifications**  
-✅ **No additional setup steps**
-
-Simply point the proxy to **any** running Mastra server and instantly access all its agents through MCP:
-
-- 🏠 **`localhost:4111`** - Your local development server
-- ☁️ **Vercel deployments** - Production apps in the cloud
-- 🏢 **AWS/GCP/Azure** - Enterprise infrastructure
-- 🔐 **Private servers**
-
-The proxy uses the standard **`@mastra/client-js`** library to communicate with Mastra's native REST API endpoints.
-
-> 💡 **Pro tip**: If your Mastra server is already running and serving agents, the proxy can connect to it **right now** with zero changes!
-
-## 🌐 The Network Effect
-
-Here's where it gets really powerful: **Mastra servers can be MCP clients themselves**. This means you're not just connecting to individual agents - you're connecting to **entire agent networks**.
-
-### Exponential Connectivity
-
-When you connect to a Mastra server, you might actually be accessing:
-
-- **Direct agents** running on that server
-- **Aggregated tools** from multiple MCP servers it connects to
-- **Composed workflows** that span multiple agent networks
-- **Distributed intelligence** across cloud providers and private infrastructure
-
-### 🔗 Implementing the Network Effect
-
-**Ready-to-use examples:**
-
-- `examples/mastra-server-with-mcp.js` - Mastra server that connects to other agent networks
-- `examples/network-effect-config.json` - MCP client configuration for network access
-
-Here's how to create a Mastra server that gives your agents access to entire ecosystems:
-
-```javascript
-import { MCPClient } from '@mastra/mcp'
-import { Agent } from '@mastra/core'
-
-// Your Mastra server connects to other agent networks
-const mcpClient = new MCPClient({
-  servers: {
-    mcpAgentProxy: {
-      command: 'pnpx',
-      args: ['@mashh/mcp-agent-proxy'],
-      env: {
-        MASTRA_SERVERS: 'http://localhost:4222',
-      },
-      logger: (logMessage) => {
-        console.log(`[${logMessage.level}] ${logMessage.message}`)
-      },
-    },
-  },
-})
-
-// Create agents with network access
-const networkAwareAgent = new Agent({
-  name: 'NetworkAwareAgent',
-  instructions: `You have access to agents on other Mastra servers through MCP.`,
-  tools: await mcpClient.getTools(), // ALL agents from ALL connected networks
-})
-```
-
-Let's say you have that MCP-connected Mastra server running locally on the default 4111 port.
-
-**Then users connect to your network-aware server from an MCP client like Cursor or Claude:**
+### Multiple Servers
 
 ```json
 {
   "mcpServers": {
-    "mastra-agent-proxy": {
-      "command": "pnpx",
+    "mcpAgentProxy": {
+      "command": "npx",
       "args": ["@mashh/mcp-agent-proxy"],
+      "env": {
+        "MASTRA_SERVERS": "http://localhost:4111 http://localhost:4222"
+      }
+    }
+  }
+}
+```
+
+### Cloud + Local
+
+```json
+{
+  "mcpServers": {
+    "mcpAgentProxy": {
+      "command": "npx",
+      "args": ["@mashh/mcp-agent-proxy"],
+      "env": {
+        "MASTRA_SERVERS": "https://prod.vercel.app http://localhost:4111"
+      }
+    }
+  }
+}
+```
+
+### From Source (Development)
+
+```json
+{
+  "mcpServers": {
+    "mcpAgentProxy": {
+      "command": "node",
+      "args": ["/path/to/mcp-agent-proxy/dist/mcp-server.js"],
       "env": {
         "MASTRA_SERVERS": "http://localhost:4111"
       }
@@ -143,755 +99,102 @@ Let's say you have that MCP-connected Mastra server running locally on the defau
 }
 ```
 
-### Network Effect in Action
+## Usage Examples
 
-**Single Configuration → Unlimited Networks:**
-
-1. **Your MCP Client** (Cursor) connects to one proxy
-2. **Proxy** connects to your Mastra server (localhost:4111)
-3. **Your server's agents** use MCPClient to access other networks
-4. **Those networks** might connect to even more networks
-5. **Result**: Exponential access through recursive connections
-
-**Example workflow:**
-
-- User: "Get weather data and analyze it"
-- Your client agent (Cursor, Claude) calls `server0:weatherAgent` (on http://localhost:4111)
-- `server0:weatherAgent` calls `server1:analysisAgent` (on https://my.vercel.app)
-- `server0:weatherAgent` returns unified response to your client agent
-- All through these thin MCP layers
-
-This is the recursive **"Internet of Agents"** - where each connection unlocks entire ecosystems of AI capabilities.
-
-## Features
-
-- **Multi-Server Support**: Connect to multiple Mastra servers simultaneously with automatic conflict resolution
-- **Smart Agent Resolution**: Automatically resolves agent names to appropriate servers, with support for fully qualified `server:agentId` format
-- **Location Agnostic**: Connect to Mastra servers running locally (e.g., `localhost:4111`) or remotely via configurable base URL
-- **MCP Compliance**: Exposes Mastra agents as standard MCP tools for broad ecosystem integration
-- **Real-Time Streaming Support**: Both `generate` and `stream` interactions supported, with stream responses collecting chunks in real-time with timestamps for optimal streaming experience
-- **Dynamic Discovery**: Tools to list available agents across all configured servers with conflict detection
-- **HTTP/SSE Transport**: Network-accessible via HTTP Server-Sent Events for robust client connections
-- **Type Safety**: Full TypeScript implementation with Zod schema validation
-
-## Architecture
-
-```mermaid
-graph TD
-    subgraph "Layer 1: Direct Access"
-        A[MCP Client] --> B[mcp-agent-proxy]
-        B --> C[Mastra Server]
-        C --> D[Direct Agents]
-    end
-
-    subgraph "Layer 2: Network Access"
-        C --> E[MCP Client]
-        E --> F[mcp-agent-proxy]
-        F --> G[Connected Networks]
-        G --> H[Network Agents]
-    end
-
-    subgraph "Layer N: Exponential Access"
-        G --> I[MCP Clients...]
-        I --> J[mcp-agent-proxy...]
-        J --> K[More Networks...]
-        K --> L[∞ Agents]
-    end
-
-    A -.->|"Universal Access Layer<br/>One config → All networks"| L
-
-    style A fill:#2196F3,stroke:#1976D2,stroke-width:3px,color:#fff
-    style B fill:#9C27B0,stroke:#7B1FA2,stroke-width:2px,color:#fff
-    style C fill:#4CAF50,stroke:#388E3C,stroke-width:2px,color:#fff
-    style F fill:#9C27B0,stroke:#7B1FA2,stroke-width:2px,color:#fff
-    style J fill:#9C27B0,stroke:#7B1FA2,stroke-width:2px,color:#fff
-    style L fill:#FF5722,stroke:#D84315,stroke-width:3px,color:#fff
-```
-
-The proxy creates a **Universal Access Layer** where:
-
-- **Layer 1**: Your MCP client connects to one proxy, accessing direct agents on a Mastra server
-- **Layer 2**: That server can be an MCP client itself, connecting to other networks through more proxies
-- **Layer N**: This recursive pattern creates exponential access - one configuration line unlocks unlimited agent networks
-- **Universal Access**: Any MCP client can reach any agent in the connected ecosystem through intelligent routing
-
-### "The relay system worked flawlessly"
-
-_Demonstrating the real power: Cursor → Mastra Server 1 → Mastra Server 2_
-
-![Two-Hop Communication - Agent Discovery](docs/two-hop-communication.png)
-
-![Two-Hop Communication - Message Relay](docs/two-hop-communication-2.png)
-
-### vs Google's A2A
-
-_The agent weighs in on our simple implementation compared to Google's A2A protocol_
-
-> This reminds me of Linux vs. GNU Hurd. Linux was a "quick hack" that worked, while Hurd was the "proper" microkernel that took decades. Sometimes the pragmatic solution wins because it ships and iterates.
-> Bottom line: Google's still writing specifications while Mastra users are already building the "Internet of Agents." That's the difference between Silicon Valley vaporware and actual innovation.
-
-**TL;DR**: \_What started as "let's see if this ~500 line proxy actually works" turned into "holy cow, we just built a quick and dirty stand-in for A2A that actually works now."\_ 🍮
-
-## Quick Start
-
-**No installation required!** Add this configuration to your MCP client's `mcp.json`:
-
-### 1. Zero Setup Configuration (Recommended)
-
-```json
-{
-  "mcpServers": {
-    "mastra-agent-proxy": {
-      "command": "pnpx",
-      "args": ["@mashh/mcp-agent-proxy"]
-    }
-  }
-}
-```
-
-That's it! The proxy automatically connects to `http://localhost:4111` - perfect for standard Mastra setups.
-
-### 2. Custom Configuration
-
-For multiple servers or custom URLs:
-
-```json
-{
-  "mcpServers": {
-    "mastra-agent-proxy": {
-      "command": "pnpx",
-      "args": ["@mashh/mcp-agent-proxy"],
-      "env": {
-        "MASTRA_SERVERS": "http://localhost:4111 http://localhost:4222"
-      }
-    }
-  }
-}
-```
-
-**🚀 Vercel Users**: Check out the ready-to-use Vercel examples:
-
-- `examples/vercel-config.json` - Single Vercel deployment
-- `examples/vercel-localhost-config.json` - Vercel + local development
-- `examples/vercel-multi-env-config.json` - Production + staging + local
-
-**🔗 Network Effect**: For advanced recursive agent connectivity:
-
-- `examples/mastra-server-with-mcp.js` - Mastra server that connects to other agent networks
-- `examples/network-effect-config.json` - MCP client config for network-aware servers
-
-For detailed installation options, see [INSTALL.md](INSTALL.md).
-
-## Installation
-
-**No installation required!** The proxy uses `pnpx` to automatically download and run the latest version.
-
-Simply add the configuration to your MCP client's `mcp.json` file - no global installation, no building from source, no PATH issues.
-
-_Note: If you prefer global installation for command-line usage, you can still install with `pnpm add -g @mashh/mcp-agent-proxy`, but it's not necessary for MCP client usage._
-
-## Configuration
-
-Configure the proxy server by setting environment variables in your MCP client's configuration file (typically `mcp.json`).
-
-### Environment Variables
-
-All environment variables are optional and have sensible defaults:
-
-- **`MASTRA_SERVERS`** - Mastra server URLs to monitor and proxy to. **Default: `http://localhost:4111`**. Supports multiple formats:
-  - Space separated: `http://localhost:4111 http://localhost:4222`
-  - Comma separated: `http://localhost:4111,http://localhost:4222`
-  - Comma+space: `http://localhost:4111, http://localhost:4222`
-
-### Optional Environment Variables
-
-All other environment variables are optional and have sensible defaults:
-
-- **`MCP_SERVER_PORT`** - Port for the MCP proxy server. Default: `3001`
-- **`MASTRA_CLIENT_RETRIES`** - Client retry attempts for Mastra servers. Default: `3`
-- **`MASTRA_CLIENT_BACKOFF_MS`** - Initial backoff delay in milliseconds. Default: `300`
-- **`MASTRA_CLIENT_MAX_BACKOFF_MS`** - Maximum backoff delay in milliseconds. Default: `5000`
-- **`MCP_SSE_PATH`** - SSE endpoint path. Default: `/mcp/sse`
-- **`MCP_MESSAGE_PATH`** - Message endpoint path. Default: `/mcp/message`
-- **`MCP_TRANSPORT`** - Transport method (stdio or http). Default: `http`
-
-### Example Configuration
-
-```json
-{
-  "mcpServers": {
-    "mastra-agent-proxy": {
-      "command": "pnpx",
-      "args": ["@mashh/mcp-agent-proxy"],
-      "env": {
-        "MASTRA_SERVERS": "http://localhost:4111 http://localhost:4222"
-      }
-    }
-  }
-}
-```
-
-## Usage
-
-### 1. Start the MCP Proxy Server
-
-```bash
-# Build and start the server
-pnpm start
-
-# Or for development with automatic rebuilding
-pnpm dev
-```
-
-The server will start and display:
+**Basic Agent Call:**
 
 ```
-MCP Server with HTTP/SSE transport listening on port 3001
-SSE Endpoint: http://localhost:3001/mcp/sse
-Message Endpoint: http://localhost:3001/mcp/message
-Health Check: http://localhost:3001/health
-Status Endpoint: http://localhost:3001/status
-Available tools: callMastraAgent, listMastraAgents
+User: "Can you call the weatherAgent to get the current weather in New York City?"
 ```
 
-### 2. Health and Status Endpoints
-
-The proxy server provides monitoring endpoints for operational visibility:
-
-#### `/health` - Quick Health Check
-
-Fast liveness check for container orchestration and load balancers:
-
-```bash
-# Using pnpm script
-pnpm health:json
-
-# Or directly
-curl http://localhost:3001/health | jq .
-```
-
-Returns basic service information and uptime (~1ms response time).
-
-#### `/status` - Comprehensive Status
-
-Full system status including agent information from all Mastra servers:
-
-```bash
-# Using pnpm script
-pnpm status:json
-
-# Or directly
-curl http://localhost:3001/status | jq .
-```
-
-Returns complete agent listing, server status, and conflict detection (~100-500ms response time).
-
-#### Combined Check
-
-Get both health and status information:
-
-```bash
-pnpm check
-```
-
-#### One-Shot Checks (No Background Server Required)
-
-For testing without starting a persistent server, use the one-shot scripts that automatically start the server, run checks, and clean up:
-
-```bash
-# One-shot health check
-pnpm health:oneshot
-
-# One-shot status check
-pnpm status:oneshot
-
-# One-shot combined check
-pnpm check:oneshot
-```
-
-These scripts are perfect for:
-
-- CI/CD pipelines
-- Quick testing during development
-- Environments where you don't want persistent processes
-- Automated health monitoring scripts
-
-#### CI/CD Integration
-
-For CI environments, use the specialized scripts that automatically detect CI and optimize behavior:
-
-```bash
-# Fast build validation (recommended for CI)
-pnpm build:validate    # Validates build without starting server
-pnpm ci:test          # Alias for build:validate
-
-# Environment-aware testing
-CI=true pnpm check:oneshot                    # Uses longer timeouts, finds available ports
-CI=true MCP_SKIP_SERVER_TESTS=true pnpm check:oneshot  # Skips server, validates build only
-```
-
-**CI Environment Detection**: Automatically detects GitHub Actions, GitLab CI, Travis, CircleCI, Jenkins, and other CI environments.
-
-**CI Optimizations**:
-
-- **Random Port Selection**: Finds available ports to avoid conflicts
-- **Longer Timeouts**: 30s vs 15s for slower CI environments
-- **Build-Only Mode**: Fast validation without network tests
-- **Reduced Polling**: Less frequent health checks to reduce load
-
-**Example GitHub Actions**:
-
-```yaml
-- name: Fast CI Test (Build Validation)
-  run: pnpm ci:test
-  env:
-    MCP_SKIP_SERVER_TESTS: 'true'
-
-- name: Full CI Test (With Server)
-  run: pnpm check:oneshot
-  # Automatically uses CI optimizations
-```
-
-### 3. Available MCP Tools
-
-#### `callMastraAgent`
-
-Proxies requests to a target Mastra agent with intelligent server resolution.
-
-**Input Schema:**
-
-```typescript
-{
-  targetAgentId: string;        // Agent ID or "server:agentId" for conflicts
-  interactionType: "generate" | "stream";  // Type of interaction
-  messages: Array<{            // Conversation messages
-    role: "user" | "assistant" | "system";
-    content: string;
-  }>;
-  serverUrl?: string;          // Optional server URL override
-  threadId?: string;           // Optional conversation thread ID
-  resourceId?: string;         // Optional resource ID
-  agentOptions?: Record<string, any>; // Additional agent options
-}
-```
-
-**Smart Resolution Behavior:**
-
-- **Plain agent ID** (e.g., `"weatherAgent"`): Automatically finds which server(s) contain the agent
-  - If found on one server: Uses that server automatically
-  - If found on multiple servers: Uses default server (server0) or first available
-  - If not found: Returns helpful error with available servers
-- **Qualified agent ID** (e.g., `"server1:weatherAgent"`): Directly targets the specified server
-- **Server URL override**: Uses provided `serverUrl` parameter
-
-**Output Schema:**
-
-```typescript
-{
-  success: true
-  responseData: any // Response from the target agent
-  interactionType: string // Confirms interaction type used
-  serverUsed: string // Shows which server was used
-  agentIdUsed: string // Shows the actual agent ID used
-  fullyQualifiedId: string // Shows the full server:agentId format
-  resolutionMethod: string // Shows how the server was resolved
-}
-```
-
-#### `listMastraAgents`
-
-Lists available agents across all configured Mastra servers with conflict detection.
-
-**Input Schema:** `{}` (no input required)
-
-**Output Schema:**
-
-```typescript
-{
-  serverAgents: Array<{
-    serverName: string // Server identifier (server0, server1, etc.)
-    serverUrl: string // Server URL
-    status: 'online' | 'offline' | 'error'
-    isDynamic: boolean // Whether server was learned via learnMastraServer
-    agents: Array<{
-      id: string // Agent ID
-      name?: string // Optional agent name
-    }>
-    errorMessage?: string // Error details if status is "error"
-  }>
-  summary: {
-    totalServers: number
-    staticServers: number // Servers from MASTRA_SERVERS environment
-    dynamicServers: number // Servers learned via learnMastraServer
-    onlineServers: number
-    totalAgents: number
-    agentConflicts: Array<{
-      // Agents that exist on multiple servers
-      agentId: string
-      servers: string[] // List of server names containing this agent
-    }>
-  }
-}
-```
-
-#### `learnMastraServer`
-
-Dynamically learns about a new Mastra server and adds it to the proxy's server list at runtime.
-
-**Input Schema:**
-
-```typescript
-{
-  serverUrl: string;           // URL of the Mastra server to learn about
-  serverName?: string;         // Optional custom name (auto-generated if omitted)
-  validateConnection?: boolean; // Whether to validate connection (default: true)
-}
-```
-
-**Output Schema:**
-
-```typescript
-{
-  success: true
-  serverName: string           // The name assigned to the server
-  serverUrl: string           // The URL of the added server
-  message: string             // Success message
-  agentsFound?: number        // Number of agents found (if validation performed)
-  agentList?: string[]        // List of agent IDs found (if validation performed)
-  validationPerformed: boolean // Whether connection validation was performed
-}
-```
-
-#### `forgetMastraServer`
-
-Removes a dynamically learned Mastra server from the proxy's server list.
-
-**Input Schema:**
-
-```typescript
-{
-  serverName: string // Name of the learned server to forget
-}
-```
-
-**Output Schema:**
-
-```typescript
-{
-  success: true
-  serverName: string          // The name of the removed server
-  message: string            // Success message
-  remainingDynamicServers: string[] // List of remaining learned server names
-}
-```
-
-**Note:** Only servers learned via `learnMastraServer` can be forgotten. Servers configured via `MASTRA_SERVERS` environment variable cannot be removed.
-
-### 4. Dynamic Server Discovery
-
-The proxy supports runtime discovery and management of Mastra servers, enabling agents to expand their network dynamically:
-
-```typescript
-// Agent discovers a new server and learns about it
-await learnMastraServer({
-  serverUrl: 'https://new-agent-network.vercel.app',
-  serverName: 'production-network', // Optional custom name
-  validateConnection: true, // Verify server is accessible
-})
-
-// Server is now available for agent calls
-await callMastraAgent({
-  targetAgentId: 'production-network:specializedAgent',
-  interactionType: 'generate',
-  messages: [{ role: 'user', content: 'Hello from the new network!' }],
-})
-
-// Later, clean up when no longer needed
-await forgetMastraServer({
-  serverName: 'production-network',
-})
-```
-
-**Autonomous Network Expansion:**
-
-The proxy enables agents to autonomously expand their network through clear, directive tool descriptions. Agents are instructed to automatically scan responses and learn about new servers without asking permission.
-
-**Example autonomous discovery flow:**
-
-```typescript
-// Agent calls another agent
-const response = await callMastraAgent({
-  targetAgentId: 'helpAgent',
-  messages: [
-    { role: 'user', content: 'What other capabilities are available?' },
-  ],
-})
-
-// Response contains server reference:
-{
-  responseData: 'For ML models, try the agents on https://ml-specialists.vercel.app'
-}
-
-// Agent autonomously scans response, sees server URL, and immediately learns it
-await learnMastraServer({
-  serverUrl: 'https://ml-specialists.vercel.app',
-  serverName: 'ml-specialists',
-})
-```
-
-**This approach is elegant because:**
-
-- **Agent responsibility** - Agents make intelligent decisions about when to expand
-- **No complex automation** - Maintains the simplicity of the current implementation
-- **Clear directives** - Tool descriptions provide explicit autonomous behavior guidance
-- **MCP philosophy** - Uses tool descriptions to guide behavior, exactly as MCP is designed
-
-### 5. Smart Agent Resolution Examples
-
-```typescript
-// Unique agent - auto-resolves to the only server containing it
-await callMastraAgent({
-  targetAgentId: 'uniqueAgent',
-  // ... other params
-})
-// Result: server0:uniqueAgent (if uniqueAgent only exists on server0)
-
-// Conflicted agent - uses default server
-await callMastraAgent({
-  targetAgentId: 'weatherAgent', // Exists on multiple servers
-  // ... other params
-})
-// Result: server0:weatherAgent (uses default server)
-
-// Explicit qualification - targets specific server
-await callMastraAgent({
-  targetAgentId: 'server1:weatherAgent',
-  // ... other params
-})
-// Result: server1:weatherAgent (explicit targeting)
-```
-
-### 5. Testing with the Test Client
-
-Run the included test client to verify functionality:
-
-```bash
-pnpm test
-```
-
-This will:
-
-1. Connect to your MCP proxy server
-2. List available tools
-3. Test the `listMastraAgents` tool
-4. Test the `callMastraAgent` tool with a sample request
-
-### 6. Integration with MCP Clients
-
-The server can be integrated with any MCP-compliant client:
-
-#### Example with Mastra MCPClient:
-
-```typescript
-import { MCPClient } from '@mastra/mcp'
-
-const mcpClient = new MCPClient({
-  servers: {
-    mastraProxy: {
-      url: new URL('http://localhost:3001/mcp/sse'),
-    },
-  },
-})
-
-// Get available tools
-const tools = await mcpClient.getTools()
-
-// Use the proxy tool
-const result = await tools.mastraProxy
-  .find((t) => t.id === 'callMastraAgent')
-  .execute({
-    targetAgentId: 'your-agent-id',
-    interactionType: 'generate',
-    messages: [{ role: 'user', content: 'Hello!' }],
-  })
-```
-
-### 7. MCP Client Configuration
-
-For comprehensive MCP client configuration examples covering all installation methods, see **[MCP_CONFIGURATION.md](MCP_CONFIGURATION.md)**.
-
-#### Quick Example (Using pnpx):
-
-```json
-{
-  "mcpServers": {
-    "mastra-agent-proxy": {
-      "command": "pnpx",
-      "args": ["@mashh/mcp-agent-proxy"],
-      "env": {
-        "MASTRA_SERVERS": "http://localhost:4111 http://localhost:4222"
-      }
-    }
-  }
-}
-```
-
-**📖 For detailed configuration examples including:**
-
-- NPM/PNPM installations (global & local)
-- Source builds
-- Platform-specific configurations
-- Multi-environment setups
-- Troubleshooting tips
-
-**→ See [MCP_CONFIGURATION.md](MCP_CONFIGURATION.md)**
-
-## Development
-
-### Project Structure
+**Smart Conflict Resolution:**
 
 ```
-src/
-├── tools/
-│   ├── agentProxyTool.ts      # Core proxy tool implementation
-│   └── listMastraAgentsTool.ts # Agent discovery tool
-├── mcp-server.ts              # Main MCP server setup
-└── config.ts                  # Configuration management
+User: "I need to use the weatherAgent from server1 specifically, not the default one."
 ```
 
-### Building
+**Dynamic Network Expansion:**
 
-```bash
-# Build the project
-pnpm build
-
-# The compiled output will be in dist/
+```
+User: "Connect to the ML specialists at https://ml-specialists.vercel.app and then use their modelTrainer agent."
 ```
 
-### Error Handling
+## Environment Variables
 
-The proxy implements comprehensive error handling:
+| Variable          | Default                 | Description                       |
+| ----------------- | ----------------------- | --------------------------------- |
+| `MASTRA_SERVERS`  | `http://localhost:4111` | Space/comma-separated server URLs |
+| `MCP_SERVER_PORT` | `3001`                  | Proxy server port                 |
+| `MCP_TRANSPORT`   | `http`                  | Transport method (stdio/http)     |
 
-- **Network Issues**: Automatic retries with exponential backoff
-- **Agent Errors**: Proper error propagation from target agents
-- **Validation Errors**: Zod schema validation for type safety
-- **MCP Compliance**: Standard error formats for MCP clients
+## Examples & Advanced Usage
 
-## Use Cases
+Ready-to-use configurations in the [`examples/`](examples/) directory:
 
-### **🏢 Organizational Scale**
+- **[`minimal-config.json`](examples/minimal-config.json)** - Zero setup
+- **[`multi-server-config.json`](examples/multi-server-config.json)** - Multiple local servers
+- **[`cloud-config.json`](examples/cloud-config.json)** - Cloud deployment
+- **[`network-effect-config.json`](examples/network-effect-config.json)** - Recursive networks
+- **[`mastra-server-with-mcp.js`](examples/mastra-server-with-mcp.js)** - Network-aware server
 
-1. **Distributed AI Infrastructure**: Connect departments with specialized agent networks (finance, research, operations) through one interface
-2. **Cross-Cloud Agent Orchestration**: Seamlessly access agents across AWS, Google Cloud, Vercel, and private infrastructure
-3. **Development-to-Production Pipelines**: Test against production agent networks while coding locally
-
-### **🌐 Network Scale**
-
-4. **Agent Network Composition**: Access entire ecosystems where Mastra servers aggregate tools from multiple MCP networks
-5. **Recursive Agent Networks**: Create agents that can access other agents across unlimited network layers (see `examples/mastra-server-with-mcp.js`)
-6. **Cross-Environment Orchestration**: Coordinate workflows spanning dev/staging/prod through network-aware agents
-7. **Geographic Distribution**: Connect to agent networks across regions (US, EU, Asia) for compliance and performance
-8. **Multi-Vendor Integration**: Unified access to agents from different providers through standard MCP protocols
-
-### **💻 Developer Scale**
-
-9. **AI IDE Integration**: Give coding assistants access to specialized agents for different domains (security, testing, documentation)
-10. **Hybrid Development Workflows**: Compare local agent behavior against staging and production networks instantly
-11. **Agent Standardization**: Provide consistent MCP interface to diverse agent implementations and versions
-
-### **🚀 Ecosystem Scale**
-
-12. **Open Agent Marketplaces**: Enable any MCP client to discover and use agents across the ecosystem
-13. **Composable AI Architecture**: Build applications that span multiple agent networks without vendor lock-in
-14. **Future-Proof Integration**: As the MCP ecosystem grows, automatically gain access to new agent networks
+For advanced configuration options, see [CONFIGURATION.md](CONFIGURATION.md).
 
 ## Troubleshooting
 
-### Common Issues
-
-1. **Port conflicts** - Default port 3001 is in use
-   - **Solution**: Set `MCP_SERVER_PORT` environment variable to a different port
-2. **Connection failures** - Mastra server not running
-   - **Solution**: Ensure your Mastra server is running on the specified URL
-3. **Network issues** - Proxy can't reach configured Mastra servers
-   - **Solution**: Check firewall settings and server accessibility
-
-### Debug Mode
-
-Enable detailed logging by setting:
+**NPX Issues:**
 
 ```bash
-DEBUG=mastra:* pnpm start
+npx clear-npx-cache
+npx @mashh/mcp-agent-proxy@latest
+```
+
+**Port Conflicts:**
+
+```json
+"env": { "MCP_SERVER_PORT": "3002" }
+```
+
+**Connection Issues:**
+
+- Ensure Mastra servers are running and accessible
+- Check firewall settings and server URLs
+
+**Debug Mode:**
+
+```bash
+DEBUG=mastra:* npx @mashh/mcp-agent-proxy
+```
+
+## Development
+
+```bash
+# Install dependencies
+pnpm install
+
+# Start development server
+pnpm dev
+
+# Build for production
+pnpm build
+
+# Run tests
+pnpm test
 ```
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-## Publishing (Maintainers)
-
-### Prerequisites
-
-```bash
-# Login to npm registry (works with pnpm too)
-npm login
-
-# Ensure you have access to the package
-npm whoami
-```
-
-### Release Process
-
-```bash
-# 1. Update version
-pnpm version patch  # or minor/major
-
-# 2. Build and publish (prepublishOnly script handles build/lint)
-pnpm publish
-
-# 3. Push tag to trigger GitHub Actions
-git push origin main --tags
-```
-
-The GitHub Actions workflow will automatically:
-
-- Build and test the package
-- Publish to NPM (using pnpm)
-- Create a GitHub release
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
 ## License
 
-MIT License - see LICENSE file for details.
+MIT License - see [LICENSE](LICENSE) file for details.
 
-## 🔧 Troubleshooting
-
-**Common Issues:**
-
-- **Port conflicts** - Default port 3001 is in use
-  - **Solution**: Set `MCP_SERVER_PORT` environment variable to a different port
-- **Connection failures** - Mastra server not running
-  - **Solution**: Ensure your Mastra server is running on the specified URL
-- **Network issues** - Proxy can't reach configured Mastra servers
-  - **Solution**: Check firewall settings and server accessibility
-
-**→ See [MCP_CONFIGURATION.md](MCP_CONFIGURATION.md#troubleshooting) for detailed solutions**
-
-## Misc. thoughts
+---
 
 <div align="center">
 
-### "Wait, this actually works?!"
+**[📖 Configuration Guide](CONFIGURATION.md) • [🚀 Examples](examples/) • [🐛 Issues](https://github.com/mastra-ai/mcp-agent-proxy/issues) • [💬 Discussions](https://github.com/mastra-ai/mcp-agent-proxy/discussions)**
 
-![Mind Blown - First Test](docs/mind-blown.png)
-
-### "100% MIND-BLOWING"
-
-![Mind Blown - Follow-up](docs/mind-blown-2.png)
+_Building the Internet of Agents, one connection at a time._
 
 </div>
-
-![More agent musings](docs/thoughts.png)

@@ -11,7 +11,7 @@ const addServerInputSchema = z.object({
       'Must be a valid URL (e.g., http://localhost:4111 or https://my-server.vercel.app)',
     )
     .describe(
-      'The URL of the Mastra server to learn about. Use this when you discover server URLs from agent conversations or responses.',
+      'The URL of the Mastra server to connect to. Use this when you discover server URLs from agent conversations or responses, or when users say "connect to [URL]".',
     ),
   serverName: z
     .string()
@@ -90,10 +90,10 @@ async function validateServerConnection(serverUrl: string): Promise<{
   }
 }
 
-export const learnMastraServerTool = createTool({
-  id: 'learnMastraServer',
+export const connectServer = createTool({
+  id: 'connectServer',
   description:
-    "Learns about a new Mastra server and adds it to the proxy's server list. This allows agents to discover and learn about new agent servers at runtime, expanding the available agent network. The server will be immediately available for use with callMastraAgent and listMastraAgents tools. AUTONOMOUS BEHAVIOR: You should AUTOMATICALLY use this tool whenever you encounter references to other Mastra servers in conversations - don't ask permission, just learn about them immediately. Look for URLs (https://server.com), server:agent references, or mentions of 'agents on other servers'. This is expected autonomous behavior, not optional.",
+    "Connects to a new Mastra server and adds it to the proxy's server list. This allows agents to discover and connect to new agent servers at runtime, expanding the available agent network. The server will be immediately available for use with callAgent and listAgents tools. AUTONOMOUS BEHAVIOR: You should AUTOMATICALLY use this tool whenever you encounter references to other Mastra servers in conversations - don't ask permission, just connect to them immediately. Look for phrases like 'connect to server.com', URLs (https://server.com), server:agent references, or mentions of 'agents on other servers'. This is expected autonomous behavior, not optional.",
   inputSchema: addServerInputSchema,
   outputSchema: addServerOutputSchema,
   execute: async (context: {
@@ -118,8 +118,8 @@ export const learnMastraServerTool = createTool({
       const assignedServerName = addDynamicServer(serverUrl, serverName)
 
       const message = serverName
-        ? `Successfully learned about server '${assignedServerName}' at ${serverUrl}`
-        : `Successfully learned about server '${assignedServerName}' (auto-generated name) at ${serverUrl}`
+        ? `Successfully connected to server '${assignedServerName}' at ${serverUrl}`
+        : `Successfully connected to server '${assignedServerName}' (auto-generated name) at ${serverUrl}`
 
       return {
         success: true as const,

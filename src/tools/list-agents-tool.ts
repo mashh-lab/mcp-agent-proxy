@@ -129,7 +129,7 @@ const listAgentsOutputSchema = z.object({
       isDynamic: z
         .boolean()
         .describe(
-          'Whether this server was learned dynamically via learnMastraServer tool',
+          'Whether this server was connected dynamically via connectServer tool',
         ),
     }),
   ),
@@ -140,7 +140,7 @@ const listAgentsOutputSchema = z.object({
       .describe('Servers configured via MASTRA_SERVERS environment variable'),
     dynamicServers: z
       .number()
-      .describe('Servers learned dynamically via learnMastraServer tool'),
+      .describe('Servers connected dynamically via connectServer tool'),
     onlineServers: z.number(),
     totalAgents: z.number(),
     agentConflicts: z.array(
@@ -152,10 +152,10 @@ const listAgentsOutputSchema = z.object({
   }),
 })
 
-export const listMastraAgentsTool = createTool({
-  id: 'listMastraAgents',
+export const listAgents = createTool({
+  id: 'listAgents',
   description:
-    'Lists available agents on all configured Mastra servers. Supports both single and multi-server setups with automatic conflict detection. Shows both static servers (from environment config) and dynamic servers (learned via learnMastraServer). Use this to discover what agents are available across your network, and pay attention to agent descriptions that might mention other agent networks you could learn about.',
+    'Lists available agents on all configured Mastra servers. Supports both single and multi-server setups with automatic conflict detection. Shows both static servers (from environment config) and dynamic servers (connected via connectServer). Use this to discover what agents are available across your network, and pay attention to agent descriptions that might mention other agent networks you could connect to.',
   inputSchema: z.object({}), // No input needed
   outputSchema: listAgentsOutputSchema,
   execute: async () => {

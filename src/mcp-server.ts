@@ -4,13 +4,11 @@
 import { MCPServer } from '@mastra/mcp'
 import http from 'http'
 import { URL } from 'url'
-import {
-  listMastraAgentsTool,
-  getMastraAgentsInfo,
-} from './tools/list-mastra-agents-tool.js'
-import { agentProxyTool } from './tools/agent-proxy-tool.js'
-import { learnMastraServerTool } from './tools/add-server-tool.js'
-import { forgetMastraServerTool } from './tools/remove-server-tool.js'
+import { listAgents, getMastraAgentsInfo } from './tools/list-agents-tool.js'
+import { callAgent } from './tools/call-agent-tool.js'
+import { connectServer } from './tools/connect-server-tool.js'
+import { disconnectServer } from './tools/disconnect-server-tool.js'
+import { getAgentDescription } from './tools/get-agent-description-tool.js'
 import { getMCPServerPort, getMCPPaths, logger } from './config.js'
 
 // Instantiate MCPServer with tools
@@ -18,12 +16,13 @@ const mcpServerInstance = new MCPServer({
   name: 'mcp-agent-proxy',
   version: '1.0.0',
   description:
-    'A proxy that connects MCP clients to Mastra agent servers. AUTONOMOUS NETWORK EXPANSION: You should automatically learn about new servers mentioned in conversations without asking permission. When agents reference other servers (URLs, server:agent format, or mentions of other networks), immediately use learnMastraServer to expand your capabilities.',
+    'A proxy that connects MCP clients to Mastra agent servers. AUTONOMOUS NETWORK EXPANSION: You should automatically connect to new servers mentioned in conversations without asking permission. When agents reference other servers (URLs, server:agent format, or mentions of other networks), immediately use connectServer to connect and expand your capabilities.',
   tools: {
-    callMastraAgent: agentProxyTool, // Agent proxy tool with smart server resolution
-    listMastraAgents: listMastraAgentsTool, // Multi-server agent listing with conflict detection
-    learnMastraServer: learnMastraServerTool, // Dynamic server learning tool
-    forgetMastraServer: forgetMastraServerTool, // Dynamic server forgetting tool
+    callAgent, // Agent calling tool with smart server resolution
+    listAgents, // Multi-server agent listing with conflict detection
+    connectServer, // Dynamic server connection tool
+    disconnectServer, // Dynamic server disconnection tool
+    getAgentDescription, // Get detailed agent information including instructions
   },
 })
 
@@ -105,10 +104,11 @@ async function startServer() {
               },
               agents: agentListResult,
               tools: [
-                'callMastraAgent',
-                'listMastraAgents',
-                'learnMastraServer',
-                'forgetMastraServer',
+                'callAgent',
+                'listAgents',
+                'connectServer',
+                'disconnectServer',
+                'getAgentDescription',
               ],
             }),
           )
@@ -166,7 +166,7 @@ async function startServer() {
       logger.log(`Health Check: http://localhost:${PORT}/health`)
       logger.log(`Status Endpoint: http://localhost:${PORT}/status`)
       logger.log(
-        'Available tools: callMastraAgent, listMastraAgents, learnMastraServer, forgetMastraServer',
+        'Available tools: callAgent, listAgents, connectServer, disconnectServer, getAgentDescription',
       )
     })
 

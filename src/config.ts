@@ -2,7 +2,7 @@ import dotenv from 'dotenv'
 
 dotenv.config() // Load environment variables from .env file
 
-// Global learned server storage
+// Global connected server storage
 const dynamicServers: Map<string, string> = new Map()
 
 export function getMCPServerPort(): number {
@@ -59,7 +59,7 @@ export function getRetryConfig() {
 }
 
 /**
- * Learn about a server and add it to the runtime server list
+ * Connect to a server and add it to the runtime server list
  * @param serverUrl - The URL of the Mastra server to learn about
  * @param serverName - Optional custom name for the server. If not provided, auto-generates one.
  * @returns The server name that was assigned
@@ -113,37 +113,37 @@ export function addDynamicServer(
   }
 
   dynamicServers.set(serverName, serverUrl)
-  logger.log(`Learned about server: ${serverName} -> ${serverUrl}`)
+  logger.log(`Connected to server: ${serverName} -> ${serverUrl}`)
   return serverName
 }
 
 /**
- * Forget about a dynamically learned server
- * @param serverName - The name of the server to forget
- * @returns true if forgotten, false if not found
+ * Disconnect from a dynamically connected server
+ * @param serverName - The name of the server to disconnect
+ * @returns true if disconnected, false if not found
  */
 export function removeDynamicServer(serverName: string): boolean {
   const removed = dynamicServers.delete(serverName)
   if (removed) {
-    logger.log(`Forgot about server: ${serverName}`)
+    logger.log(`Disconnected from server: ${serverName}`)
   }
   return removed
 }
 
 /**
- * Get all dynamically learned servers
+ * Get all dynamically connected servers
  */
 export function getDynamicServers(): Map<string, string> {
   return new Map(dynamicServers)
 }
 
 /**
- * Clear all dynamically learned servers
+ * Clear all dynamically connected servers
  */
 export function clearDynamicServers(): void {
   const count = dynamicServers.size
   dynamicServers.clear()
-  logger.log(`Forgot about ${count} learned servers`)
+  logger.log(`Disconnected from ${count} connected servers`)
 }
 
 /**
@@ -204,13 +204,13 @@ function loadStaticServerMappings(): Map<string, string> {
 }
 
 /**
- * Load server mappings from environment configuration + dynamically learned servers
+ * Load server mappings from environment configuration + dynamically connected servers
  * Supports multiple string formats:
  * - Space separated: "http://localhost:4111 http://localhost:4222"
  * - Comma separated: "http://localhost:4111,http://localhost:4222"
  * - Comma+space separated: "http://localhost:4111, http://localhost:4222"
  * Auto-generates names: server0, server1, server2, etc.
- * Includes dynamically learned servers with their assigned names.
+ * Includes dynamically connected servers with their assigned names.
  */
 export function loadServerMappings(): Map<string, string> {
   const staticServers = loadStaticServerMappings()

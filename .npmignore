@@ -48,8 +48,7 @@ examples/
 docs/
 *.md
 !README.md
-!INSTALL.md
-!MCP_CONFIGURATION.md
+!CONFIGURATION.md
 !CONTRIBUTING.md
 !CODE_OF_CONDUCT.md
 
