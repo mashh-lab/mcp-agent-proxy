@@ -1,8 +1,8 @@
 {
   "_comment": "Network Effect Configuration - Connect to a Mastra server that itself connects to other agent networks",
   "mcpServers": {
-    "mastra-agent-proxy": {
-      "command": "pnpx",
+    "mcpAgentProxy": {
+      "command": "npx",
       "args": ["@mashh/mcp-agent-proxy"],
       "env": {
         "_comment": "This Mastra server (localhost:4111) has agents that can access other networks",

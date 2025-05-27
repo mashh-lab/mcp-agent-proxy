@@ -57,7 +57,7 @@ MASTRA_SERVERS=http://localhost:4111
 ```json
 {
   "mcpServers": {
-    "mastra-agent-proxy": {
+    "mcpAgentProxy": {
       // Your configuration here
     }
   }

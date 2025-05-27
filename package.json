@@ -14,8 +14,7 @@
     "dist/",
     "src/oneshot-check.js",
     "README.md",
-    "INSTALL.md",
-    "MCP_CONFIGURATION.md",
+    "CONFIGURATION.md",
     "LICENSE"
   ],
   "engines": {

@@ -17,7 +17,7 @@ import { createConversationAgent } from '@mastra/core'
 const mcpClient = new MCPClient({
   servers: {
     mcpAgentProxy: {
-      command: 'pnpx',
+      command: 'npx',
       args: ['@mashh/mcp-agent-proxy'],
       env: {
         MASTRA_SERVERS: 'http://localhost:4222',
