@@ -8,7 +8,7 @@ import { listAgents, getMastraAgentsInfo } from './tools/list-agents-tool.js'
 import { callAgent } from './tools/call-agent-tool.js'
 import { connectServer } from './tools/connect-server-tool.js'
 import { disconnectServer } from './tools/disconnect-server-tool.js'
-import { getAgentDescription } from './tools/get-agent-description-tool.js'
+import { describeAgent } from './tools/get-agent-description-tool.js'
 import { getMCPServerPort, getMCPPaths, logger } from './config.js'
 
 // Instantiate MCPServer with tools
@@ -22,7 +22,7 @@ const mcpServerInstance = new MCPServer({
     listAgents, // Multi-server agent listing with conflict detection
     connectServer, // Dynamic server connection tool
     disconnectServer, // Dynamic server disconnection tool
-    getAgentDescription, // Get detailed agent information including instructions
+    describeAgent, // Get detailed agent information including instructions
   },
 })
 
@@ -108,7 +108,7 @@ async function startServer() {
                 'listAgents',
                 'connectServer',
                 'disconnectServer',
-                'getAgentDescription',
+                'describeAgent',
               ],
             }),
           )
@@ -166,7 +166,7 @@ async function startServer() {
       logger.log(`Health Check: http://localhost:${PORT}/health`)
       logger.log(`Status Endpoint: http://localhost:${PORT}/status`)
       logger.log(
-        'Available tools: callAgent, listAgents, connectServer, disconnectServer, getAgentDescription',
+        'Available tools: callAgent, listAgents, connectServer, disconnectServer, describeAgent',
       )
     })
 

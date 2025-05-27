@@ -33,13 +33,13 @@ https://github.com/user-attachments/assets/e816c0cb-48e5-471b-8ff4-9107bd6e8bb6
 
 Instead of building complex protocols, we provide **5 simple tools** that let agents discover, connect, and orchestrate across unlimited networks:
 
-| Tool                  | Purpose                                                 |
-| --------------------- | ------------------------------------------------------- |
-| `listAgents`          | Discover available agents across all servers            |
-| `getAgentDescription` | Get detailed agent capabilities for intelligent routing |
-| `callAgent`           | Execute any agent with smart conflict resolution        |
-| `connectServer`       | Dynamically add new Mastra servers at runtime           |
-| `disconnectServer`    | Remove dynamically connected servers                    |
+| Tool               | Purpose                                                 |
+| ------------------ | ------------------------------------------------------- |
+| `listAgents`       | Discover available agents across all servers            |
+| `describeAgent`    | Get detailed agent capabilities for intelligent routing |
+| `callAgent`        | Execute any agent with smart conflict resolution        |
+| `connectServer`    | Dynamically add new Mastra servers at runtime           |
+| `disconnectServer` | Remove dynamically connected servers                    |
 
 ### The Network Effect
 

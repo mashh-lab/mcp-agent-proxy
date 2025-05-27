@@ -37,14 +37,14 @@ async function findAgentServers(
   return foundServers
 }
 
-const getAgentDescriptionInputSchema = z.object({
+const describeAgentInputSchema = z.object({
   agentId: z
     .string()
     .min(1, "Agent ID is required. Use 'server:agentId' format for conflicts."),
   serverUrl: z.string().url().optional(), // Optional server URL override
 })
 
-const getAgentDescriptionOutputSchema = z.object({
+const describeAgentOutputSchema = z.object({
   success: z.literal(true),
   agentId: z.string(),
   fullyQualifiedId: z.string(),
@@ -58,14 +58,14 @@ const getAgentDescriptionOutputSchema = z.object({
   resolutionMethod: z.string(),
 })
 
-export const getAgentDescription = createTool({
-  id: 'getAgentDescription',
+export const describeAgent = createTool({
+  id: 'describeAgent',
   description:
     'Gets detailed information about a specific Mastra agent, including its instructions/description. This provides the agent-to-agent capability information that can be used for intelligent routing and collaboration. Use this after discovering agents with listAgents to understand their specific capabilities.',
-  inputSchema: getAgentDescriptionInputSchema,
-  outputSchema: getAgentDescriptionOutputSchema,
+  inputSchema: describeAgentInputSchema,
+  outputSchema: describeAgentOutputSchema,
   execute: async (context: {
-    context: z.infer<typeof getAgentDescriptionInputSchema>
+    context: z.infer<typeof describeAgentInputSchema>
   }) => {
     const { agentId, serverUrl } = context.context
 

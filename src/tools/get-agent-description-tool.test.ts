@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { MastraClient } from '@mastra/client-js'
-import { getAgentDescription } from './get-agent-description-tool.js'
+import { describeAgent } from './get-agent-description-tool.js'
 import * as config from '../config.js'
 
 // Mock the dependencies
@@ -11,12 +11,12 @@ const mockMastraClient = vi.mocked(MastraClient)
 const mockConfig = vi.mocked(config)
 
 // Define types for better type safety
-type GetAgentDescriptionInput = {
+type describeAgentInput = {
   agentId: string
   serverUrl?: string
 }
 
-type GetAgentDescriptionOutput = {
+type describeAgentOutput = {
   success: true
   agentId: string
   fullyQualifiedId: string
@@ -58,15 +58,15 @@ describe('get-agent-description-tool', () => {
 
   describe('tool configuration', () => {
     it('should have correct tool configuration', () => {
-      expect(getAgentDescription.id).toBe('getAgentDescription')
-      expect(getAgentDescription.description).toContain(
+      expect(describeAgent.id).toBe('describeAgent')
+      expect(describeAgent.description).toContain(
         'Gets detailed information about a specific Mastra agent',
       )
-      expect(getAgentDescription.description).toContain(
+      expect(describeAgent.description).toContain(
         'agent-to-agent capability information',
       )
-      expect(getAgentDescription.inputSchema).toBeDefined()
-      expect(getAgentDescription.outputSchema).toBeDefined()
+      expect(describeAgent.inputSchema).toBeDefined()
+      expect(describeAgent.outputSchema).toBeDefined()
     })
   })
 
@@ -89,7 +89,7 @@ describe('get-agent-description-tool', () => {
 
       mockMastraClient.mockReturnValue(mockClient as any)
 
-      const input: GetAgentDescriptionInput = {
+      const input: describeAgentInput = {
         agentId: 'server0:testAgent',
       }
 
@@ -97,9 +97,9 @@ describe('get-agent-description-tool', () => {
         context: input,
       }
 
-      const result = (await getAgentDescription.execute(
+      const result = (await describeAgent.execute(
         mockContext as any,
-      )) as GetAgentDescriptionOutput
+      )) as describeAgentOutput
 
       expect(result.success).toBe(true)
       expect(result.agentId).toBe('testAgent')
@@ -128,7 +128,7 @@ describe('get-agent-description-tool', () => {
 
       mockMastraClient.mockReturnValue(mockClient as any)
 
-      const input: GetAgentDescriptionInput = {
+      const input: describeAgentInput = {
         agentId: 'testAgent',
         serverUrl: 'http://custom.server.com',
       }
@@ -137,9 +137,9 @@ describe('get-agent-description-tool', () => {
         context: input,
       }
 
-      const result = (await getAgentDescription.execute(
+      const result = (await describeAgent.execute(
         mockContext as any,
-      )) as GetAgentDescriptionOutput
+      )) as describeAgentOutput
 
       expect(result.success).toBe(true)
       expect(result.agentId).toBe('testAgent')
@@ -183,7 +183,7 @@ describe('get-agent-description-tool', () => {
         return mockClient as any
       })
 
-      const input: GetAgentDescriptionInput = {
+      const input: describeAgentInput = {
         agentId: 'testAgent',
       }
 
@@ -191,9 +191,9 @@ describe('get-agent-description-tool', () => {
         context: input,
       }
 
-      const result = (await getAgentDescription.execute(
+      const result = (await describeAgent.execute(
         mockContext as any,
-      )) as GetAgentDescriptionOutput
+      )) as describeAgentOutput
 
       expect(result.success).toBe(true)
       expect(result.agentId).toBe('testAgent')
@@ -237,7 +237,7 @@ describe('get-agent-description-tool', () => {
         return mockClient as any
       })
 
-      const input: GetAgentDescriptionInput = {
+      const input: describeAgentInput = {
         agentId: 'testAgent',
       }
 
@@ -245,9 +245,9 @@ describe('get-agent-description-tool', () => {
         context: input,
       }
 
-      const result = (await getAgentDescription.execute(
+      const result = (await describeAgent.execute(
         mockContext as any,
-      )) as GetAgentDescriptionOutput
+      )) as describeAgentOutput
 
       expect(result.success).toBe(true)
       expect(result.agentId).toBe('testAgent')
@@ -299,7 +299,7 @@ describe('get-agent-description-tool', () => {
         return mockClient as any
       })
 
-      const input: GetAgentDescriptionInput = {
+      const input: describeAgentInput = {
         agentId: 'testAgent',
       }
 
@@ -307,9 +307,9 @@ describe('get-agent-description-tool', () => {
         context: input,
       }
 
-      const result = (await getAgentDescription.execute(
+      const result = (await describeAgent.execute(
         mockContext as any,
-      )) as GetAgentDescriptionOutput
+      )) as describeAgentOutput
 
       expect(result.success).toBe(true)
       expect(result.agentId).toBe('testAgent')
@@ -333,7 +333,7 @@ describe('get-agent-description-tool', () => {
           }) as any,
       )
 
-      const input: GetAgentDescriptionInput = {
+      const input: describeAgentInput = {
         agentId: 'nonExistentAgent',
       }
 
@@ -341,15 +341,13 @@ describe('get-agent-description-tool', () => {
         context: input,
       }
 
-      await expect(
-        getAgentDescription.execute(mockContext as any),
-      ).rejects.toThrow(
+      await expect(describeAgent.execute(mockContext as any)).rejects.toThrow(
         "Agent 'nonExistentAgent' not found on any configured server",
       )
     })
 
     it('should throw error for unknown server in fully qualified ID', async () => {
-      const input: GetAgentDescriptionInput = {
+      const input: describeAgentInput = {
         agentId: 'unknownServer:testAgent',
       }
 
@@ -357,9 +355,9 @@ describe('get-agent-description-tool', () => {
         context: input,
       }
 
-      await expect(
-        getAgentDescription.execute(mockContext as any),
-      ).rejects.toThrow("Unknown server 'unknownServer'")
+      await expect(describeAgent.execute(mockContext as any)).rejects.toThrow(
+        "Unknown server 'unknownServer'",
+      )
     })
 
     it('should handle unknown server with serverUrl override', async () => {
@@ -378,7 +376,7 @@ describe('get-agent-description-tool', () => {
 
       mockMastraClient.mockReturnValue(mockClient as any)
 
-      const input: GetAgentDescriptionInput = {
+      const input: describeAgentInput = {
         agentId: 'unknownServer:testAgent',
         serverUrl: 'http://custom.server.com',
       }
@@ -387,9 +385,9 @@ describe('get-agent-description-tool', () => {
         context: input,
       }
 
-      const result = (await getAgentDescription.execute(
+      const result = (await describeAgent.execute(
         mockContext as any,
-      )) as GetAgentDescriptionOutput
+      )) as describeAgentOutput
 
       expect(result.success).toBe(true)
       expect(result.agentId).toBe('testAgent')
@@ -416,7 +414,7 @@ describe('get-agent-description-tool', () => {
 
       mockMastraClient.mockReturnValue(mockClient as any)
 
-      const input: GetAgentDescriptionInput = {
+      const input: describeAgentInput = {
         agentId: 'testAgent',
         serverUrl: 'http://localhost:4111', // This matches server0
       }
@@ -425,9 +423,9 @@ describe('get-agent-description-tool', () => {
         context: input,
       }
 
-      const result = (await getAgentDescription.execute(
+      const result = (await describeAgent.execute(
         mockContext as any,
-      )) as GetAgentDescriptionOutput
+      )) as describeAgentOutput
 
       expect(result.success).toBe(true)
       expect(result.agentId).toBe('testAgent')
@@ -468,7 +466,7 @@ describe('get-agent-description-tool', () => {
 
       mockMastraClient.mockReturnValue(mockClient as any)
 
-      const input: GetAgentDescriptionInput = {
+      const input: describeAgentInput = {
         agentId: 'server0:comprehensiveAgent',
       }
 
@@ -476,9 +474,9 @@ describe('get-agent-description-tool', () => {
         context: input,
       }
 
-      const result = (await getAgentDescription.execute(
+      const result = (await describeAgent.execute(
         mockContext as any,
-      )) as GetAgentDescriptionOutput
+      )) as describeAgentOutput
 
       expect(result.success).toBe(true)
       expect(result.agentDetails).toEqual(mockAgentDetails)
@@ -503,7 +501,7 @@ describe('get-agent-description-tool', () => {
 
       mockMastraClient.mockReturnValue(mockClient as any)
 
-      const input: GetAgentDescriptionInput = {
+      const input: describeAgentInput = {
         agentId: 'server0:minimalAgent',
       }
 
@@ -511,9 +509,9 @@ describe('get-agent-description-tool', () => {
         context: input,
       }
 
-      const result = (await getAgentDescription.execute(
+      const result = (await describeAgent.execute(
         mockContext as any,
-      )) as GetAgentDescriptionOutput
+      )) as describeAgentOutput
 
       expect(result.success).toBe(true)
       expect(result.agentDetails).toEqual(mockAgentDetails)
@@ -533,7 +531,7 @@ describe('get-agent-description-tool', () => {
 
       mockMastraClient.mockReturnValue(mockClient as any)
 
-      const input: GetAgentDescriptionInput = {
+      const input: describeAgentInput = {
         agentId: 'server0:emptyAgent',
       }
 
@@ -541,9 +539,9 @@ describe('get-agent-description-tool', () => {
         context: input,
       }
 
-      const result = (await getAgentDescription.execute(
+      const result = (await describeAgent.execute(
         mockContext as any,
-      )) as GetAgentDescriptionOutput
+      )) as describeAgentOutput
 
       expect(result.success).toBe(true)
       expect(result.agentDetails).toEqual({})
@@ -579,7 +577,7 @@ describe('get-agent-description-tool', () => {
         return mockClient as any
       })
 
-      const input: GetAgentDescriptionInput = {
+      const input: describeAgentInput = {
         agentId: 'server0:testAgent',
       }
 
@@ -587,7 +585,7 @@ describe('get-agent-description-tool', () => {
         context: input,
       }
 
-      await getAgentDescription.execute(mockContext as any)
+      await describeAgent.execute(mockContext as any)
 
       expect(mockMastraClient).toHaveBeenCalledWith({
         baseUrl: 'http://localhost:4111',
@@ -631,7 +629,7 @@ describe('get-agent-description-tool', () => {
         throw new Error('Unexpected config')
       })
 
-      const input: GetAgentDescriptionInput = {
+      const input: describeAgentInput = {
         agentId: 'testAgent', // Plain agent ID to trigger discovery
       }
 
@@ -639,7 +637,7 @@ describe('get-agent-description-tool', () => {
         context: input,
       }
 
-      await getAgentDescription.execute(mockContext as any)
+      await describeAgent.execute(mockContext as any)
 
       expect(discoveryCallCount).toBeGreaterThan(0)
       expect(interactionCallCount).toBeGreaterThan(0)
@@ -660,7 +658,7 @@ describe('get-agent-description-tool', () => {
 
       mockMastraClient.mockReturnValue(mockClient as any)
 
-      const input: GetAgentDescriptionInput = {
+      const input: describeAgentInput = {
         agentId: 'server0:testAgent',
       }
 
@@ -668,9 +666,7 @@ describe('get-agent-description-tool', () => {
         context: input,
       }
 
-      await expect(
-        getAgentDescription.execute(mockContext as any),
-      ).rejects.toThrow(
+      await expect(describeAgent.execute(mockContext as any)).rejects.toThrow(
         "Failed to get agent description for 'server0:testAgent': Details retrieval failed",
       )
 
@@ -691,7 +687,7 @@ describe('get-agent-description-tool', () => {
 
       mockMastraClient.mockReturnValue(mockClient as any)
 
-      const input: GetAgentDescriptionInput = {
+      const input: describeAgentInput = {
         agentId: 'server0:testAgent',
       }
 
@@ -699,9 +695,7 @@ describe('get-agent-description-tool', () => {
         context: input,
       }
 
-      await expect(
-        getAgentDescription.execute(mockContext as any),
-      ).rejects.toThrow(
+      await expect(describeAgent.execute(mockContext as any)).rejects.toThrow(
         "Failed to get agent description for 'server0:testAgent': Unknown error",
       )
     })
@@ -731,7 +725,7 @@ describe('get-agent-description-tool', () => {
         return { getAgent: vi.fn().mockReturnValue(mockAgent) } as any
       })
 
-      const input: GetAgentDescriptionInput = {
+      const input: describeAgentInput = {
         agentId: 'testAgent',
       }
 
@@ -739,9 +733,9 @@ describe('get-agent-description-tool', () => {
         context: input,
       }
 
-      const result = (await getAgentDescription.execute(
+      const result = (await describeAgent.execute(
         mockContext as any,
-      )) as GetAgentDescriptionOutput
+      )) as describeAgentOutput
 
       expect(result.success).toBe(true)
       expect(result.fullyQualifiedId).toBe('server1:testAgent')
@@ -753,7 +747,7 @@ describe('get-agent-description-tool', () => {
         throw new Error('Client creation failed')
       })
 
-      const input: GetAgentDescriptionInput = {
+      const input: describeAgentInput = {
         agentId: 'server0:testAgent',
       }
 
@@ -761,9 +755,7 @@ describe('get-agent-description-tool', () => {
         context: input,
       }
 
-      await expect(
-        getAgentDescription.execute(mockContext as any),
-      ).rejects.toThrow(
+      await expect(describeAgent.execute(mockContext as any)).rejects.toThrow(
         "Failed to get agent description for 'server0:testAgent': Client creation failed",
       )
     })
@@ -773,7 +765,7 @@ describe('get-agent-description-tool', () => {
     it('should handle empty server mappings', async () => {
       mockConfig.loadServerMappings.mockReturnValue(new Map())
 
-      const input: GetAgentDescriptionInput = {
+      const input: describeAgentInput = {
         agentId: 'testAgent',
       }
 
@@ -781,13 +773,13 @@ describe('get-agent-description-tool', () => {
         context: input,
       }
 
-      await expect(
-        getAgentDescription.execute(mockContext as any),
-      ).rejects.toThrow("Agent 'testAgent' not found on any configured server")
+      await expect(describeAgent.execute(mockContext as any)).rejects.toThrow(
+        "Agent 'testAgent' not found on any configured server",
+      )
     })
 
     it('should handle malformed fully qualified ID', async () => {
-      const input: GetAgentDescriptionInput = {
+      const input: describeAgentInput = {
         agentId: 'server0:agent:extra:parts',
       }
 
@@ -806,9 +798,9 @@ describe('get-agent-description-tool', () => {
 
       mockMastraClient.mockReturnValue(mockClient as any)
 
-      const result = (await getAgentDescription.execute(
+      const result = (await describeAgent.execute(
         mockContext as any,
-      )) as GetAgentDescriptionOutput
+      )) as describeAgentOutput
 
       expect(result.agentId).toBe('agent')
       expect(result.fullyQualifiedId).toBe('server0:agent:extra:parts')
@@ -837,7 +829,7 @@ describe('get-agent-description-tool', () => {
 
       mockMastraClient.mockReturnValue(mockClient as any)
 
-      const input: GetAgentDescriptionInput = {
+      const input: describeAgentInput = {
         agentId: 'server0:nullAgent',
       }
 
@@ -845,9 +837,9 @@ describe('get-agent-description-tool', () => {
         context: input,
       }
 
-      const result = (await getAgentDescription.execute(
+      const result = (await describeAgent.execute(
         mockContext as any,
-      )) as GetAgentDescriptionOutput
+      )) as describeAgentOutput
 
       expect(result.success).toBe(true)
       expect(result.agentDetails).toEqual(mockAgentDetails)
@@ -878,7 +870,7 @@ describe('get-agent-description-tool', () => {
 
       mockMastraClient.mockReturnValue(mockClient as any)
 
-      const input: GetAgentDescriptionInput = {
+      const input: describeAgentInput = {
         agentId: 'server0:largeAgent',
       }
 
@@ -886,9 +878,9 @@ describe('get-agent-description-tool', () => {
         context: input,
       }
 
-      const result = (await getAgentDescription.execute(
+      const result = (await describeAgent.execute(
         mockContext as any,
-      )) as GetAgentDescriptionOutput
+      )) as describeAgentOutput
 
       expect(result.success).toBe(true)
       expect(result.agentDetails).toEqual(mockAgentDetails)
