@@ -2,6 +2,9 @@ import dotenv from 'dotenv'
 
 dotenv.config() // Load environment variables from .env file
 
+// Global learned server storage
+const dynamicServers: Map<string, string> = new Map()
+
 export function getMCPServerPort(): number {
   const port = parseInt(process.env.MCP_SERVER_PORT || '3001', 10)
   if (isNaN(port) || port <= 0 || port > 65535) {
@@ -56,14 +59,98 @@ export function getRetryConfig() {
 }
 
 /**
- * Load server mappings from environment configuration
- * Supports multiple string formats:
- * - Space separated: "http://localhost:4111 http://localhost:4222"
- * - Comma separated: "http://localhost:4111,http://localhost:4222"
- * - Comma+space separated: "http://localhost:4111, http://localhost:4222"
- * Auto-generates names: server0, server1, server2, etc.
+ * Learn about a server and add it to the runtime server list
+ * @param serverUrl - The URL of the Mastra server to learn about
+ * @param serverName - Optional custom name for the server. If not provided, auto-generates one.
+ * @returns The server name that was assigned
  */
-export function loadServerMappings(): Map<string, string> {
+export function addDynamicServer(
+  serverUrl: string,
+  serverName?: string,
+): string {
+  // Validate URL format
+  try {
+    new URL(serverUrl)
+  } catch {
+    throw new Error(`Invalid server URL: ${serverUrl}`)
+  }
+
+  // Check if URL already exists
+  for (const [existingName, existingUrl] of dynamicServers.entries()) {
+    if (existingUrl === serverUrl) {
+      logger.log(`Server URL ${serverUrl} already exists as ${existingName}`)
+      return existingName
+    }
+  }
+
+  // Also check static servers from environment
+  const staticServers = loadStaticServerMappings()
+  for (const [existingName, existingUrl] of staticServers.entries()) {
+    if (existingUrl === serverUrl) {
+      logger.log(
+        `Server URL ${serverUrl} already exists as ${existingName} (from environment)`,
+      )
+      return existingName
+    }
+  }
+
+  // Generate server name if not provided
+  if (!serverName) {
+    const allServers = new Map([...staticServers, ...dynamicServers])
+    let index = allServers.size
+    do {
+      serverName = `server${index}`
+      index++
+    } while (allServers.has(serverName))
+  } else {
+    // Check if custom name conflicts with existing servers
+    const allServers = new Map([...staticServers, ...dynamicServers])
+    if (allServers.has(serverName)) {
+      throw new Error(
+        `Server name '${serverName}' already exists. Choose a different name or omit to auto-generate.`,
+      )
+    }
+  }
+
+  dynamicServers.set(serverName, serverUrl)
+  logger.log(`Learned about server: ${serverName} -> ${serverUrl}`)
+  return serverName
+}
+
+/**
+ * Forget about a dynamically learned server
+ * @param serverName - The name of the server to forget
+ * @returns true if forgotten, false if not found
+ */
+export function removeDynamicServer(serverName: string): boolean {
+  const removed = dynamicServers.delete(serverName)
+  if (removed) {
+    logger.log(`Forgot about server: ${serverName}`)
+  }
+  return removed
+}
+
+/**
+ * Get all dynamically learned servers
+ */
+export function getDynamicServers(): Map<string, string> {
+  return new Map(dynamicServers)
+}
+
+/**
+ * Clear all dynamically learned servers
+ */
+export function clearDynamicServers(): void {
+  const count = dynamicServers.size
+  dynamicServers.clear()
+  logger.log(`Forgot about ${count} learned servers`)
+}
+
+/**
+ * Load server mappings from environment configuration only
+ * This is separated from the main loadServerMappings to allow dynamic additions
+ */
+function loadStaticServerMappings(): Map<string, string> {
   // Check if custom server configuration is provided
   const serversConfig = process.env.MASTRA_SERVERS
 
@@ -114,6 +201,30 @@ export function loadServerMappings(): Map<string, string> {
 
   // Use defaults if no custom config provided
   return getDefaultMappings()
+}
+
+/**
+ * Load server mappings from environment configuration + dynamically learned servers
+ * Supports multiple string formats:
+ * - Space separated: "http://localhost:4111 http://localhost:4222"
+ * - Comma separated: "http://localhost:4111,http://localhost:4222"
+ * - Comma+space separated: "http://localhost:4111, http://localhost:4222"
+ * Auto-generates names: server0, server1, server2, etc.
+ * Includes dynamically learned servers with their assigned names.
+ */
+export function loadServerMappings(): Map<string, string> {
+  const staticServers = loadStaticServerMappings()
+
+  // Merge static and dynamic servers
+  const allServers = new Map([...staticServers, ...dynamicServers])
+
+  if (dynamicServers.size > 0) {
+    logger.log(
+      `Total servers: ${allServers.size} (${staticServers.size} from config, ${dynamicServers.size} learned)`,
+    )
+  }
+
+  return allServers
 }
 
 /**

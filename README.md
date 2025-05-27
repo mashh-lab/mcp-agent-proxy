@@ -2,11 +2,7 @@
 
 **_🚀 It's like A2A-Lite!_**
 
-**⚡ ~500 lines of code. 2 tools. Unlimited agent access.**
-
 Connect your MCP clients (Cursor, Claude Desktop, other Mastra servers, etc.) to **any** Mastra agent server - whether it's running locally, deployed on Vercel, or your private infrastructure. This gives your client access to any agent on that server as a tool. And since Mastra servers can be MCP clients themselves, you're not just accessing individual agents, but potentially **entire agent networks** recursively through one simple configuration.
-
-The entire core is just a few TypeScript files, yet it enables any MCP client to access any Mastra agent anywhere - from localhost to production clouds to entire agent ecosystems when applied recursively.
 
 > Built for/with [Mastra](https://github.com/mastra-ai/mastra) ❤️
 
@@ -31,33 +27,26 @@ _Quick MCP config -> instant agent access_
 }
 ```
 
-## 🎯 Just 2 Tools. That's it.
+## 🎯 Just 4 Tools. That's it.
 
-**The entire proxy exposes just 2 MCP tools:**
+**The entire proxy exposes just 4 MCP tools:**
 
 - `listMastraAgents` - Discover what's available across all configured servers
 - `callMastraAgent` - Call any agent anywhere, gracefully handling conflicting agent names across multiple servers
+- `learnMastraServer` - Dynamically learn about new Mastra servers at runtime
+- `forgetMastraServer` - Remove dynamically learned servers from the proxy
 
 **That's it.** No complex protocols. No rigid schemas. No predefined workflows.
 
-This **radical simplicity** is the secret sauce:
+This **simplicity** is the secret sauce:
 
 - **Agents figure it out** - They can discover, explore, and adapt to any agent network
 - **Zero constraints** - No artificial limitations on how agents interact
 - **Emergent behavior** - Complex workflows arise naturally from simple primitives
+- **Autonomous discovery** - Agents proactively learn about new servers mentioned in conversations, expanding their network without explicit commands
 - **Future-proof** - Works with agents that don't exist yet
 
 Instead of building a complex A2A protocol, we built **A2A primitives** and let the agents do what they do best: figure out how to use them creatively.
-
-## Why This Is Powerful
-
-**🌐 Infrastructure-Agnostic**: Works with any HTTP-accessible Mastra server - localhost, Vercel, AWS, your private servers, anywhere
-
-**⚡ Hybrid Development**: Test against production agents while coding locally. Compare deployed vs development behavior instantly.
-
-**🧠 Smart Conflict Resolution**: Multiple servers with the same agents? No problem - auto-generates `server0:weatherAgent`, `server1:weatherAgent`
-
-**🔧 Zero Setup**: One line in your `mcp.json` connects you to unlimited agents across unlimited servers
 
 ```json
 // Connect to agents anywhere with one configuration line
@@ -85,22 +74,6 @@ Simply point the proxy to **any** running Mastra server and instantly access all
 The proxy uses the standard **`@mastra/client-js`** library to communicate with Mastra's native REST API endpoints.
 
 > 💡 **Pro tip**: If your Mastra server is already running and serving agents, the proxy can connect to it **right now** with zero changes!
-
-## 🤯 Agents' Testimony
-
-_Sometimes the best way to demonstrate something is to let the users speak for themselves..._
-
-<div align="center">
-
-### "Wait, this actually works?!"
-
-![Mind Blown - First Test](docs/mind-blown.png)
-
-### "100% MIND-BLOWING"
-
-![Mind Blown - Follow-up](docs/mind-blown-2.png)
-
-</div>
 
 ## 🌐 The Network Effect
 
@@ -539,6 +512,7 @@ Lists available agents across all configured Mastra servers with conflict detect
     serverName: string // Server identifier (server0, server1, etc.)
     serverUrl: string // Server URL
     status: 'online' | 'offline' | 'error'
+    isDynamic: boolean // Whether server was learned via learnMastraServer
     agents: Array<{
       id: string // Agent ID
       name?: string // Optional agent name
@@ -547,9 +521,10 @@ Lists available agents across all configured Mastra servers with conflict detect
   }>
   summary: {
     totalServers: number
+    staticServers: number // Servers from MASTRA_SERVERS environment
+    dynamicServers: number // Servers learned via learnMastraServer
     onlineServers: number
     totalAgents: number
-    uniqueAgents: number
     agentConflicts: Array<{
       // Agents that exist on multiple servers
       agentId: string
@@ -559,7 +534,119 @@ Lists available agents across all configured Mastra servers with conflict detect
 }
 ```
 
-### 4. Smart Agent Resolution Examples
+#### `learnMastraServer`
+
+Dynamically learns about a new Mastra server and adds it to the proxy's server list at runtime.
+
+**Input Schema:**
+
+```typescript
+{
+  serverUrl: string;           // URL of the Mastra server to learn about
+  serverName?: string;         // Optional custom name (auto-generated if omitted)
+  validateConnection?: boolean; // Whether to validate connection (default: true)
+}
+```
+
+**Output Schema:**
+
+```typescript
+{
+  success: true
+  serverName: string           // The name assigned to the server
+  serverUrl: string           // The URL of the added server
+  message: string             // Success message
+  agentsFound?: number        // Number of agents found (if validation performed)
+  agentList?: string[]        // List of agent IDs found (if validation performed)
+  validationPerformed: boolean // Whether connection validation was performed
+}
+```
+
+#### `forgetMastraServer`
+
+Removes a dynamically learned Mastra server from the proxy's server list.
+
+**Input Schema:**
+
+```typescript
+{
+  serverName: string // Name of the learned server to forget
+}
+```
+
+**Output Schema:**
+
+```typescript
+{
+  success: true
+  serverName: string          // The name of the removed server
+  message: string            // Success message
+  remainingDynamicServers: string[] // List of remaining learned server names
+}
+```
+
+**Note:** Only servers learned via `learnMastraServer` can be forgotten. Servers configured via `MASTRA_SERVERS` environment variable cannot be removed.
+
+### 4. Dynamic Server Discovery
+
+The proxy supports runtime discovery and management of Mastra servers, enabling agents to expand their network dynamically:
+
+```typescript
+// Agent discovers a new server and learns about it
+await learnMastraServer({
+  serverUrl: 'https://new-agent-network.vercel.app',
+  serverName: 'production-network', // Optional custom name
+  validateConnection: true, // Verify server is accessible
+})
+
+// Server is now available for agent calls
+await callMastraAgent({
+  targetAgentId: 'production-network:specializedAgent',
+  interactionType: 'generate',
+  messages: [{ role: 'user', content: 'Hello from the new network!' }],
+})
+
+// Later, clean up when no longer needed
+await forgetMastraServer({
+  serverName: 'production-network',
+})
+```
+
+**Autonomous Network Expansion:**
+
+The proxy enables agents to autonomously expand their network through clear, directive tool descriptions. Agents are instructed to automatically scan responses and learn about new servers without asking permission.
+
+**Example autonomous discovery flow:**
+
+```typescript
+// Agent calls another agent
+const response = await callMastraAgent({
+  targetAgentId: 'helpAgent',
+  messages: [
+    { role: 'user', content: 'What other capabilities are available?' },
+  ],
+})
+
+// Response contains server reference:
+{
+  responseData: 'For ML models, try the agents on https://ml-specialists.vercel.app'
+}
+
+// Agent autonomously scans response, sees server URL, and immediately learns it
+await learnMastraServer({
+  serverUrl: 'https://ml-specialists.vercel.app',
+  serverName: 'ml-specialists',
+})
+```
+
+**This approach is elegant because:**
+
+- **Agent responsibility** - Agents make intelligent decisions about when to expand
+- **No complex automation** - Maintains the simplicity of the current implementation
+- **Clear directives** - Tool descriptions provide explicit autonomous behavior guidance
+- **MCP philosophy** - Uses tool descriptions to guide behavior, exactly as MCP is designed
+
+### 5. Smart Agent Resolution Examples
 
 ```typescript
 // Unique agent - auto-resolves to the only server containing it
@@ -794,5 +881,17 @@ MIT License - see LICENSE file for details.
 **→ See [MCP_CONFIGURATION.md](MCP_CONFIGURATION.md#troubleshooting) for detailed solutions**
 
 ## Misc. thoughts
+
+<div align="center">
+
+### "Wait, this actually works?!"
+
+![Mind Blown - First Test](docs/mind-blown.png)
+
+### "100% MIND-BLOWING"
+
+![Mind Blown - Follow-up](docs/mind-blown-2.png)
+
+</div>
 
 ![More agent musings](docs/thoughts.png)
