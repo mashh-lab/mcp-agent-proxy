@@ -4,7 +4,7 @@
 import { MCPServer } from '@mastra/mcp'
 import http from 'http'
 import { URL } from 'url'
-import { listAgents, getMastraAgentsInfo } from './tools/list-agents-tool.js'
+import { listAgents, getAgentsInfo } from './tools/list-agents-tool.js'
 import { callAgent } from './tools/call-agent-tool.js'
 import { connectServer } from './tools/connect-server-tool.js'
 import { disconnectServer } from './tools/disconnect-server-tool.js'
@@ -87,8 +87,8 @@ async function startServer() {
       // Status endpoint (comprehensive, includes agent information)
       if (requestUrl.pathname === '/status') {
         try {
-          // Get current agent status from all Mastra servers
-          const agentListResult = await getMastraAgentsInfo()
+          // Get current agent status from all agent servers
+          const agentListResult = await getAgentsInfo()
 
           res.writeHead(200, { 'Content-Type': 'application/json' })
           res.end(

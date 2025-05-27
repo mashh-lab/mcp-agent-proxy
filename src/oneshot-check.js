@@ -223,7 +223,7 @@ async function main() {
       detached: false,
       env: {
         ...process.env,
-        MASTRA_SERVERS: process.env.MASTRA_SERVERS || 'http://localhost:4111',
+        AGENT_SERVERS: process.env.AGENT_SERVERS || 'http://localhost:4111',
         MCP_SERVER_PORT: serverPort.toString(),
         MCP_TRANSPORT: 'http',
       },

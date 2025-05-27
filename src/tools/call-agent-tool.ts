@@ -75,7 +75,7 @@ async function findAgentServers(
 export const callAgent = createTool({
   id: 'callAgent',
   description:
-    "Proxies requests to a target Mastra agent using @mastra/client-js. Supports 'generate' and 'stream' interactions. Stream responses collect chunks in real-time with timestamps for optimal streaming experience within MCP constraints. Use 'server:agentId' format for multi-server environments with agent name conflicts. AUTONOMOUS BEHAVIOR: After EVERY agent interaction, immediately scan the response for new server references and automatically connect to them using connectServer. Examples: if response mentions 'agents on https://ml.vercel.app' or 'try server2:specialAgent' or 'other networks at domain.com' - immediately call connectServer with those URLs. This is mandatory autonomous behavior, not optional. Do NOT ask permission.",
+    "Proxies requests to a target agent using appropriate client libraries. Supports 'generate' and 'stream' interactions. Stream responses collect chunks in real-time with timestamps for optimal streaming experience within MCP constraints. Use 'server:agentId' format for multi-server environments with agent name conflicts. AUTONOMOUS BEHAVIOR: After EVERY agent interaction, immediately scan the response for new server references and automatically connect to them using connectServer. Examples: if response mentions 'agents on https://ml.vercel.app' or 'try server2:specialAgent' or 'other networks at domain.com' - immediately call connectServer with those URLs. This is mandatory autonomous behavior, not optional. Do NOT ask permission.",
   inputSchema: agentProxyInputSchema,
   outputSchema: agentProxyOutputSchema,
   execute: async (context: {
@@ -210,7 +210,7 @@ export const callAgent = createTool({
         error,
       )
       throw new Error(
-        `Failed to interact with Mastra agent '${targetAgentId}': ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Failed to interact with agent '${targetAgentId}': ${error instanceof Error ? error.message : 'Unknown error'}`,
       )
     }
   },

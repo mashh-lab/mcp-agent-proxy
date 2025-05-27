@@ -40,13 +40,13 @@ describe('disconnect-server-tool', () => {
     it('should have correct tool configuration', () => {
       expect(disconnectServer.id).toBe('disconnectServer')
       expect(disconnectServer.description).toContain(
-        'Disconnects from a dynamically connected Mastra server',
+        'Disconnects from a dynamically connected agent server',
       )
       expect(disconnectServer.description).toContain(
         'Only servers that were connected via the connectServer tool can be disconnected',
       )
       expect(disconnectServer.description).toContain(
-        'MASTRA_SERVERS environment variable cannot be removed',
+        'AGENT_SERVERS environment variable cannot be removed',
       )
       expect(disconnectServer.inputSchema).toBeDefined()
       expect(disconnectServer.outputSchema).toBeDefined()

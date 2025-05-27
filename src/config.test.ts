@@ -328,7 +328,7 @@ describe('config', () => {
       })
 
       it('should check against static servers from environment', () => {
-        process.env.MASTRA_SERVERS = 'http://static.example.com'
+        process.env.AGENT_SERVERS = 'http://static.example.com'
 
         const serverName = addDynamicServer('http://static.example.com')
         expect(serverName).toBe('server0') // Should return the static server name
@@ -436,7 +436,7 @@ describe('config', () => {
 
   describe('loadServerMappings', () => {
     it('should return default mappings when no environment config and no dynamic servers', () => {
-      delete process.env.MASTRA_SERVERS
+      delete process.env.AGENT_SERVERS
 
       const mappings = loadServerMappings()
       expect(mappings.size).toBe(1)
@@ -444,7 +444,7 @@ describe('config', () => {
     })
 
     it('should parse space-separated server URLs from environment', () => {
-      process.env.MASTRA_SERVERS = 'http://localhost:4111 http://localhost:4222'
+      process.env.AGENT_SERVERS = 'http://localhost:4111 http://localhost:4222'
 
       const mappings = loadServerMappings()
       expect(mappings.size).toBe(2)
@@ -453,7 +453,7 @@ describe('config', () => {
     })
 
     it('should parse comma-separated server URLs from environment', () => {
-      process.env.MASTRA_SERVERS = 'http://localhost:4111,http://localhost:4222'
+      process.env.AGENT_SERVERS = 'http://localhost:4111,http://localhost:4222'
 
       const mappings = loadServerMappings()
       expect(mappings.size).toBe(2)
@@ -462,7 +462,7 @@ describe('config', () => {
     })
 
     it('should parse comma+space-separated server URLs from environment', () => {
-      process.env.MASTRA_SERVERS =
+      process.env.AGENT_SERVERS =
         'http://localhost:4111, http://localhost:4222, http://localhost:4333'
 
       const mappings = loadServerMappings()
@@ -473,7 +473,7 @@ describe('config', () => {
     })
 
     it('should handle mixed separators in environment config', () => {
-      process.env.MASTRA_SERVERS =
+      process.env.AGENT_SERVERS =
         'http://localhost:4111, http://localhost:4222 http://localhost:4333,http://localhost:4444'
 
       const mappings = loadServerMappings()
@@ -485,7 +485,7 @@ describe('config', () => {
     })
 
     it('should merge static and dynamic servers', () => {
-      process.env.MASTRA_SERVERS = 'http://static.example.com'
+      process.env.AGENT_SERVERS = 'http://static.example.com'
       addDynamicServer('http://dynamic.example.com', 'dynamicServer')
 
       const mappings = loadServerMappings()
@@ -495,7 +495,7 @@ describe('config', () => {
     })
 
     it('should prioritize dynamic servers over static when names conflict', () => {
-      process.env.MASTRA_SERVERS = 'http://static.example.com'
+      process.env.AGENT_SERVERS = 'http://static.example.com'
 
       // This should throw an error because server0 already exists as a static server
       expect(() =>
@@ -505,16 +505,16 @@ describe('config', () => {
       )
     })
 
-    it('should handle empty MASTRA_SERVERS environment variable', () => {
-      process.env.MASTRA_SERVERS = ''
+    it('should handle empty AGENT_SERVERS environment variable', () => {
+      process.env.AGENT_SERVERS = ''
 
       const mappings = loadServerMappings()
       expect(mappings.size).toBe(1)
       expect(mappings.get('server0')).toBe('http://localhost:4111') // Should use defaults
     })
 
-    it('should handle whitespace-only MASTRA_SERVERS environment variable', () => {
-      process.env.MASTRA_SERVERS = '   \t\n   '
+    it('should handle whitespace-only AGENT_SERVERS environment variable', () => {
+      process.env.AGENT_SERVERS = '   \t\n   '
 
       const mappings = loadServerMappings()
       expect(mappings.size).toBe(1)
@@ -522,7 +522,7 @@ describe('config', () => {
     })
 
     it('should filter out empty URLs from environment config', () => {
-      process.env.MASTRA_SERVERS =
+      process.env.AGENT_SERVERS =
         'http://localhost:4111,, ,http://localhost:4222'
 
       const mappings = loadServerMappings()
@@ -531,8 +531,8 @@ describe('config', () => {
       expect(mappings.get('server1')).toBe('http://localhost:4222')
     })
 
-    it('should handle invalid JSON-like MASTRA_SERVERS gracefully', () => {
-      process.env.MASTRA_SERVERS = '{"invalid": "json"}'
+    it('should handle invalid JSON-like AGENT_SERVERS gracefully', () => {
+      process.env.AGENT_SERVERS = '{"invalid": "json"}'
 
       const mappings = loadServerMappings()
       expect(mappings.size).toBe(2) // One from the JSON string, one from "json"
@@ -541,7 +541,7 @@ describe('config', () => {
     })
 
     it('should log server count when dynamic servers are present', () => {
-      process.env.MASTRA_SERVERS = 'http://static.example.com'
+      process.env.AGENT_SERVERS = 'http://static.example.com'
       addDynamicServer('http://dynamic.example.com', 'dynamicServer')
 
       loadServerMappings()
@@ -710,7 +710,7 @@ describe('config', () => {
     })
 
     it('should handle environment variables with unusual whitespace', () => {
-      process.env.MASTRA_SERVERS =
+      process.env.AGENT_SERVERS =
         '\t\n  http://localhost:4111  \r\n\t  http://localhost:4222  \n\r'
 
       const mappings = loadServerMappings()
@@ -719,14 +719,14 @@ describe('config', () => {
       expect(mappings.get('server1')).toBe('http://localhost:4222')
     })
 
-    it('should handle parsing errors in MASTRA_SERVERS gracefully', () => {
+    it('should handle parsing errors in AGENT_SERVERS gracefully', () => {
       // Mock a scenario where split() or other parsing operations might throw
       const originalSplit = String.prototype.split
       String.prototype.split = vi.fn().mockImplementation(() => {
         throw new Error('Parsing failed')
       })
 
-      process.env.MASTRA_SERVERS = 'http://localhost:4111'
+      process.env.AGENT_SERVERS = 'http://localhost:4111'
 
       const mappings = loadServerMappings()
 
@@ -734,7 +734,7 @@ describe('config', () => {
       expect(mappings.size).toBe(1)
       expect(mappings.get('server0')).toBe('http://localhost:4111')
       expect(console.error).toHaveBeenCalledWith(
-        'Failed to parse MASTRA_SERVERS:',
+        'Failed to parse AGENT_SERVERS:',
         expect.any(Error),
       )
       expect(console.log).toHaveBeenCalledWith('Supported formats:')

@@ -17,7 +17,7 @@ function getServersFromConfig() {
   return Array.from(serverMappings.entries()).map(([name, url]) => ({
     name,
     url,
-    description: `Mastra Server (${name})`,
+    description: `Agent Server (${name})`,
     isDynamic: dynamicServers.has(name),
   }))
 }
@@ -26,7 +26,7 @@ function getServersFromConfig() {
  * Get agent information from all configured servers (Mastra, LangGraph, etc.)
  * This function can be reused outside of the MCP tool context
  */
-export async function getMastraAgentsInfo() {
+export async function getAgentsInfo() {
   const serversToCheck = getServersFromConfig()
   const retryConfig = getRetryConfig()
   const pluginManager = new PluginManager()
@@ -45,6 +45,9 @@ export async function getMastraAgentsInfo() {
         retryConfig.listing,
         server.isDynamic,
       )
+
+      // Update description with actual server type
+      serverStatus.serverDescription = `${serverStatus.serverType.charAt(0).toUpperCase() + serverStatus.serverType.slice(1)} Server (${server.name})`
 
       // Track agent conflicts
       for (const agent of serverStatus.agents) {
@@ -65,7 +68,7 @@ export async function getMastraAgentsInfo() {
         serverName: server.name,
         serverUrl: server.url,
         serverType: 'unknown',
-        serverDescription: server.description,
+        serverDescription: `Unknown Server (${server.name})`,
         agents: [],
         status: 'error' as const,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -125,7 +128,7 @@ const listAgentsOutputSchema = z.object({
     totalServers: z.number(),
     staticServers: z
       .number()
-      .describe('Servers configured via MASTRA_SERVERS environment variable'),
+      .describe('Servers configured via AGENT_SERVERS environment variable'),
     dynamicServers: z
       .number()
       .describe('Servers connected dynamically via connectServer tool'),
@@ -143,10 +146,10 @@ const listAgentsOutputSchema = z.object({
 export const listAgents = createTool({
   id: 'listAgents',
   description:
-    'Lists available agents on all configured Mastra servers. Supports both single and multi-server setups with automatic conflict detection. Shows both static servers (from environment config) and dynamic servers (connected via connectServer). Use this to discover what agents are available across your network, and pay attention to agent descriptions that might mention other agent networks you could connect to.',
+    'Lists available agents on all configured agent servers. Supports both single and multi-server setups with automatic conflict detection. Shows both static servers (from environment config) and dynamic servers (connected via connectServer). Use this to discover what agents are available across your network, and pay attention to agent descriptions that might mention other agent networks you could connect to.',
   inputSchema: z.object({}), // No input needed
   outputSchema: listAgentsOutputSchema,
   execute: async () => {
-    return await getMastraAgentsInfo()
+    return await getAgentsInfo()
   },
 })

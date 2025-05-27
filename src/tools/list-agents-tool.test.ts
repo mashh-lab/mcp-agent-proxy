@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { getMastraAgentsInfo } from './list-agents-tool.js'
+import { getAgentsInfo } from './list-agents-tool.js'
 import * as config from '../config.js'
 import { PluginManager } from '../plugins/index.js'
 
@@ -69,7 +69,7 @@ describe('list-agents-tool', () => {
     vi.restoreAllMocks()
   })
 
-  describe('getMastraAgentsInfo', () => {
+  describe('getAgentsInfo', () => {
     it('should return agent information from all online servers', async () => {
       // Mock server status responses
       mockPluginManagerInstance.getServerStatus
@@ -112,7 +112,7 @@ describe('list-agents-tool', () => {
           isDynamic: false,
         })
 
-      const result = await getMastraAgentsInfo()
+      const result = await getAgentsInfo()
 
       expect(result.summary.totalAgents).toBe(3)
       expect(result.summary.totalServers).toBe(2)
@@ -201,14 +201,14 @@ describe('list-agents-tool', () => {
           serverName: 'server1',
           serverUrl: 'http://localhost:4222',
           serverType: 'unknown',
-          serverDescription: 'Unknown server type',
+          serverDescription: 'Unknown Server (server1)',
           agents: [],
           status: 'error',
           error: 'No compatible plugin found',
           isDynamic: false,
         })
 
-      const result = await getMastraAgentsInfo()
+      const result = await getAgentsInfo()
 
       expect(result.summary.totalAgents).toBe(1)
       expect(result.summary.totalServers).toBe(2)
@@ -226,7 +226,7 @@ describe('list-agents-tool', () => {
         serverName: 'server1',
         serverUrl: 'http://localhost:4222',
         serverType: 'unknown',
-        serverDescription: 'Unknown server type',
+        serverDescription: 'Unknown Server (server1)',
         agents: [],
         status: 'error',
         error: 'No compatible plugin found',
@@ -237,7 +237,7 @@ describe('list-agents-tool', () => {
     it('should handle empty server mappings', async () => {
       mockConfig.loadServerMappings.mockReturnValue(new Map())
 
-      const result = await getMastraAgentsInfo()
+      const result = await getAgentsInfo()
 
       expect(result.summary.totalAgents).toBe(0)
       expect(result.summary.totalServers).toBe(0)
@@ -277,7 +277,7 @@ describe('list-agents-tool', () => {
         isDynamic: false,
       })
 
-      const result = await getMastraAgentsInfo()
+      const result = await getAgentsInfo()
 
       expect(result.summary.totalAgents).toBe(3)
 
@@ -339,7 +339,7 @@ describe('list-agents-tool', () => {
           isDynamic: false,
         })
 
-      const result = await getMastraAgentsInfo()
+      const result = await getAgentsInfo()
 
       expect(result.summary.totalAgents).toBe(2)
       expect(result.summary.totalServers).toBe(2)
@@ -359,14 +359,14 @@ describe('list-agents-tool', () => {
         serverName: 'server0',
         serverUrl: 'http://localhost:4111',
         serverType: 'unknown',
-        serverDescription: 'Unknown server type',
+        serverDescription: 'Unknown Server (server0)',
         agents: [],
         status: 'error',
         error: 'No compatible plugin found',
         isDynamic: false,
       })
 
-      const result = await getMastraAgentsInfo()
+      const result = await getAgentsInfo()
 
       expect(result.summary.totalAgents).toBe(0)
       expect(result.summary.onlineServers).toBe(0)
@@ -376,7 +376,7 @@ describe('list-agents-tool', () => {
         serverName: 'server0',
         serverUrl: 'http://localhost:4111',
         serverType: 'unknown',
-        serverDescription: 'Unknown server type',
+        serverDescription: 'Unknown Server (server0)',
         agents: [],
         status: 'error',
         error: 'No compatible plugin found',
@@ -403,7 +403,7 @@ describe('list-agents-tool', () => {
         isDynamic: false,
       })
 
-      await getMastraAgentsInfo()
+      await getAgentsInfo()
 
       expect(mockPluginManagerInstance.getServerStatus).toHaveBeenCalledWith(
         'server0',
@@ -456,7 +456,7 @@ describe('list-agents-tool', () => {
           isDynamic: true,
         })
 
-      const result = await getMastraAgentsInfo()
+      const result = await getAgentsInfo()
 
       expect(result.summary.totalServers).toBe(2)
       expect(result.summary.totalAgents).toBe(1)

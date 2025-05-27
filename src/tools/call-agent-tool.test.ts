@@ -80,7 +80,7 @@ describe('call-agent-tool', () => {
     it('should have correct tool configuration', () => {
       expect(callAgent.id).toBe('callAgent')
       expect(callAgent.description).toContain(
-        'Proxies requests to a target Mastra agent',
+        'Proxies requests to a target agent',
       )
       expect(callAgent.description).toContain('AUTONOMOUS BEHAVIOR')
       expect(callAgent.inputSchema).toBeDefined()
@@ -490,7 +490,7 @@ describe('call-agent-tool', () => {
       }
 
       await expect(callAgent.execute(mockContext as any)).rejects.toThrow(
-        "Failed to interact with Mastra agent 'server0:testAgent': Stream error",
+        "Failed to interact with agent 'server0:testAgent': Stream error",
       )
     })
 
@@ -513,7 +513,7 @@ describe('call-agent-tool', () => {
       }
 
       await expect(callAgent.execute(mockContext as any)).rejects.toThrow(
-        "Failed to interact with Mastra agent 'server0:testAgent': Streaming failed",
+        "Failed to interact with agent 'server0:testAgent': Streaming failed",
       )
     })
 
@@ -610,7 +610,7 @@ describe('call-agent-tool', () => {
       }
 
       await expect(callAgent.execute(mockContext as any)).rejects.toThrow(
-        "Failed to interact with Mastra agent 'server0:testAgent': Agent execution failed",
+        "Failed to interact with agent 'server0:testAgent': Agent execution failed",
       )
     })
 
@@ -631,7 +631,7 @@ describe('call-agent-tool', () => {
       }
 
       await expect(callAgent.execute(mockContext as any)).rejects.toThrow(
-        "Failed to interact with Mastra agent 'server0:testAgent': Unknown error",
+        "Failed to interact with agent 'server0:testAgent': Unknown error",
       )
     })
   })
@@ -756,7 +756,7 @@ describe('call-agent-tool', () => {
       }
 
       await expect(callAgent.execute(mockContext as any)).rejects.toThrow(
-        "Failed to interact with Mastra agent 'server0:testAgent': Unknown error",
+        "Failed to interact with agent 'server0:testAgent': Unknown error",
       )
     })
   })

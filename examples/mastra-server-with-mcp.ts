@@ -21,7 +21,7 @@ const mcpClient = new MCPClient({
       command: 'npx',
       args: ['@mashh/mcp-agent-proxy'],
       env: {
-        MASTRA_SERVERS: 'http://localhost:4222',
+        AGENT_SERVERS: 'http://localhost:4222',
       },
       logger: (logMessage) => {
         console.log(`[${logMessage.level}] ${logMessage.message}`)

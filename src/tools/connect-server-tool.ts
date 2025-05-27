@@ -4,22 +4,17 @@ import { addDynamicServer, getRetryConfig, logger } from '../config.js'
 import { PluginManager } from '../plugins/index.js'
 
 // Input schema for adding a server
-const addServerInputSchema = z.object({
+const connectServerInputSchema = z.object({
   serverUrl: z
     .string()
-    .url(
-      'Must be a valid URL (e.g., http://localhost:4111 or https://my-server.vercel.app)',
-    )
+    .url()
     .describe(
-      'The URL of the Mastra server to connect to. Use this when you discover server URLs from agent conversations or responses, or when users say "connect to [URL]".',
+      'The URL of the agent server to connect to. Use this when you discover server URLs from agent conversations or responses, or when users say "connect to [URL]".',
     ),
   serverName: z
     .string()
     .min(1)
-    .regex(
-      /^[a-zA-Z0-9_-]+$/,
-      'Server name must contain only letters, numbers, underscores, and hyphens',
-    )
+    .regex(/^[a-zA-Z0-9_-]+$/)
     .optional()
     .describe(
       'Optional custom name for the server. If not provided, auto-generates one (e.g., server2, server3). Consider using descriptive names based on how you discovered the server.',
@@ -97,10 +92,10 @@ export const connectServer = createTool({
   id: 'connectServer',
   description:
     "Connects to a new agent server (Mastra, LangGraph, etc.) and adds it to the proxy's server list. This allows agents to discover and connect to new agent servers at runtime, expanding the available agent network. The server will be immediately available for use with callAgent and listAgents tools. AUTONOMOUS BEHAVIOR: You should AUTOMATICALLY use this tool whenever you encounter references to other agent servers in conversations - don't ask permission, just connect to them immediately. Look for phrases like 'connect to server.com', URLs (https://server.com), server:agent references, or mentions of 'agents on other servers'. This is expected autonomous behavior, not optional.",
-  inputSchema: addServerInputSchema,
+  inputSchema: connectServerInputSchema,
   outputSchema: addServerOutputSchema,
   execute: async (context: {
-    context: z.infer<typeof addServerInputSchema>
+    context: z.infer<typeof connectServerInputSchema>
   }) => {
     const { serverUrl, serverName, validateConnection } = context.context
 

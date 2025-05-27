@@ -6,9 +6,7 @@
 
 **Connect any MCP client to any agent server - creating an "Internet of Agents" through simple, composable primitives.**
 
-> Built for/with [Mastra](https://github.com/mastra-ai/mastra) ❤️ and [LangGraph](https://github.com/langchain-ai/langgraph) 🦜🕸️
-
-> **NEW**: Now supports both Mastra and LangGraph servers transparently! 🎉
+> Supports both [Mastra](https://github.com/mastra-ai/mastra) ❤️ and [LangGraph](https://github.com/langchain-ai/langgraph) 🦜🕸️ servers! 🎉
 
 ## Quick Start
 
@@ -43,8 +41,8 @@ Instead of building complex protocols, we provide **5 simple tools** that let ag
 
 ### Supported Server Types
 
-- **Mastra**: Full support for Mastra agent servers
-- **LangGraph**: Full support for LangGraph Cloud and self-hosted instances
+- **Mastra**: Support for local and remote Mastra servers
+- **LangGraph**: Support for local and remote LangGraph instances
 - **Extensible**: Plugin architecture makes it easy to add support for other agent frameworks
 
 ### The Network Effect
@@ -68,7 +66,7 @@ One configuration line unlocks entire ecosystems of AI capabilities.
       "command": "npx",
       "args": ["@mashh/mcp-agent-proxy"],
       "env": {
-        "MASTRA_SERVERS": "http://localhost:4111 http://localhost:2024"
+        "AGENT_SERVERS": "http://localhost:4111 http://localhost:2024"
       }
     }
   }
@@ -84,7 +82,7 @@ One configuration line unlocks entire ecosystems of AI capabilities.
       "command": "npx",
       "args": ["@mashh/mcp-agent-proxy"],
       "env": {
-        "MASTRA_SERVERS": "https://my-mastra.vercel.app http://localhost:2024"
+        "AGENT_SERVERS": "https://my-mastra.vercel.app http://localhost:2024"
       }
     }
   }
@@ -100,7 +98,7 @@ One configuration line unlocks entire ecosystems of AI capabilities.
       "command": "node",
       "args": ["/path/to/mcp-agent-proxy/dist/mcp-server.js"],
       "env": {
-        "MASTRA_SERVERS": "http://localhost:4111"
+        "AGENT_SERVERS": "http://localhost:4111"
       }
     }
   }
@@ -137,7 +135,7 @@ Connect to the ML specialists at https://ml-specialists.vercel.app and then use 
 
 | Variable          | Default                 | Description                                                            |
 | ----------------- | ----------------------- | ---------------------------------------------------------------------- |
-| `MASTRA_SERVERS`  | `http://localhost:4111` | Space/comma-separated server URLs (supports both Mastra and LangGraph) |
+| `AGENT_SERVERS`   | `http://localhost:4111` | Space/comma-separated server URLs (supports both Mastra and LangGraph) |
 | `MCP_SERVER_PORT` | `3001`                  | Proxy server port                                                      |
 | `MCP_TRANSPORT`   | `http`                  | Transport method (stdio/http)                                          |
 
