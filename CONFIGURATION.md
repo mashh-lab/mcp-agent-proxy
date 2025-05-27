@@ -55,7 +55,7 @@ Use standard NPX configuration - no special setup required:
   "mcpServers": {
     "mcpAgentProxy": {
       "command": "npx",
-      "args": ["@mashh/mcp-agent-proxy"],
+      "args": ["mcp-agent-proxy"],
       "env": {
         "AGENT_SERVERS": "http://localhost:4111"
       }
@@ -77,7 +77,7 @@ Same as Windows - NPX works consistently across platforms.
   "mcpServers": {
     "mcpAgentProxy": {
       "command": "npx",
-      "args": ["@mashh/mcp-agent-proxy"],
+      "args": ["mcp-agent-proxy"],
       "env": {
         "AGENT_SERVERS": "http://localhost:4111 http://localhost:4222",
         "MCP_SERVER_PORT": "3001",
@@ -102,7 +102,7 @@ Enable debug logging:
   "mcpServers": {
     "mcpAgentProxy": {
       "command": "npx",
-      "args": ["@mashh/mcp-agent-proxy"],
+      "args": ["mcp-agent-proxy"],
       "env": {
         "AGENT_SERVERS": "http://localhost:4111",
         "DEBUG": "mastra:*",
@@ -137,14 +137,14 @@ curl http://localhost:3001/status | jq .
 
 ```bash
 # Test server starts
-npx @mashh/mcp-agent-proxy --help
+npx mcp-agent-proxy --help
 
 # Test with environment variables
-AGENT_SERVERS="http://localhost:4111" npx @mashh/mcp-agent-proxy
+AGENT_SERVERS="http://localhost:4111" npx mcp-agent-proxy
 ```
 
 ### Debug Mode
 
 ```bash
-DEBUG=mastra:* npx @mashh/mcp-agent-proxy
+DEBUG=mastra:* npx mcp-agent-proxy
 ```

@@ -17,7 +17,7 @@ Add this to your MCP client's configuration:
   "mcpServers": {
     "mcpAgentProxy": {
       "command": "npx",
-      "args": ["@mashh/mcp-agent-proxy@latest"]
+      "args": ["mcp-agent-proxy@latest"]
     }
   }
 }
@@ -64,7 +64,7 @@ One configuration line unlocks entire ecosystems of AI capabilities.
   "mcpServers": {
     "mcpAgentProxy": {
       "command": "npx",
-      "args": ["@mashh/mcp-agent-proxy"],
+      "args": ["mcp-agent-proxy"],
       "env": {
         "AGENT_SERVERS": "http://localhost:4111 http://localhost:2024"
       }
@@ -80,7 +80,7 @@ One configuration line unlocks entire ecosystems of AI capabilities.
   "mcpServers": {
     "mcpAgentProxy": {
       "command": "npx",
-      "args": ["@mashh/mcp-agent-proxy"],
+      "args": ["mcp-agent-proxy"],
       "env": {
         "AGENT_SERVERS": "https://my-mastra.vercel.app http://localhost:2024"
       }
@@ -157,7 +157,7 @@ For advanced configuration options, see [CONFIGURATION.md](CONFIGURATION.md).
 
 ```bash
 npx clear-npx-cache
-npx @mashh/mcp-agent-proxy@latest
+npx mcp-agent-proxy@latest
 ```
 
 **Port Conflicts:**
@@ -176,7 +176,7 @@ npx @mashh/mcp-agent-proxy@latest
 **Debug Mode:**
 
 ```bash
-DEBUG=mastra:* npx @mashh/mcp-agent-proxy
+DEBUG=mastra:* npx mcp-agent-proxy
 ```
 
 ## Development

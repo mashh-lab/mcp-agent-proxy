@@ -2,7 +2,7 @@
   "mcpServers": {
     "mcpAgentProxy": {
       "command": "npx",
-      "args": ["@mashh/mcp-agent-proxy"],
+      "args": ["mcp-agent-proxy"],
       "env": {
         "AGENT_SERVERS": "https://prod.vercel.app https://staging.vercel.app http://localhost:4111"
       }

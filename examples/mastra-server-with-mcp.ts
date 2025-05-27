@@ -19,7 +19,7 @@ const mcpClient = new MCPClient({
   servers: {
     mcpAgentProxy: {
       command: 'npx',
-      args: ['@mashh/mcp-agent-proxy'],
+      args: ['mcp-agent-proxy'],
       env: {
         AGENT_SERVERS: 'http://localhost:4222',
       },

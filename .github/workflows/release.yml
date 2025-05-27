@@ -91,12 +91,12 @@ jobs:
 
           ### PNPM Package (Recommended)
           \`\`\`bash
-          pnpm add -g @mashh/mcp-agent-proxy@${{ github.ref_name }}
+          pnpm add -g mcp-agent-proxy@${{ github.ref_name }}
           \`\`\`
 
           ### NPM Package (Alternative)
           \`\`\`bash
-          npm install -g @mashh/mcp-agent-proxy@${{ github.ref_name }}
+          npm install -g mcp-agent-proxy@${{ github.ref_name }}
           \`\`\`
 
           See [INSTALL.md](INSTALL.md) for detailed installation instructions."

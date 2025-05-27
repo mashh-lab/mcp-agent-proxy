@@ -1,6 +1,6 @@
 {
   "name": "mcp-agent-proxy",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "type": "module",
   "description": "MCP proxy server that allows MCP clients to communicate with agent servers (Mastra, LangGraph, etc.)",
   "main": "dist/mcp-server.js",
