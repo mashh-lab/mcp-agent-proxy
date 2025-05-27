@@ -11,12 +11,19 @@ export default tseslint.config(
     languageOptions: {
       parser: tseslint.parser,
       parserOptions: {
-        project: './tsconfig.json',
+        project: './tsconfig.eslint.json',
       },
     },
     rules: {
       // You can add custom rules here if needed
       // e.g. '@typescript-eslint/no-unused-vars': 'warn'
+    },
+  },
+  {
+    // More lenient rules for test files
+    files: ['**/*.test.ts', '**/*.spec.ts'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off', // Allow any in tests for mocking
     },
   },
 )

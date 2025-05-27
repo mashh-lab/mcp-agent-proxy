@@ -7,10 +7,12 @@ on:
     branches: [main]
 
 jobs:
-  # Fast build validation (recommended for most CI scenarios)
-  build-validation:
+  # Primary validation job - runs on every PR/push
+  validate:
     runs-on: ubuntu-latest
-    name: Build Validation
+    name: Code Validation
+    outputs:
+      should-run-full-tests: ${{ steps.check-labels.outputs.full-test }}
 
     steps:
       - name: Checkout code
@@ -33,16 +35,30 @@ jobs:
       - name: Check formatting
         run: pnpm format:check
 
-      - name: Build and validate
-        run: pnpm ci:test
-        env:
-          MCP_SKIP_SERVER_TESTS: 'true'
+      - name: Run unit tests
+        run: pnpm test
 
-  # Full testing with server (optional, slower)
-  full-testing:
+      - name: Run tests with coverage
+        run: pnpm test:coverage
+
+      - name: Build project
+        run: pnpm build
+
+      - name: Check if full tests should run
+        id: check-labels
+        run: |
+          if [[ "${{ github.event_name }}" == "push" ]] || [[ "${{ contains(github.event.pull_request.labels.*.name, 'full-test') }}" == "true" ]]; then
+            echo "full-test=true" >> $GITHUB_OUTPUT
+          else
+            echo "full-test=false" >> $GITHUB_OUTPUT
+          fi
+
+  # Full server testing - only when needed
+  server-tests:
     runs-on: ubuntu-latest
-    name: Full Server Testing
-    if: github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'full-test')
+    name: Server Integration Tests
+    needs: validate
+    if: needs.validate.outputs.should-run-full-tests == 'true'
 
     steps:
       - name: Checkout code
@@ -72,15 +88,16 @@ jobs:
         env:
           MASTRA_SERVERS: 'http://localhost:4111'
 
-  # Test on multiple platforms
+  # Cross-platform compatibility - only build validation
   cross-platform:
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [macos-latest] # Only test macOS since Ubuntu is covered in validate job
         node-version: ['22']
 
     runs-on: ${{ matrix.os }}
-    name: Test on ${{ matrix.os }} (Node ${{ matrix.node-version }})
+    name: Cross-platform (${{ matrix.os }})
+    needs: validate
 
     steps:
       - name: Checkout code
@@ -97,5 +114,5 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build and validate (fast)
+      - name: Build and validate
         run: pnpm build:validate

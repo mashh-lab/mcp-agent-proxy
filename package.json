@@ -48,8 +48,12 @@
     "status:oneshot": "pnpm build && node src/oneshot-check.js status",
     "check:oneshot": "pnpm build && node src/oneshot-check.js check",
     "build:validate": "pnpm build && node src/oneshot-check.js build-only",
-    "ci:test": "pnpm build:validate",
-    "prepublishOnly": "pnpm build && pnpm lint && pnpm format:check",
+    "test": "vitest run",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest --watch",
+    "ci:test": "pnpm build:validate && pnpm test",
+    "prepublishOnly": "pnpm build && pnpm lint && pnpm format:check && pnpm test",
     "prepack": "pnpm build",
     "version": "pnpm build"
   },
@@ -68,10 +72,12 @@
     "@mastra/core": "^0.10.0",
     "@mastra/mcp": "^0.10.0",
     "dotenv": "^16.3.1",
+    "vitest": "^3.1.4",
     "zod": "^3.25.21"
   },
   "devDependencies": {
     "@types/node": "^22.15.21",
+    "@vitest/coverage-v8": "3.1.4",
     "depcheck": "^1.4.7",
     "eslint": "^9.27.0",
     "eslint-config-prettier": "^10.1.5",
