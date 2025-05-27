@@ -2,10 +2,11 @@
 
 [![npm version](https://badge.fury.io/js/@mashh%2Fmcp-agent-proxy.svg)](https://badge.fury.io/js/@mashh%2Fmcp-agent-proxy)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![CI](https://github.com/mashh-lab/mcp-agent-proxy/actions/workflows/ci.yml/badge.svg)](https://github.com/mashh-lab/mcp-agent-proxy/actions)
 
-> **Connect any MCP client to any Mastra agent server - creating an "Internet of Agents" through simple, composable primitives.**
+**Connect any MCP client to any Mastra agent server - creating an "Internet of Agents" through simple, composable primitives.**
 
-Built for/with [Mastra](https://github.com/mastra-ai/mastra) ❤️
+> Built for/with [Mastra](https://github.com/mastra-ai/mastra) ❤️
 
 ## Table of Contents
 
@@ -172,54 +173,37 @@ For complete configuration options, see [MCP_CONFIGURATION.md](MCP_CONFIGURATION
 
 ### Basic Agent Call
 
-```typescript
-// Call any agent across any connected server
-await callAgent({
-  targetAgentId: 'weatherAgent',
-  interactionType: 'generate',
-  messages: [{ role: 'user', content: "What's the weather in NYC?" }],
-})
 ```
+User: "Can you call the weatherAgent to get the current weather in New York City?"
+```
+
+The proxy automatically finds the `weatherAgent` across all connected servers and executes it.
 
 ### Smart Conflict Resolution
 
-```typescript
-// Multiple servers have 'weatherAgent' - use qualified name
-await callAgent({
-  targetAgentId: 'server1:weatherAgent', // Explicit server targeting
-  interactionType: 'generate',
-  messages: [{ role: 'user', content: 'Get weather data' }],
-})
 ```
+User: "I need to use the weatherAgent from server1 specifically, not the default one."
+```
+
+The proxy handles conflicts by using qualified names like `server1:weatherAgent` when multiple servers have the same agent.
 
 ### Dynamic Network Expansion
 
-```typescript
-// Agent discovers and connects to new networks autonomously
-await connectServer({
-  serverUrl: 'https://ml-specialists.vercel.app',
-  serverName: 'ml-network',
-})
-
-// Now access agents on the new network
-await callAgent({
-  targetAgentId: 'ml-network:modelTrainer',
-  interactionType: 'stream',
-  messages: [{ role: 'user', content: 'Train a classification model' }],
-})
 ```
+User: "Connect to the ML specialists at https://ml-specialists.vercel.app and then use their modelTrainer agent to train a classification model."
+```
+
+The proxy can discover and connect to new agent networks at runtime, expanding available capabilities.
 
 ### Agent Discovery
 
-```typescript
-// Discover all available agents across networks
-const agents = await listAgents()
-
-// Get detailed capabilities for intelligent routing
-const agentInfo = await getAgentDescription({
-  agentId: 'dataAnalyst',
-})
 ```
+User: "What agents are available across all my connected servers?"
+
+User: "Tell me more about the dataAnalyst agent - what can it do?"
+```
+
+Users can explore the agent ecosystem and get detailed capability information for intelligent routing.
 
 ## API Reference
 
