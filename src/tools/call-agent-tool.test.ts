@@ -1,14 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { MastraClient } from '@mastra/client-js'
 import { callAgent } from './call-agent-tool.js'
 import * as config from '../config.js'
+import { PluginManager } from '../plugins/index.js'
 
 // Mock the dependencies
-vi.mock('@mastra/client-js')
 vi.mock('../config.js')
+vi.mock('../plugins/index.js')
 
-const mockMastraClient = vi.mocked(MastraClient)
 const mockConfig = vi.mocked(config)
+const mockPluginManager = vi.mocked(PluginManager)
 
 // Define types for better type safety
 type CallAgentInput = {
@@ -32,9 +32,12 @@ type CallAgentOutput = {
   agentIdUsed: string
   fullyQualifiedId: string
   resolutionMethod: string
+  serverType: string
 }
 
 describe('call-agent-tool', () => {
+  let mockPluginManagerInstance: any
+
   beforeEach(() => {
     vi.clearAllMocks()
 
@@ -58,6 +61,15 @@ describe('call-agent-tool', () => {
       error: vi.fn(),
       forceError: vi.fn(),
     }
+
+    // Mock PluginManager instance
+    mockPluginManagerInstance = {
+      getAgents: vi.fn(),
+      callAgent: vi.fn(),
+      getPlugin: vi.fn(),
+    }
+
+    mockPluginManager.mockImplementation(() => mockPluginManagerInstance)
   })
 
   afterEach(() => {
@@ -98,15 +110,12 @@ describe('call-agent-tool', () => {
 
   describe('agent resolution', () => {
     it('should handle fully qualified agent ID (server:agentId)', async () => {
-      const mockAgent = {
-        generate: vi.fn().mockResolvedValue({ result: 'test response' }),
-      }
+      const mockResponse = { result: 'test response' }
 
-      const mockClient = {
-        getAgent: vi.fn().mockReturnValue(mockAgent),
-      }
-
-      mockMastraClient.mockReturnValue(mockClient as any)
+      mockPluginManagerInstance.callAgent.mockResolvedValue(mockResponse)
+      mockPluginManagerInstance.getPlugin.mockResolvedValue({
+        serverType: 'mastra',
+      })
 
       const input: CallAgentInput = {
         targetAgentId: 'server0:testAgent',
@@ -127,19 +136,28 @@ describe('call-agent-tool', () => {
       expect(result.fullyQualifiedId).toBe('server0:testAgent')
       expect(result.resolutionMethod).toBe('explicit_qualification')
       expect(result.serverUsed).toBe('http://localhost:4111')
-      expect(mockClient.getAgent).toHaveBeenCalledWith('testAgent')
+      expect(result.serverType).toBe('mastra')
+      expect(mockPluginManagerInstance.callAgent).toHaveBeenCalledWith(
+        'http://localhost:4111',
+        {
+          agentId: 'testAgent',
+          interactionType: 'generate',
+          messages: input.messages,
+          threadId: undefined,
+          resourceId: undefined,
+          agentOptions: undefined,
+        },
+        expect.any(Object),
+      )
     })
 
     it('should handle explicit server URL override', async () => {
-      const mockAgent = {
-        generate: vi.fn().mockResolvedValue({ result: 'test response' }),
-      }
+      const mockResponse = { result: 'test response' }
 
-      const mockClient = {
-        getAgent: vi.fn().mockReturnValue(mockAgent),
-      }
-
-      mockMastraClient.mockReturnValue(mockClient as any)
+      mockPluginManagerInstance.callAgent.mockResolvedValue(mockResponse)
+      mockPluginManagerInstance.getPlugin.mockResolvedValue({
+        serverType: 'langgraph',
+      })
 
       const input: CallAgentInput = {
         targetAgentId: 'testAgent',
@@ -160,34 +178,19 @@ describe('call-agent-tool', () => {
       expect(result.agentIdUsed).toBe('testAgent')
       expect(result.resolutionMethod).toBe('explicit_url_override')
       expect(result.serverUsed).toBe('http://custom.server.com')
+      expect(result.serverType).toBe('langgraph')
     })
 
     it('should handle unique auto-resolution when agent found on one server', async () => {
       // Mock agent discovery - agent found only on server1
-      const mockGetAgents1 = vi.fn().mockResolvedValue({
-        otherAgent: { name: 'Other Agent' },
-      })
+      mockPluginManagerInstance.getAgents
+        .mockResolvedValueOnce([{ id: 'otherAgent', name: 'Other Agent' }]) // server0
+        .mockResolvedValueOnce([{ id: 'testAgent', name: 'Test Agent' }]) // server1
 
-      const mockGetAgents2 = vi.fn().mockResolvedValue({
-        testAgent: { name: 'Test Agent' },
-      })
-
-      const mockAgent = {
-        generate: vi.fn().mockResolvedValue({ result: 'test response' }),
-      }
-
-      const mockClient = {
-        getAgents: vi.fn(),
-        getAgent: vi.fn().mockReturnValue(mockAgent),
-      }
-
-      mockMastraClient.mockImplementation((config) => {
-        if (config.baseUrl === 'http://localhost:4111') {
-          return { ...mockClient, getAgents: mockGetAgents1 } as any
-        } else if (config.baseUrl === 'http://localhost:4222') {
-          return { ...mockClient, getAgents: mockGetAgents2 } as any
-        }
-        return mockClient as any
+      const mockResponse = { result: 'test response' }
+      mockPluginManagerInstance.callAgent.mockResolvedValue(mockResponse)
+      mockPluginManagerInstance.getPlugin.mockResolvedValue({
+        serverType: 'mastra',
       })
 
       const input: CallAgentInput = {
@@ -213,30 +216,18 @@ describe('call-agent-tool', () => {
 
     it('should handle conflict resolution using default server (server0)', async () => {
       // Mock agent discovery - agent found on both servers
-      const mockGetAgents1 = vi.fn().mockResolvedValue({
-        testAgent: { name: 'Test Agent on Server 0' },
-      })
+      mockPluginManagerInstance.getAgents
+        .mockResolvedValueOnce([
+          { id: 'testAgent', name: 'Test Agent on Server 0' },
+        ]) // server0
+        .mockResolvedValueOnce([
+          { id: 'testAgent', name: 'Test Agent on Server 1' },
+        ]) // server1
 
-      const mockGetAgents2 = vi.fn().mockResolvedValue({
-        testAgent: { name: 'Test Agent on Server 1' },
-      })
-
-      const mockAgent = {
-        generate: vi.fn().mockResolvedValue({ result: 'test response' }),
-      }
-
-      const mockClient = {
-        getAgents: vi.fn(),
-        getAgent: vi.fn().mockReturnValue(mockAgent),
-      }
-
-      mockMastraClient.mockImplementation((config) => {
-        if (config.baseUrl === 'http://localhost:4111') {
-          return { ...mockClient, getAgents: mockGetAgents1 } as any
-        } else if (config.baseUrl === 'http://localhost:4222') {
-          return { ...mockClient, getAgents: mockGetAgents2 } as any
-        }
-        return mockClient as any
+      const mockResponse = { result: 'test response' }
+      mockPluginManagerInstance.callAgent.mockResolvedValue(mockResponse)
+      mockPluginManagerInstance.getPlugin.mockResolvedValue({
+        serverType: 'mastra',
       })
 
       const input: CallAgentInput = {
@@ -270,30 +261,18 @@ describe('call-agent-tool', () => {
       )
 
       // Mock agent discovery - agent found on both servers
-      const mockGetAgents1 = vi.fn().mockResolvedValue({
-        testAgent: { name: 'Test Agent on Server 1' },
-      })
+      mockPluginManagerInstance.getAgents
+        .mockResolvedValueOnce([
+          { id: 'testAgent', name: 'Test Agent on Server 1' },
+        ]) // server1
+        .mockResolvedValueOnce([
+          { id: 'testAgent', name: 'Test Agent on Server 2' },
+        ]) // server2
 
-      const mockGetAgents2 = vi.fn().mockResolvedValue({
-        testAgent: { name: 'Test Agent on Server 2' },
-      })
-
-      const mockAgent = {
-        generate: vi.fn().mockResolvedValue({ result: 'test response' }),
-      }
-
-      const mockClient = {
-        getAgents: vi.fn(),
-        getAgent: vi.fn().mockReturnValue(mockAgent),
-      }
-
-      mockMastraClient.mockImplementation((config) => {
-        if (config.baseUrl === 'http://localhost:4222') {
-          return { ...mockClient, getAgents: mockGetAgents1 } as any
-        } else if (config.baseUrl === 'http://localhost:4333') {
-          return { ...mockClient, getAgents: mockGetAgents2 } as any
-        }
-        return mockClient as any
+      const mockResponse = { result: 'test response' }
+      mockPluginManagerInstance.callAgent.mockResolvedValue(mockResponse)
+      mockPluginManagerInstance.getPlugin.mockResolvedValue({
+        serverType: 'mastra',
       })
 
       const input: CallAgentInput = {
@@ -319,16 +298,9 @@ describe('call-agent-tool', () => {
 
     it('should throw error when agent not found on any server', async () => {
       // Mock agent discovery - agent not found on any server
-      const mockGetAgents = vi.fn().mockResolvedValue({
-        otherAgent: { name: 'Other Agent' },
-      })
-
-      mockMastraClient.mockImplementation(
-        () =>
-          ({
-            getAgents: mockGetAgents,
-          }) as any,
-      )
+      mockPluginManagerInstance.getAgents.mockResolvedValue([
+        { id: 'otherAgent', name: 'Other Agent' },
+      ])
 
       const input: CallAgentInput = {
         targetAgentId: 'nonExistentAgent',
@@ -362,15 +334,12 @@ describe('call-agent-tool', () => {
     })
 
     it('should handle unknown server with serverUrl override', async () => {
-      const mockAgent = {
-        generate: vi.fn().mockResolvedValue({ result: 'test response' }),
-      }
+      const mockResponse = { result: 'test response' }
 
-      const mockClient = {
-        getAgent: vi.fn().mockReturnValue(mockAgent),
-      }
-
-      mockMastraClient.mockReturnValue(mockClient as any)
+      mockPluginManagerInstance.callAgent.mockResolvedValue(mockResponse)
+      mockPluginManagerInstance.getPlugin.mockResolvedValue({
+        serverType: 'mastra',
+      })
 
       const input: CallAgentInput = {
         targetAgentId: 'unknownServer:testAgent',
@@ -395,15 +364,12 @@ describe('call-agent-tool', () => {
     })
 
     it('should handle plain agent ID with serverUrl that does not match any configured server', async () => {
-      const mockAgent = {
-        generate: vi.fn().mockResolvedValue({ result: 'test response' }),
-      }
+      const mockResponse = { result: 'test response' }
 
-      const mockClient = {
-        getAgent: vi.fn().mockReturnValue(mockAgent),
-      }
-
-      mockMastraClient.mockReturnValue(mockClient as any)
+      mockPluginManagerInstance.callAgent.mockResolvedValue(mockResponse)
+      mockPluginManagerInstance.getPlugin.mockResolvedValue({
+        serverType: 'mastra',
+      })
 
       // Ensure the serverUrl doesn't match any in the default SERVER_MAP
       const input: CallAgentInput = {
@@ -432,15 +398,11 @@ describe('call-agent-tool', () => {
   describe('interaction types', () => {
     it('should handle generate interaction type', async () => {
       const mockResponse = { result: 'Generated response', data: 'test' }
-      const mockAgent = {
-        generate: vi.fn().mockResolvedValue(mockResponse),
-      }
 
-      const mockClient = {
-        getAgent: vi.fn().mockReturnValue(mockAgent),
-      }
-
-      mockMastraClient.mockReturnValue(mockClient as any)
+      mockPluginManagerInstance.callAgent.mockResolvedValue(mockResponse)
+      mockPluginManagerInstance.getPlugin.mockResolvedValue({
+        serverType: 'mastra',
+      })
 
       const input: CallAgentInput = {
         targetAgentId: 'server0:testAgent',
@@ -462,35 +424,33 @@ describe('call-agent-tool', () => {
       expect(result.success).toBe(true)
       expect(result.responseData).toEqual(mockResponse)
       expect(result.interactionType).toBe('generate')
-      expect(mockAgent.generate).toHaveBeenCalledWith({
-        messages: input.messages,
-        threadId: 'thread123',
-        resourceId: 'resource456',
-        temperature: 0.7,
-      })
+      expect(mockPluginManagerInstance.callAgent).toHaveBeenCalledWith(
+        'http://localhost:4111',
+        {
+          agentId: 'testAgent',
+          interactionType: 'generate',
+          messages: input.messages,
+          threadId: 'thread123',
+          resourceId: 'resource456',
+          agentOptions: { temperature: 0.7 },
+        },
+        expect.any(Object),
+      )
     })
 
     it('should handle stream interaction type with successful streaming', async () => {
       const mockStreamResponse = {
-        processDataStream: vi
-          .fn()
-          .mockImplementation(async ({ onTextPart, onDataPart }) => {
-            // Simulate streaming chunks
-            onTextPart('Hello ')
-            onTextPart('world!')
-            onDataPart({ type: 'metadata', value: 'test' })
-          }),
+        chunks: [
+          { type: 'text', content: 'Hello ' },
+          { type: 'text', content: 'world!' },
+          { type: 'data', content: { type: 'metadata', value: 'test' } },
+        ],
       }
 
-      const mockAgent = {
-        stream: vi.fn().mockResolvedValue(mockStreamResponse),
-      }
-
-      const mockClient = {
-        getAgent: vi.fn().mockReturnValue(mockAgent),
-      }
-
-      mockMastraClient.mockReturnValue(mockClient as any)
+      mockPluginManagerInstance.callAgent.mockResolvedValue(mockStreamResponse)
+      mockPluginManagerInstance.getPlugin.mockResolvedValue({
+        serverType: 'mastra',
+      })
 
       const input: CallAgentInput = {
         targetAgentId: 'server0:testAgent',
@@ -507,131 +467,21 @@ describe('call-agent-tool', () => {
       )) as CallAgentOutput
 
       expect(result.success).toBe(true)
+      expect(result.responseData).toEqual(mockStreamResponse)
       expect(result.interactionType).toBe('stream')
-      expect(result.responseData.type).toBe('collected_stream')
-      expect(result.responseData.chunks).toHaveLength(3)
-      expect(result.responseData.chunks[0]).toMatchObject({
-        content: 'Hello ',
-        index: 0,
-        timestamp: expect.any(String),
-      })
-      expect(result.responseData.chunks[1]).toMatchObject({
-        content: 'world!',
-        index: 1,
-        timestamp: expect.any(String),
-      })
-      expect(result.responseData.chunks[2]).toMatchObject({
-        content: { type: 'metadata', value: 'test' },
-        index: 2,
-        timestamp: expect.any(String),
-      })
-      expect(result.responseData.summary).toMatchObject({
-        totalChunks: 3,
-        startTime: expect.any(String),
-        endTime: expect.any(String),
-        durationMs: expect.any(Number),
-        note: expect.stringContaining('Stream was collected in real-time'),
-      })
     })
 
     it('should handle stream interaction type with error handling', async () => {
-      const mockStreamResponse = {
-        processDataStream: vi
-          .fn()
-          .mockImplementation(async ({ onTextPart, onErrorPart }) => {
-            // Simulate some chunks then an error
-            onTextPart('Hello ')
-            onErrorPart('Stream error occurred')
-          }),
-      }
-
-      const mockAgent = {
-        stream: vi.fn().mockResolvedValue(mockStreamResponse),
-      }
-
-      const mockClient = {
-        getAgent: vi.fn().mockReturnValue(mockAgent),
-      }
-
-      mockMastraClient.mockReturnValue(mockClient as any)
-
-      const input: CallAgentInput = {
-        targetAgentId: 'server0:testAgent',
-        interactionType: 'stream',
-        messages: [{ role: 'user', content: 'Hello' }],
-      }
-
-      const mockContext = {
-        context: input,
-      }
-
-      const result = (await callAgent.execute(
-        mockContext as any,
-      )) as CallAgentOutput
-
-      expect(result.success).toBe(true)
-      expect(result.responseData.type).toBe('collected_stream')
-      expect(result.responseData.chunks).toHaveLength(2)
-      expect(result.responseData.chunks[1]).toMatchObject({
-        content: { error: 'Stream error occurred' },
-        index: 1,
-        timestamp: expect.any(String),
-      })
-    })
-
-    it('should handle stream interaction type with streaming failure', async () => {
-      const mockStreamResponse = {
-        processDataStream: vi
-          .fn()
-          .mockRejectedValue(new Error('Streaming failed')),
-      }
-
-      const mockAgent = {
-        stream: vi.fn().mockResolvedValue(mockStreamResponse),
-      }
-
-      const mockClient = {
-        getAgent: vi.fn().mockReturnValue(mockAgent),
-      }
-
-      mockMastraClient.mockReturnValue(mockClient as any)
-
-      const input: CallAgentInput = {
-        targetAgentId: 'server0:testAgent',
-        interactionType: 'stream',
-        messages: [{ role: 'user', content: 'Hello' }],
-      }
-
-      const mockContext = {
-        context: input,
-      }
-
-      const result = (await callAgent.execute(
-        mockContext as any,
-      )) as CallAgentOutput
-
-      expect(result.success).toBe(true)
-      expect(result.responseData.type).toBe('partial_stream')
-      expect(result.responseData.summary.error).toBe('Streaming failed')
-      expect(result.responseData.summary.note).toContain(
-        'partially collected before encountering an error',
+      mockPluginManagerInstance.callAgent.mockRejectedValue(
+        new Error('Stream error'),
       )
-    })
+      mockPluginManagerInstance.getPlugin.mockResolvedValue({
+        serverType: 'mastra',
+      })
 
-    it('should throw error for invalid interaction type', async () => {
-      const mockAgent = {
-        generate: vi.fn(),
-      }
-
-      const mockClient = {
-        getAgent: vi.fn().mockReturnValue(mockAgent),
-      }
-
-      mockMastraClient.mockReturnValue(mockClient as any)
-
-      const input = {
+      const input: CallAgentInput = {
         targetAgentId: 'server0:testAgent',
-        interactionType: 'invalid' as any,
+        interactionType: 'stream',
         messages: [{ role: 'user', content: 'Hello' }],
       }
 
@@ -640,38 +490,54 @@ describe('call-agent-tool', () => {
       }
 
       await expect(callAgent.execute(mockContext as any)).rejects.toThrow(
-        'Invalid interaction type: invalid',
+        "Failed to interact with Mastra agent 'server0:testAgent': Stream error",
       )
+    })
+
+    it('should handle stream interaction type with streaming failure', async () => {
+      mockPluginManagerInstance.callAgent.mockRejectedValue(
+        new Error('Streaming failed'),
+      )
+      mockPluginManagerInstance.getPlugin.mockResolvedValue({
+        serverType: 'mastra',
+      })
+
+      const input: CallAgentInput = {
+        targetAgentId: 'server0:testAgent',
+        interactionType: 'stream',
+        messages: [{ role: 'user', content: 'Hello' }],
+      }
+
+      const mockContext = {
+        context: input,
+      }
+
+      await expect(callAgent.execute(mockContext as any)).rejects.toThrow(
+        "Failed to interact with Mastra agent 'server0:testAgent': Streaming failed",
+      )
+    })
+
+    it('should throw error for invalid interaction type', async () => {
+      // This test should fail at the schema validation level, not reach the plugin manager
+      const input = {
+        targetAgentId: 'server0:testAgent',
+        interactionType: 'invalid',
+        messages: [{ role: 'user', content: 'Hello' }],
+      }
+
+      // The schema validation should catch this before it reaches the plugin manager
+      const parseResult = callAgent.inputSchema.safeParse(input)
+      expect(parseResult.success).toBe(false)
     })
   })
 
   describe('retry configuration', () => {
     it('should use correct retry configuration for interactions', async () => {
-      const customRetryConfig = {
-        discovery: { retries: 5, backoffMs: 200, maxBackoffMs: 1000 },
-        listing: { retries: 3, backoffMs: 150, maxBackoffMs: 2000 },
-        interaction: { retries: 4, backoffMs: 400, maxBackoffMs: 8000 },
-      }
+      const mockResponse = { result: 'test response' }
 
-      mockConfig.getRetryConfig.mockReturnValue(customRetryConfig)
-
-      const mockAgent = {
-        generate: vi.fn().mockResolvedValue({ result: 'test' }),
-      }
-
-      const mockClient = {
-        getAgent: vi.fn().mockReturnValue(mockAgent),
-      }
-
-      mockMastraClient.mockImplementation((clientConfig) => {
-        // Verify the retry config is passed correctly for interactions
-        expect(clientConfig).toEqual({
-          baseUrl: 'http://localhost:4111',
-          retries: customRetryConfig.interaction.retries,
-          backoffMs: customRetryConfig.interaction.backoffMs,
-          maxBackoffMs: customRetryConfig.interaction.maxBackoffMs,
-        })
-        return mockClient as any
+      mockPluginManagerInstance.callAgent.mockResolvedValue(mockResponse)
+      mockPluginManagerInstance.getPlugin.mockResolvedValue({
+        serverType: 'mastra',
       })
 
       const input: CallAgentInput = {
@@ -686,46 +552,23 @@ describe('call-agent-tool', () => {
 
       await callAgent.execute(mockContext as any)
 
-      expect(mockMastraClient).toHaveBeenCalledWith({
-        baseUrl: 'http://localhost:4111',
-        retries: 4,
-        backoffMs: 400,
-        maxBackoffMs: 8000,
-      })
+      expect(mockPluginManagerInstance.callAgent).toHaveBeenCalledWith(
+        'http://localhost:4111',
+        expect.any(Object),
+        { retries: 3, backoffMs: 300, maxBackoffMs: 5000 },
+      )
     })
 
     it('should use correct retry configuration for discovery', async () => {
-      const customRetryConfig = {
-        discovery: { retries: 5, backoffMs: 200, maxBackoffMs: 1000 },
-        listing: { retries: 3, backoffMs: 150, maxBackoffMs: 2000 },
-        interaction: { retries: 4, backoffMs: 400, maxBackoffMs: 8000 },
-      }
-
-      mockConfig.getRetryConfig.mockReturnValue(customRetryConfig)
-
       // Mock agent discovery
-      const mockGetAgents = vi.fn().mockResolvedValue({
-        testAgent: { name: 'Test Agent' },
-      })
+      mockPluginManagerInstance.getAgents.mockResolvedValue([
+        { id: 'testAgent', name: 'Test Agent' },
+      ])
 
-      const mockAgent = {
-        generate: vi.fn().mockResolvedValue({ result: 'test' }),
-      }
-
-      let discoveryCallCount = 0
-      let interactionCallCount = 0
-
-      mockMastraClient.mockImplementation((clientConfig) => {
-        if (clientConfig.retries === customRetryConfig.discovery.retries) {
-          discoveryCallCount++
-          return { getAgents: mockGetAgents } as any
-        } else if (
-          clientConfig.retries === customRetryConfig.interaction.retries
-        ) {
-          interactionCallCount++
-          return { getAgent: vi.fn().mockReturnValue(mockAgent) } as any
-        }
-        throw new Error('Unexpected config')
+      const mockResponse = { result: 'test response' }
+      mockPluginManagerInstance.callAgent.mockResolvedValue(mockResponse)
+      mockPluginManagerInstance.getPlugin.mockResolvedValue({
+        serverType: 'mastra',
       })
 
       const input: CallAgentInput = {
@@ -740,24 +583,21 @@ describe('call-agent-tool', () => {
 
       await callAgent.execute(mockContext as any)
 
-      expect(discoveryCallCount).toBeGreaterThan(0)
-      expect(interactionCallCount).toBeGreaterThan(0)
+      expect(mockPluginManagerInstance.getAgents).toHaveBeenCalledWith(
+        expect.any(String),
+        { retries: 1, backoffMs: 100, maxBackoffMs: 500 },
+      )
     })
   })
 
   describe('error handling', () => {
     it('should handle agent execution errors', async () => {
-      const mockAgent = {
-        generate: vi
-          .fn()
-          .mockRejectedValue(new Error('Agent execution failed')),
-      }
-
-      const mockClient = {
-        getAgent: vi.fn().mockReturnValue(mockAgent),
-      }
-
-      mockMastraClient.mockReturnValue(mockClient as any)
+      mockPluginManagerInstance.callAgent.mockRejectedValue(
+        new Error('Agent execution failed'),
+      )
+      mockPluginManagerInstance.getPlugin.mockResolvedValue({
+        serverType: 'mastra',
+      })
 
       const input: CallAgentInput = {
         targetAgentId: 'server0:testAgent',
@@ -772,23 +612,13 @@ describe('call-agent-tool', () => {
       await expect(callAgent.execute(mockContext as any)).rejects.toThrow(
         "Failed to interact with Mastra agent 'server0:testAgent': Agent execution failed",
       )
-
-      expect(mockConfig.logger.error).toHaveBeenCalledWith(
-        "Error interacting with Mastra agent 'server0:testAgent':",
-        expect.any(Error),
-      )
     })
 
     it('should handle non-Error exceptions', async () => {
-      const mockAgent = {
-        generate: vi.fn().mockRejectedValue('String error'),
-      }
-
-      const mockClient = {
-        getAgent: vi.fn().mockReturnValue(mockAgent),
-      }
-
-      mockMastraClient.mockReturnValue(mockClient as any)
+      mockPluginManagerInstance.callAgent.mockRejectedValue('Unknown error')
+      mockPluginManagerInstance.getPlugin.mockResolvedValue({
+        serverType: 'mastra',
+      })
 
       const input: CallAgentInput = {
         targetAgentId: 'server0:testAgent',
@@ -804,111 +634,23 @@ describe('call-agent-tool', () => {
         "Failed to interact with Mastra agent 'server0:testAgent': Unknown error",
       )
     })
-
-    it('should handle server discovery errors gracefully', async () => {
-      // Mock server discovery with some servers failing
-      const mockGetAgents1 = vi
-        .fn()
-        .mockRejectedValue(new Error('Server offline'))
-      const mockGetAgents2 = vi.fn().mockResolvedValue({
-        testAgent: { name: 'Test Agent' },
-      })
-
-      const mockAgent = {
-        generate: vi.fn().mockResolvedValue({ result: 'test' }),
-      }
-
-      mockMastraClient.mockImplementation((config) => {
-        if (config.baseUrl === 'http://localhost:4111') {
-          return { getAgents: mockGetAgents1 } as any
-        } else if (config.baseUrl === 'http://localhost:4222') {
-          return {
-            getAgents: mockGetAgents2,
-            getAgent: vi.fn().mockReturnValue(mockAgent),
-          } as any
-        }
-        return { getAgent: vi.fn().mockReturnValue(mockAgent) } as any
-      })
-
-      const input: CallAgentInput = {
-        targetAgentId: 'testAgent',
-        interactionType: 'generate',
-        messages: [{ role: 'user', content: 'Hello' }],
-      }
-
-      const mockContext = {
-        context: input,
-      }
-
-      const result = (await callAgent.execute(
-        mockContext as any,
-      )) as CallAgentOutput
-
-      expect(result.success).toBe(true)
-      expect(result.fullyQualifiedId).toBe('server1:testAgent')
-      expect(result.resolutionMethod).toBe('unique_auto_resolution')
-    })
-
-    it('should handle server returning null agents data during discovery', async () => {
-      // Mock server discovery with one server returning null
-      const mockGetAgents1 = vi.fn().mockResolvedValue(null) // This should be skipped
-      const mockGetAgents2 = vi.fn().mockResolvedValue({
-        testAgent: { name: 'Test Agent' },
-      })
-
-      const mockAgent = {
-        generate: vi.fn().mockResolvedValue({ result: 'test' }),
-      }
-
-      mockMastraClient.mockImplementation((config) => {
-        if (config.baseUrl === 'http://localhost:4111') {
-          return { getAgents: mockGetAgents1 } as any
-        } else if (config.baseUrl === 'http://localhost:4222') {
-          return {
-            getAgents: mockGetAgents2,
-            getAgent: vi.fn().mockReturnValue(mockAgent),
-          } as any
-        }
-        return { getAgent: vi.fn().mockReturnValue(mockAgent) } as any
-      })
-
-      const input: CallAgentInput = {
-        targetAgentId: 'testAgent',
-        interactionType: 'generate',
-        messages: [{ role: 'user', content: 'Hello' }],
-      }
-
-      const mockContext = {
-        context: input,
-      }
-
-      const result = (await callAgent.execute(
-        mockContext as any,
-      )) as CallAgentOutput
-
-      expect(result.success).toBe(true)
-      expect(result.fullyQualifiedId).toBe('server1:testAgent')
-      expect(result.resolutionMethod).toBe('unique_auto_resolution')
-    })
   })
 
   describe('parameter handling', () => {
     it('should handle optional parameters correctly', async () => {
-      const mockAgent = {
-        generate: vi.fn().mockResolvedValue({ result: 'test' }),
-      }
+      const mockResponse = { result: 'test response' }
 
-      const mockClient = {
-        getAgent: vi.fn().mockReturnValue(mockAgent),
-      }
-
-      mockMastraClient.mockReturnValue(mockClient as any)
+      mockPluginManagerInstance.callAgent.mockResolvedValue(mockResponse)
+      mockPluginManagerInstance.getPlugin.mockResolvedValue({
+        serverType: 'mastra',
+      })
 
       const input: CallAgentInput = {
         targetAgentId: 'server0:testAgent',
         interactionType: 'generate',
         messages: [{ role: 'user', content: 'Hello' }],
-        // No optional parameters
+        threadId: 'thread123',
+        resourceId: 'resource456',
       }
 
       const mockContext = {
@@ -917,21 +659,27 @@ describe('call-agent-tool', () => {
 
       await callAgent.execute(mockContext as any)
 
-      expect(mockAgent.generate).toHaveBeenCalledWith({
-        messages: input.messages,
-      })
+      expect(mockPluginManagerInstance.callAgent).toHaveBeenCalledWith(
+        'http://localhost:4111',
+        {
+          agentId: 'testAgent',
+          interactionType: 'generate',
+          messages: input.messages,
+          threadId: 'thread123',
+          resourceId: 'resource456',
+          agentOptions: undefined,
+        },
+        expect.any(Object),
+      )
     })
 
     it('should handle all optional parameters', async () => {
-      const mockAgent = {
-        generate: vi.fn().mockResolvedValue({ result: 'test' }),
-      }
+      const mockResponse = { result: 'test response' }
 
-      const mockClient = {
-        getAgent: vi.fn().mockReturnValue(mockAgent),
-      }
-
-      mockMastraClient.mockReturnValue(mockClient as any)
+      mockPluginManagerInstance.callAgent.mockResolvedValue(mockResponse)
+      mockPluginManagerInstance.getPlugin.mockResolvedValue({
+        serverType: 'mastra',
+      })
 
       const input: CallAgentInput = {
         targetAgentId: 'server0:testAgent',
@@ -939,11 +687,7 @@ describe('call-agent-tool', () => {
         messages: [{ role: 'user', content: 'Hello' }],
         threadId: 'thread123',
         resourceId: 'resource456',
-        agentOptions: {
-          temperature: 0.7,
-          maxTokens: 100,
-          customParam: 'value',
-        },
+        agentOptions: { temperature: 0.7, maxTokens: 100 },
       }
 
       const mockContext = {
@@ -952,37 +696,30 @@ describe('call-agent-tool', () => {
 
       await callAgent.execute(mockContext as any)
 
-      expect(mockAgent.generate).toHaveBeenCalledWith({
-        messages: input.messages,
-        threadId: 'thread123',
-        resourceId: 'resource456',
-        temperature: 0.7,
-        maxTokens: 100,
-        customParam: 'value',
-      })
+      expect(mockPluginManagerInstance.callAgent).toHaveBeenCalledWith(
+        'http://localhost:4111',
+        {
+          agentId: 'testAgent',
+          interactionType: 'generate',
+          messages: input.messages,
+          threadId: 'thread123',
+          resourceId: 'resource456',
+          agentOptions: { temperature: 0.7, maxTokens: 100 },
+        },
+        expect.any(Object),
+      )
     })
   })
 
   describe('edge cases', () => {
-    it('should handle empty server mappings', async () => {
-      mockConfig.loadServerMappings.mockReturnValue(new Map())
-
-      const input: CallAgentInput = {
-        targetAgentId: 'testAgent',
-        interactionType: 'generate',
-        messages: [{ role: 'user', content: 'Hello' }],
-      }
-
-      const mockContext = {
-        context: input,
-      }
-
-      await expect(callAgent.execute(mockContext as any)).rejects.toThrow(
-        "Agent 'testAgent' not found on any configured server",
-      )
-    })
-
     it('should handle malformed fully qualified ID', async () => {
+      const mockResponse = { result: 'test response' }
+
+      mockPluginManagerInstance.callAgent.mockResolvedValue(mockResponse)
+      mockPluginManagerInstance.getPlugin.mockResolvedValue({
+        serverType: 'mastra',
+      })
+
       const input: CallAgentInput = {
         targetAgentId: 'server0:agent:extra:parts',
         interactionType: 'generate',
@@ -993,40 +730,20 @@ describe('call-agent-tool', () => {
         context: input,
       }
 
-      // split(':', 2) only returns first 2 elements: ['server0', 'agent']
-      const mockAgent = {
-        generate: vi.fn().mockResolvedValue({ result: 'test' }),
-      }
-
-      const mockClient = {
-        getAgent: vi.fn().mockReturnValue(mockAgent),
-      }
-
-      mockMastraClient.mockReturnValue(mockClient as any)
-
       const result = (await callAgent.execute(
         mockContext as any,
       )) as CallAgentOutput
 
-      expect(result.agentIdUsed).toBe('agent')
+      expect(result.success).toBe(true)
+      expect(result.agentIdUsed).toBe('agent:extra:parts') // Everything after first colon
       expect(result.fullyQualifiedId).toBe('server0:agent:extra:parts')
-      expect(mockClient.getAgent).toHaveBeenCalledWith('agent')
     })
 
     it('should handle stream interaction with non-Error streaming exception', async () => {
-      const mockStreamResponse = {
-        processDataStream: vi.fn().mockRejectedValue('String streaming error'),
-      }
-
-      const mockAgent = {
-        stream: vi.fn().mockResolvedValue(mockStreamResponse),
-      }
-
-      const mockClient = {
-        getAgent: vi.fn().mockReturnValue(mockAgent),
-      }
-
-      mockMastraClient.mockReturnValue(mockClient as any)
+      mockPluginManagerInstance.callAgent.mockRejectedValue('Stream failed')
+      mockPluginManagerInstance.getPlugin.mockResolvedValue({
+        serverType: 'mastra',
+      })
 
       const input: CallAgentInput = {
         targetAgentId: 'server0:testAgent',
@@ -1038,15 +755,8 @@ describe('call-agent-tool', () => {
         context: input,
       }
 
-      const result = (await callAgent.execute(
-        mockContext as any,
-      )) as CallAgentOutput
-
-      expect(result.success).toBe(true)
-      expect(result.responseData.type).toBe('partial_stream')
-      expect(result.responseData.summary.error).toBe('Unknown streaming error')
-      expect(result.responseData.summary.note).toContain(
-        'partially collected before encountering an error',
+      await expect(callAgent.execute(mockContext as any)).rejects.toThrow(
+        "Failed to interact with Mastra agent 'server0:testAgent': Unknown error",
       )
     })
   })

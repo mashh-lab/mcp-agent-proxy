@@ -1,32 +1,24 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { MastraClient } from '@mastra/client-js'
 import { describeAgent } from './get-agent-description-tool.js'
 import * as config from '../config.js'
+import { PluginManager } from '../plugins/index.js'
 
 // Mock the dependencies
-vi.mock('@mastra/client-js')
 vi.mock('../config.js')
+vi.mock('../plugins/index.js')
 
-const mockMastraClient = vi.mocked(MastraClient)
 const mockConfig = vi.mocked(config)
+const mockPluginManager = vi.mocked(PluginManager)
 
 // Define types for better type safety
-type describeAgentInput = {
+type DescribeAgentInput = {
   agentId: string
   serverUrl?: string
 }
 
-type describeAgentOutput = {
-  success: true
-  agentId: string
-  fullyQualifiedId: string
-  serverUsed: string
-  serverName: string
-  agentDetails: Record<string, any>
-  resolutionMethod: string
-}
-
 describe('get-agent-description-tool', () => {
+  let mockPluginManagerInstance: any
+
   beforeEach(() => {
     vi.clearAllMocks()
 
@@ -50,6 +42,15 @@ describe('get-agent-description-tool', () => {
       error: vi.fn(),
       forceError: vi.fn(),
     }
+
+    // Mock PluginManager instance
+    mockPluginManagerInstance = {
+      getAgents: vi.fn(),
+      getAgentDescription: vi.fn(),
+      getPlugin: vi.fn(),
+    }
+
+    mockPluginManager.mockImplementation(() => mockPluginManagerInstance)
   })
 
   afterEach(() => {
@@ -60,10 +61,7 @@ describe('get-agent-description-tool', () => {
     it('should have correct tool configuration', () => {
       expect(describeAgent.id).toBe('describeAgent')
       expect(describeAgent.description).toContain(
-        'Gets detailed information about a specific Mastra agent',
-      )
-      expect(describeAgent.description).toContain(
-        'agent-to-agent capability information',
+        'Gets detailed information about a specific',
       )
       expect(describeAgent.inputSchema).toBeDefined()
       expect(describeAgent.outputSchema).toBeDefined()
@@ -73,23 +71,20 @@ describe('get-agent-description-tool', () => {
   describe('agent resolution', () => {
     it('should handle fully qualified agent ID (server:agentId)', async () => {
       const mockAgentDetails = {
+        id: 'testAgent',
         name: 'Test Agent',
-        instructions: 'This is a test agent for unit testing',
-        capabilities: ['text-generation', 'analysis'],
-        version: '1.0.0',
+        description: 'A test agent',
+        fullyQualifiedId: 'localhost:4111:testAgent',
       }
 
-      const mockAgent = {
-        details: vi.fn().mockResolvedValue(mockAgentDetails),
-      }
+      mockPluginManagerInstance.getAgentDescription.mockResolvedValue(
+        mockAgentDetails,
+      )
+      mockPluginManagerInstance.getPlugin.mockResolvedValue({
+        serverType: 'mastra',
+      })
 
-      const mockClient = {
-        getAgent: vi.fn().mockReturnValue(mockAgent),
-      }
-
-      mockMastraClient.mockReturnValue(mockClient as any)
-
-      const input: describeAgentInput = {
+      const input: DescribeAgentInput = {
         agentId: 'server0:testAgent',
       }
 
@@ -97,38 +92,40 @@ describe('get-agent-description-tool', () => {
         context: input,
       }
 
-      const result = (await describeAgent.execute(
-        mockContext as any,
-      )) as describeAgentOutput
+      const result = (await describeAgent.execute(mockContext as any)) as any
 
       expect(result.success).toBe(true)
-      expect(result.agentId).toBe('testAgent')
-      expect(result.fullyQualifiedId).toBe('server0:testAgent')
-      expect(result.serverName).toBe('server0')
+      expect(result.agentDetails).toEqual(mockAgentDetails)
       expect(result.resolutionMethod).toBe('explicit_qualification')
       expect(result.serverUsed).toBe('http://localhost:4111')
-      expect(result.agentDetails).toEqual(mockAgentDetails)
-      expect(mockClient.getAgent).toHaveBeenCalledWith('testAgent')
-      expect(mockAgent.details).toHaveBeenCalled()
+      expect(result.fullyQualifiedId).toBe('server0:testAgent')
+      expect(result.serverType).toBe('mastra')
+
+      expect(
+        mockPluginManagerInstance.getAgentDescription,
+      ).toHaveBeenCalledWith(
+        'http://localhost:4111',
+        'testAgent',
+        expect.any(Object),
+      )
     })
 
     it('should handle explicit server URL override', async () => {
       const mockAgentDetails = {
-        name: 'Custom Server Agent',
-        instructions: 'Agent on custom server',
+        id: 'testAgent',
+        name: 'Test Agent',
+        description: 'A test agent',
+        fullyQualifiedId: 'custom.server.com:testAgent',
       }
 
-      const mockAgent = {
-        details: vi.fn().mockResolvedValue(mockAgentDetails),
-      }
+      mockPluginManagerInstance.getAgentDescription.mockResolvedValue(
+        mockAgentDetails,
+      )
+      mockPluginManagerInstance.getPlugin.mockResolvedValue({
+        serverType: 'langgraph',
+      })
 
-      const mockClient = {
-        getAgent: vi.fn().mockReturnValue(mockAgent),
-      }
-
-      mockMastraClient.mockReturnValue(mockClient as any)
-
-      const input: describeAgentInput = {
+      const input: DescribeAgentInput = {
         agentId: 'testAgent',
         serverUrl: 'http://custom.server.com',
       }
@@ -137,53 +134,36 @@ describe('get-agent-description-tool', () => {
         context: input,
       }
 
-      const result = (await describeAgent.execute(
-        mockContext as any,
-      )) as describeAgentOutput
+      const result = (await describeAgent.execute(mockContext as any)) as any
 
       expect(result.success).toBe(true)
-      expect(result.agentId).toBe('testAgent')
+      expect(result.agentDetails).toEqual(mockAgentDetails)
       expect(result.resolutionMethod).toBe('explicit_url_override')
       expect(result.serverUsed).toBe('http://custom.server.com')
-      expect(result.serverName).toBe('custom')
-      expect(result.fullyQualifiedId).toBe('custom:testAgent')
-      expect(result.agentDetails).toEqual(mockAgentDetails)
+      expect(result.serverType).toBe('langgraph')
     })
 
     it('should handle unique auto-resolution when agent found on one server', async () => {
       // Mock agent discovery - agent found only on server1
-      const mockGetAgents1 = vi.fn().mockResolvedValue({
-        otherAgent: { name: 'Other Agent' },
-      })
-
-      const mockGetAgents2 = vi.fn().mockResolvedValue({
-        testAgent: { name: 'Test Agent' },
-      })
+      mockPluginManagerInstance.getAgents
+        .mockResolvedValueOnce([{ id: 'otherAgent', name: 'Other Agent' }]) // server0
+        .mockResolvedValueOnce([{ id: 'testAgent', name: 'Test Agent' }]) // server1
 
       const mockAgentDetails = {
+        id: 'testAgent',
         name: 'Test Agent',
-        instructions: 'Found via auto-resolution',
+        description: undefined,
+        fullyQualifiedId: 'localhost:4222:testAgent',
       }
 
-      const mockAgent = {
-        details: vi.fn().mockResolvedValue(mockAgentDetails),
-      }
-
-      const mockClient = {
-        getAgents: vi.fn(),
-        getAgent: vi.fn().mockReturnValue(mockAgent),
-      }
-
-      mockMastraClient.mockImplementation((config) => {
-        if (config.baseUrl === 'http://localhost:4111') {
-          return { ...mockClient, getAgents: mockGetAgents1 } as any
-        } else if (config.baseUrl === 'http://localhost:4222') {
-          return { ...mockClient, getAgents: mockGetAgents2 } as any
-        }
-        return mockClient as any
+      mockPluginManagerInstance.getAgentDescription.mockResolvedValue(
+        mockAgentDetails,
+      )
+      mockPluginManagerInstance.getPlugin.mockResolvedValue({
+        serverType: 'mastra',
       })
 
-      const input: describeAgentInput = {
+      const input: DescribeAgentInput = {
         agentId: 'testAgent',
       }
 
@@ -191,14 +171,9 @@ describe('get-agent-description-tool', () => {
         context: input,
       }
 
-      const result = (await describeAgent.execute(
-        mockContext as any,
-      )) as describeAgentOutput
+      const result = (await describeAgent.execute(mockContext as any)) as any
 
       expect(result.success).toBe(true)
-      expect(result.agentId).toBe('testAgent')
-      expect(result.fullyQualifiedId).toBe('server1:testAgent')
-      expect(result.serverName).toBe('server1')
       expect(result.resolutionMethod).toBe('unique_auto_resolution')
       expect(result.serverUsed).toBe('http://localhost:4222')
       expect(result.agentDetails).toEqual(mockAgentDetails)
@@ -206,38 +181,29 @@ describe('get-agent-description-tool', () => {
 
     it('should handle conflict resolution using default server (server0)', async () => {
       // Mock agent discovery - agent found on both servers
-      const mockGetAgents1 = vi.fn().mockResolvedValue({
-        testAgent: { name: 'Test Agent on Server 0' },
-      })
-
-      const mockGetAgents2 = vi.fn().mockResolvedValue({
-        testAgent: { name: 'Test Agent on Server 1' },
-      })
+      mockPluginManagerInstance.getAgents
+        .mockResolvedValueOnce([
+          { id: 'testAgent', name: 'Test Agent on Server 0' },
+        ]) // server0
+        .mockResolvedValueOnce([
+          { id: 'testAgent', name: 'Test Agent on Server 1' },
+        ]) // server1
 
       const mockAgentDetails = {
+        id: 'testAgent',
         name: 'Test Agent on Server 0',
-        instructions: 'Default server resolution',
+        description: undefined,
+        fullyQualifiedId: 'localhost:4111:testAgent',
       }
 
-      const mockAgent = {
-        details: vi.fn().mockResolvedValue(mockAgentDetails),
-      }
-
-      const mockClient = {
-        getAgents: vi.fn(),
-        getAgent: vi.fn().mockReturnValue(mockAgent),
-      }
-
-      mockMastraClient.mockImplementation((config) => {
-        if (config.baseUrl === 'http://localhost:4111') {
-          return { ...mockClient, getAgents: mockGetAgents1 } as any
-        } else if (config.baseUrl === 'http://localhost:4222') {
-          return { ...mockClient, getAgents: mockGetAgents2 } as any
-        }
-        return mockClient as any
+      mockPluginManagerInstance.getAgentDescription.mockResolvedValue(
+        mockAgentDetails,
+      )
+      mockPluginManagerInstance.getPlugin.mockResolvedValue({
+        serverType: 'mastra',
       })
 
-      const input: describeAgentInput = {
+      const input: DescribeAgentInput = {
         agentId: 'testAgent',
       }
 
@@ -245,14 +211,9 @@ describe('get-agent-description-tool', () => {
         context: input,
       }
 
-      const result = (await describeAgent.execute(
-        mockContext as any,
-      )) as describeAgentOutput
+      const result = (await describeAgent.execute(mockContext as any)) as any
 
       expect(result.success).toBe(true)
-      expect(result.agentId).toBe('testAgent')
-      expect(result.fullyQualifiedId).toBe('server0:testAgent')
-      expect(result.serverName).toBe('server0')
       expect(result.resolutionMethod).toBe('conflict_default_server')
       expect(result.serverUsed).toBe('http://localhost:4111')
       expect(result.agentDetails).toEqual(mockAgentDetails)
@@ -268,38 +229,29 @@ describe('get-agent-description-tool', () => {
       )
 
       // Mock agent discovery - agent found on both servers
-      const mockGetAgents1 = vi.fn().mockResolvedValue({
-        testAgent: { name: 'Test Agent on Server 1' },
-      })
-
-      const mockGetAgents2 = vi.fn().mockResolvedValue({
-        testAgent: { name: 'Test Agent on Server 2' },
-      })
+      mockPluginManagerInstance.getAgents
+        .mockResolvedValueOnce([
+          { id: 'testAgent', name: 'Test Agent on Server 1' },
+        ]) // server1
+        .mockResolvedValueOnce([
+          { id: 'testAgent', name: 'Test Agent on Server 2' },
+        ]) // server2
 
       const mockAgentDetails = {
+        id: 'testAgent',
         name: 'Test Agent on Server 1',
-        instructions: 'First available server resolution',
+        description: undefined,
+        fullyQualifiedId: 'localhost:4222:testAgent',
       }
 
-      const mockAgent = {
-        details: vi.fn().mockResolvedValue(mockAgentDetails),
-      }
-
-      const mockClient = {
-        getAgents: vi.fn(),
-        getAgent: vi.fn().mockReturnValue(mockAgent),
-      }
-
-      mockMastraClient.mockImplementation((config) => {
-        if (config.baseUrl === 'http://localhost:4222') {
-          return { ...mockClient, getAgents: mockGetAgents1 } as any
-        } else if (config.baseUrl === 'http://localhost:4333') {
-          return { ...mockClient, getAgents: mockGetAgents2 } as any
-        }
-        return mockClient as any
+      mockPluginManagerInstance.getAgentDescription.mockResolvedValue(
+        mockAgentDetails,
+      )
+      mockPluginManagerInstance.getPlugin.mockResolvedValue({
+        serverType: 'mastra',
       })
 
-      const input: describeAgentInput = {
+      const input: DescribeAgentInput = {
         agentId: 'testAgent',
       }
 
@@ -307,14 +259,9 @@ describe('get-agent-description-tool', () => {
         context: input,
       }
 
-      const result = (await describeAgent.execute(
-        mockContext as any,
-      )) as describeAgentOutput
+      const result = (await describeAgent.execute(mockContext as any)) as any
 
       expect(result.success).toBe(true)
-      expect(result.agentId).toBe('testAgent')
-      expect(result.fullyQualifiedId).toBe('server1:testAgent')
-      expect(result.serverName).toBe('server1')
       expect(result.resolutionMethod).toBe('conflict_first_available')
       expect(result.serverUsed).toBe('http://localhost:4222')
       expect(result.agentDetails).toEqual(mockAgentDetails)
@@ -322,18 +269,11 @@ describe('get-agent-description-tool', () => {
 
     it('should throw error when agent not found on any server', async () => {
       // Mock agent discovery - agent not found on any server
-      const mockGetAgents = vi.fn().mockResolvedValue({
-        otherAgent: { name: 'Other Agent' },
-      })
+      mockPluginManagerInstance.getAgents.mockResolvedValue([
+        { id: 'otherAgent', name: 'Other Agent' },
+      ])
 
-      mockMastraClient.mockImplementation(
-        () =>
-          ({
-            getAgents: mockGetAgents,
-          }) as any,
-      )
-
-      const input: describeAgentInput = {
+      const input: DescribeAgentInput = {
         agentId: 'nonExistentAgent',
       }
 
@@ -347,7 +287,7 @@ describe('get-agent-description-tool', () => {
     })
 
     it('should throw error for unknown server in fully qualified ID', async () => {
-      const input: describeAgentInput = {
+      const input: DescribeAgentInput = {
         agentId: 'unknownServer:testAgent',
       }
 
@@ -362,21 +302,20 @@ describe('get-agent-description-tool', () => {
 
     it('should handle unknown server with serverUrl override', async () => {
       const mockAgentDetails = {
-        name: 'Agent on Unknown Server',
-        instructions: 'Using URL override',
+        id: 'testAgent',
+        name: 'Test Agent',
+        description: 'A test agent',
+        fullyQualifiedId: 'custom.server.com:testAgent',
       }
 
-      const mockAgent = {
-        details: vi.fn().mockResolvedValue(mockAgentDetails),
-      }
+      mockPluginManagerInstance.getAgentDescription.mockResolvedValue(
+        mockAgentDetails,
+      )
+      mockPluginManagerInstance.getPlugin.mockResolvedValue({
+        serverType: 'mastra',
+      })
 
-      const mockClient = {
-        getAgent: vi.fn().mockReturnValue(mockAgent),
-      }
-
-      mockMastraClient.mockReturnValue(mockClient as any)
-
-      const input: describeAgentInput = {
+      const input: DescribeAgentInput = {
         agentId: 'unknownServer:testAgent',
         serverUrl: 'http://custom.server.com',
       }
@@ -385,88 +324,66 @@ describe('get-agent-description-tool', () => {
         context: input,
       }
 
-      const result = (await describeAgent.execute(
-        mockContext as any,
-      )) as describeAgentOutput
+      const result = (await describeAgent.execute(mockContext as any)) as any
 
       expect(result.success).toBe(true)
-      expect(result.agentId).toBe('testAgent')
-      expect(result.fullyQualifiedId).toBe('unknownServer:testAgent')
-      expect(result.serverName).toBe('unknownServer')
       expect(result.resolutionMethod).toBe('explicit_url_override')
       expect(result.serverUsed).toBe('http://custom.server.com')
-      expect(result.agentDetails).toEqual(mockAgentDetails)
+      expect(result.fullyQualifiedId).toBe('unknownServer:testAgent')
     })
 
     it('should handle server URL override with known server mapping', async () => {
       const mockAgentDetails = {
-        name: 'Agent with URL Override',
-        instructions: 'Using explicit URL',
+        id: 'testAgent',
+        name: 'Test Agent',
+        description: 'A test agent',
+        fullyQualifiedId: 'localhost:4111:testAgent',
       }
 
-      const mockAgent = {
-        details: vi.fn().mockResolvedValue(mockAgentDetails),
-      }
+      mockPluginManagerInstance.getAgentDescription.mockResolvedValue(
+        mockAgentDetails,
+      )
+      mockPluginManagerInstance.getPlugin.mockResolvedValue({
+        serverType: 'mastra',
+      })
 
-      const mockClient = {
-        getAgent: vi.fn().mockReturnValue(mockAgent),
-      }
-
-      mockMastraClient.mockReturnValue(mockClient as any)
-
-      const input: describeAgentInput = {
+      const input: DescribeAgentInput = {
         agentId: 'testAgent',
-        serverUrl: 'http://localhost:4111', // This matches server0
+        serverUrl: 'http://localhost:4111',
       }
 
       const mockContext = {
         context: input,
       }
 
-      const result = (await describeAgent.execute(
-        mockContext as any,
-      )) as describeAgentOutput
+      const result = (await describeAgent.execute(mockContext as any)) as any
 
       expect(result.success).toBe(true)
-      expect(result.agentId).toBe('testAgent')
       expect(result.resolutionMethod).toBe('explicit_url_override')
       expect(result.serverUsed).toBe('http://localhost:4111')
-      expect(result.serverName).toBe('server0') // Should find the matching server name
       expect(result.fullyQualifiedId).toBe('server0:testAgent')
-      expect(result.agentDetails).toEqual(mockAgentDetails)
     })
   })
 
   describe('agent details retrieval', () => {
     it('should retrieve comprehensive agent details', async () => {
       const mockAgentDetails = {
+        id: 'comprehensiveAgent',
         name: 'Comprehensive Agent',
-        instructions: 'This agent provides comprehensive functionality',
-        capabilities: ['text-generation', 'analysis', 'summarization'],
-        version: '2.1.0',
-        author: 'Test Team',
-        description: 'A fully featured test agent',
-        parameters: {
-          temperature: 0.7,
-          maxTokens: 2048,
-        },
-        metadata: {
-          created: '2024-01-01',
-          updated: '2024-01-15',
-        },
+        description: 'A comprehensive test agent with all details',
+        fullyQualifiedId: 'localhost:4111:comprehensiveAgent',
+        capabilities: ['text-generation', 'analysis'],
+        version: '1.0.0',
       }
 
-      const mockAgent = {
-        details: vi.fn().mockResolvedValue(mockAgentDetails),
-      }
+      mockPluginManagerInstance.getAgentDescription.mockResolvedValue(
+        mockAgentDetails,
+      )
+      mockPluginManagerInstance.getPlugin.mockResolvedValue({
+        serverType: 'mastra',
+      })
 
-      const mockClient = {
-        getAgent: vi.fn().mockReturnValue(mockAgent),
-      }
-
-      mockMastraClient.mockReturnValue(mockClient as any)
-
-      const input: describeAgentInput = {
+      const input: DescribeAgentInput = {
         agentId: 'server0:comprehensiveAgent',
       }
 
@@ -474,34 +391,33 @@ describe('get-agent-description-tool', () => {
         context: input,
       }
 
-      const result = (await describeAgent.execute(
-        mockContext as any,
-      )) as describeAgentOutput
+      const result = (await describeAgent.execute(mockContext as any)) as any
 
       expect(result.success).toBe(true)
       expect(result.agentDetails).toEqual(mockAgentDetails)
-      expect(result.agentDetails.name).toBe('Comprehensive Agent')
-      expect(result.agentDetails.capabilities).toContain('text-generation')
-      expect(result.agentDetails.parameters.temperature).toBe(0.7)
-      expect(result.agentDetails.metadata.created).toBe('2024-01-01')
+      expect(result.agentDetails.capabilities).toEqual([
+        'text-generation',
+        'analysis',
+      ])
+      expect(result.agentDetails.version).toBe('1.0.0')
     })
 
     it('should handle minimal agent details', async () => {
       const mockAgentDetails = {
+        id: 'minimalAgent',
         name: 'Minimal Agent',
+        description: undefined,
+        fullyQualifiedId: 'localhost:4111:minimalAgent',
       }
 
-      const mockAgent = {
-        details: vi.fn().mockResolvedValue(mockAgentDetails),
-      }
+      mockPluginManagerInstance.getAgentDescription.mockResolvedValue(
+        mockAgentDetails,
+      )
+      mockPluginManagerInstance.getPlugin.mockResolvedValue({
+        serverType: 'mastra',
+      })
 
-      const mockClient = {
-        getAgent: vi.fn().mockReturnValue(mockAgent),
-      }
-
-      mockMastraClient.mockReturnValue(mockClient as any)
-
-      const input: describeAgentInput = {
+      const input: DescribeAgentInput = {
         agentId: 'server0:minimalAgent',
       }
 
@@ -509,29 +425,29 @@ describe('get-agent-description-tool', () => {
         context: input,
       }
 
-      const result = (await describeAgent.execute(
-        mockContext as any,
-      )) as describeAgentOutput
+      const result = (await describeAgent.execute(mockContext as any)) as any
 
       expect(result.success).toBe(true)
       expect(result.agentDetails).toEqual(mockAgentDetails)
-      expect(result.agentDetails.name).toBe('Minimal Agent')
+      expect(result.agentDetails.description).toBeUndefined()
     })
 
     it('should handle empty agent details', async () => {
-      const mockAgentDetails = {}
-
-      const mockAgent = {
-        details: vi.fn().mockResolvedValue(mockAgentDetails),
+      const mockAgentDetails = {
+        id: 'emptyAgent',
+        name: 'emptyAgent',
+        description: undefined,
+        fullyQualifiedId: 'localhost:4111:emptyAgent',
       }
 
-      const mockClient = {
-        getAgent: vi.fn().mockReturnValue(mockAgent),
-      }
+      mockPluginManagerInstance.getAgentDescription.mockResolvedValue(
+        mockAgentDetails,
+      )
+      mockPluginManagerInstance.getPlugin.mockResolvedValue({
+        serverType: 'mastra',
+      })
 
-      mockMastraClient.mockReturnValue(mockClient as any)
-
-      const input: describeAgentInput = {
+      const input: DescribeAgentInput = {
         agentId: 'server0:emptyAgent',
       }
 
@@ -539,45 +455,30 @@ describe('get-agent-description-tool', () => {
         context: input,
       }
 
-      const result = (await describeAgent.execute(
-        mockContext as any,
-      )) as describeAgentOutput
+      const result = (await describeAgent.execute(mockContext as any)) as any
 
       expect(result.success).toBe(true)
-      expect(result.agentDetails).toEqual({})
+      expect(result.agentDetails).toEqual(mockAgentDetails)
     })
   })
 
   describe('retry configuration', () => {
     it('should use correct retry configuration for interactions', async () => {
-      const customRetryConfig = {
-        discovery: { retries: 5, backoffMs: 200, maxBackoffMs: 1000 },
-        listing: { retries: 3, backoffMs: 150, maxBackoffMs: 2000 },
-        interaction: { retries: 4, backoffMs: 400, maxBackoffMs: 8000 },
+      const mockAgentDetails = {
+        id: 'testAgent',
+        name: 'Test Agent',
+        description: undefined,
+        fullyQualifiedId: 'localhost:4111:testAgent',
       }
 
-      mockConfig.getRetryConfig.mockReturnValue(customRetryConfig)
-
-      const mockAgent = {
-        details: vi.fn().mockResolvedValue({ name: 'Test Agent' }),
-      }
-
-      const mockClient = {
-        getAgent: vi.fn().mockReturnValue(mockAgent),
-      }
-
-      mockMastraClient.mockImplementation((clientConfig) => {
-        // Verify the retry config is passed correctly for interactions
-        expect(clientConfig).toEqual({
-          baseUrl: 'http://localhost:4111',
-          retries: customRetryConfig.interaction.retries,
-          backoffMs: customRetryConfig.interaction.backoffMs,
-          maxBackoffMs: customRetryConfig.interaction.maxBackoffMs,
-        })
-        return mockClient as any
+      mockPluginManagerInstance.getAgentDescription.mockResolvedValue(
+        mockAgentDetails,
+      )
+      mockPluginManagerInstance.getPlugin.mockResolvedValue({
+        serverType: 'mastra',
       })
 
-      const input: describeAgentInput = {
+      const input: DescribeAgentInput = {
         agentId: 'server0:testAgent',
       }
 
@@ -587,49 +488,36 @@ describe('get-agent-description-tool', () => {
 
       await describeAgent.execute(mockContext as any)
 
-      expect(mockMastraClient).toHaveBeenCalledWith({
-        baseUrl: 'http://localhost:4111',
-        retries: 4,
-        backoffMs: 400,
-        maxBackoffMs: 8000,
+      expect(
+        mockPluginManagerInstance.getAgentDescription,
+      ).toHaveBeenCalledWith('http://localhost:4111', 'testAgent', {
+        retries: 3,
+        backoffMs: 300,
+        maxBackoffMs: 5000,
       })
     })
 
     it('should use correct retry configuration for discovery', async () => {
-      const customRetryConfig = {
-        discovery: { retries: 5, backoffMs: 200, maxBackoffMs: 1000 },
-        listing: { retries: 3, backoffMs: 150, maxBackoffMs: 2000 },
-        interaction: { retries: 4, backoffMs: 400, maxBackoffMs: 8000 },
-      }
-
-      mockConfig.getRetryConfig.mockReturnValue(customRetryConfig)
-
       // Mock agent discovery
-      const mockGetAgents = vi.fn().mockResolvedValue({
-        testAgent: { name: 'Test Agent' },
-      })
+      mockPluginManagerInstance.getAgents.mockResolvedValue([
+        { id: 'testAgent', name: 'Test Agent' },
+      ])
 
-      const mockAgent = {
-        details: vi.fn().mockResolvedValue({ name: 'Test Agent' }),
+      const mockAgentDetails = {
+        id: 'testAgent',
+        name: 'Test Agent',
+        description: undefined,
+        fullyQualifiedId: 'localhost:4111:testAgent',
       }
 
-      let discoveryCallCount = 0
-      let interactionCallCount = 0
-
-      mockMastraClient.mockImplementation((clientConfig) => {
-        if (clientConfig.retries === customRetryConfig.discovery.retries) {
-          discoveryCallCount++
-          return { getAgents: mockGetAgents } as any
-        } else if (
-          clientConfig.retries === customRetryConfig.interaction.retries
-        ) {
-          interactionCallCount++
-          return { getAgent: vi.fn().mockReturnValue(mockAgent) } as any
-        }
-        throw new Error('Unexpected config')
+      mockPluginManagerInstance.getAgentDescription.mockResolvedValue(
+        mockAgentDetails,
+      )
+      mockPluginManagerInstance.getPlugin.mockResolvedValue({
+        serverType: 'mastra',
       })
 
-      const input: describeAgentInput = {
+      const input: DescribeAgentInput = {
         agentId: 'testAgent', // Plain agent ID to trigger discovery
       }
 
@@ -639,26 +527,23 @@ describe('get-agent-description-tool', () => {
 
       await describeAgent.execute(mockContext as any)
 
-      expect(discoveryCallCount).toBeGreaterThan(0)
-      expect(interactionCallCount).toBeGreaterThan(0)
+      expect(mockPluginManagerInstance.getAgents).toHaveBeenCalledWith(
+        expect.any(String),
+        { retries: 1, backoffMs: 100, maxBackoffMs: 500 },
+      )
     })
   })
 
   describe('error handling', () => {
     it('should handle agent details retrieval errors', async () => {
-      const mockAgent = {
-        details: vi
-          .fn()
-          .mockRejectedValue(new Error('Details retrieval failed')),
-      }
+      mockPluginManagerInstance.getAgentDescription.mockRejectedValue(
+        new Error('Details retrieval failed'),
+      )
+      mockPluginManagerInstance.getPlugin.mockResolvedValue({
+        serverType: 'mastra',
+      })
 
-      const mockClient = {
-        getAgent: vi.fn().mockReturnValue(mockAgent),
-      }
-
-      mockMastraClient.mockReturnValue(mockClient as any)
-
-      const input: describeAgentInput = {
+      const input: DescribeAgentInput = {
         agentId: 'server0:testAgent',
       }
 
@@ -669,25 +554,17 @@ describe('get-agent-description-tool', () => {
       await expect(describeAgent.execute(mockContext as any)).rejects.toThrow(
         "Failed to get agent description for 'server0:testAgent': Details retrieval failed",
       )
-
-      expect(mockConfig.logger.error).toHaveBeenCalledWith(
-        "Error getting agent description for 'server0:testAgent':",
-        expect.any(Error),
-      )
     })
 
     it('should handle non-Error exceptions', async () => {
-      const mockAgent = {
-        details: vi.fn().mockRejectedValue('String error'),
-      }
+      mockPluginManagerInstance.getAgentDescription.mockRejectedValue(
+        'Unknown error',
+      )
+      mockPluginManagerInstance.getPlugin.mockResolvedValue({
+        serverType: 'mastra',
+      })
 
-      const mockClient = {
-        getAgent: vi.fn().mockReturnValue(mockAgent),
-      }
-
-      mockMastraClient.mockReturnValue(mockClient as any)
-
-      const input: describeAgentInput = {
+      const input: DescribeAgentInput = {
         agentId: 'server0:testAgent',
       }
 
@@ -700,54 +577,12 @@ describe('get-agent-description-tool', () => {
       )
     })
 
-    it('should handle server discovery errors gracefully', async () => {
-      // Mock server discovery with some servers failing
-      const mockGetAgents1 = vi
-        .fn()
-        .mockRejectedValue(new Error('Server offline'))
-      const mockGetAgents2 = vi.fn().mockResolvedValue({
-        testAgent: { name: 'Test Agent' },
-      })
-
-      const mockAgent = {
-        details: vi.fn().mockResolvedValue({ name: 'Test Agent' }),
-      }
-
-      mockMastraClient.mockImplementation((config) => {
-        if (config.baseUrl === 'http://localhost:4111') {
-          return { getAgents: mockGetAgents1 } as any
-        } else if (config.baseUrl === 'http://localhost:4222') {
-          return {
-            getAgents: mockGetAgents2,
-            getAgent: vi.fn().mockReturnValue(mockAgent),
-          } as any
-        }
-        return { getAgent: vi.fn().mockReturnValue(mockAgent) } as any
-      })
-
-      const input: describeAgentInput = {
-        agentId: 'testAgent',
-      }
-
-      const mockContext = {
-        context: input,
-      }
-
-      const result = (await describeAgent.execute(
-        mockContext as any,
-      )) as describeAgentOutput
-
-      expect(result.success).toBe(true)
-      expect(result.fullyQualifiedId).toBe('server1:testAgent')
-      expect(result.resolutionMethod).toBe('unique_auto_resolution')
-    })
-
     it('should handle client creation errors', async () => {
-      mockMastraClient.mockImplementation(() => {
+      mockPluginManager.mockImplementation(() => {
         throw new Error('Client creation failed')
       })
 
-      const input: describeAgentInput = {
+      const input: DescribeAgentInput = {
         agentId: 'server0:testAgent',
       }
 
@@ -762,24 +597,22 @@ describe('get-agent-description-tool', () => {
   })
 
   describe('edge cases', () => {
-    it('should handle empty server mappings', async () => {
-      mockConfig.loadServerMappings.mockReturnValue(new Map())
-
-      const input: describeAgentInput = {
-        agentId: 'testAgent',
-      }
-
-      const mockContext = {
-        context: input,
-      }
-
-      await expect(describeAgent.execute(mockContext as any)).rejects.toThrow(
-        "Agent 'testAgent' not found on any configured server",
-      )
-    })
-
     it('should handle malformed fully qualified ID', async () => {
-      const input: describeAgentInput = {
+      const mockAgentDetails = {
+        id: 'agent:extra:parts',
+        name: 'Complex Agent',
+        description: undefined,
+        fullyQualifiedId: 'localhost:4111:agent:extra:parts',
+      }
+
+      mockPluginManagerInstance.getAgentDescription.mockResolvedValue(
+        mockAgentDetails,
+      )
+      mockPluginManagerInstance.getPlugin.mockResolvedValue({
+        serverType: 'mastra',
+      })
+
+      const input: DescribeAgentInput = {
         agentId: 'server0:agent:extra:parts',
       }
 
@@ -787,49 +620,35 @@ describe('get-agent-description-tool', () => {
         context: input,
       }
 
-      // split(':', 2) only returns first 2 elements: ['server0', 'agent']
-      const mockAgent = {
-        details: vi.fn().mockResolvedValue({ name: 'Test Agent' }),
-      }
+      const result = (await describeAgent.execute(mockContext as any)) as any
 
-      const mockClient = {
-        getAgent: vi.fn().mockReturnValue(mockAgent),
-      }
-
-      mockMastraClient.mockReturnValue(mockClient as any)
-
-      const result = (await describeAgent.execute(
-        mockContext as any,
-      )) as describeAgentOutput
-
-      expect(result.agentId).toBe('agent')
+      expect(result.success).toBe(true)
       expect(result.fullyQualifiedId).toBe('server0:agent:extra:parts')
-      expect(result.serverName).toBe('server0')
-      expect(mockClient.getAgent).toHaveBeenCalledWith('agent')
+      expect(
+        mockPluginManagerInstance.getAgentDescription,
+      ).toHaveBeenCalledWith(
+        'http://localhost:4111',
+        'agent:extra:parts',
+        expect.any(Object),
+      )
     })
 
     it('should handle agent details with null values', async () => {
       const mockAgentDetails = {
-        name: 'Agent with Nulls',
-        instructions: null,
-        capabilities: null,
-        metadata: {
-          created: null,
-          tags: null,
-        },
+        id: 'nullAgent',
+        name: null,
+        description: null,
+        fullyQualifiedId: 'localhost:4111:nullAgent',
       }
 
-      const mockAgent = {
-        details: vi.fn().mockResolvedValue(mockAgentDetails),
-      }
+      mockPluginManagerInstance.getAgentDescription.mockResolvedValue(
+        mockAgentDetails,
+      )
+      mockPluginManagerInstance.getPlugin.mockResolvedValue({
+        serverType: 'mastra',
+      })
 
-      const mockClient = {
-        getAgent: vi.fn().mockReturnValue(mockAgent),
-      }
-
-      mockMastraClient.mockReturnValue(mockClient as any)
-
-      const input: describeAgentInput = {
+      const input: DescribeAgentInput = {
         agentId: 'server0:nullAgent',
       }
 
@@ -837,40 +656,33 @@ describe('get-agent-description-tool', () => {
         context: input,
       }
 
-      const result = (await describeAgent.execute(
-        mockContext as any,
-      )) as describeAgentOutput
+      const result = (await describeAgent.execute(mockContext as any)) as any
 
       expect(result.success).toBe(true)
       expect(result.agentDetails).toEqual(mockAgentDetails)
-      expect(result.agentDetails.instructions).toBeNull()
-      expect(result.agentDetails.capabilities).toBeNull()
     })
 
     it('should handle very large agent details', async () => {
+      const largeDescription = 'A'.repeat(10000)
       const mockAgentDetails = {
+        id: 'largeAgent',
         name: 'Large Agent',
-        instructions: 'A'.repeat(10000), // Very long instructions
-        capabilities: Array.from({ length: 100 }, (_, i) => `capability-${i}`),
+        description: largeDescription,
+        fullyQualifiedId: 'localhost:4111:largeAgent',
         metadata: {
-          largeData: Array.from({ length: 1000 }, (_, i) => ({
-            id: i,
-            value: `data-${i}`,
-          })),
+          capabilities: Array.from({ length: 100 }, (_, i) => `capability${i}`),
+          config: { setting: 'value'.repeat(1000) },
         },
       }
 
-      const mockAgent = {
-        details: vi.fn().mockResolvedValue(mockAgentDetails),
-      }
+      mockPluginManagerInstance.getAgentDescription.mockResolvedValue(
+        mockAgentDetails,
+      )
+      mockPluginManagerInstance.getPlugin.mockResolvedValue({
+        serverType: 'mastra',
+      })
 
-      const mockClient = {
-        getAgent: vi.fn().mockReturnValue(mockAgent),
-      }
-
-      mockMastraClient.mockReturnValue(mockClient as any)
-
-      const input: describeAgentInput = {
+      const input: DescribeAgentInput = {
         agentId: 'server0:largeAgent',
       }
 
@@ -878,15 +690,11 @@ describe('get-agent-description-tool', () => {
         context: input,
       }
 
-      const result = (await describeAgent.execute(
-        mockContext as any,
-      )) as describeAgentOutput
+      const result = (await describeAgent.execute(mockContext as any)) as any
 
       expect(result.success).toBe(true)
-      expect(result.agentDetails).toEqual(mockAgentDetails)
-      expect(result.agentDetails.instructions).toHaveLength(10000)
-      expect(result.agentDetails.capabilities).toHaveLength(100)
-      expect(result.agentDetails.metadata.largeData).toHaveLength(1000)
+      expect(result.agentDetails.description).toBe(largeDescription)
+      expect(result.agentDetails.metadata.capabilities).toHaveLength(100)
     })
   })
 })

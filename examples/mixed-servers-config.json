@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "mcpAgentProxy": {
+      "command": "npx",
+      "args": ["@mashh/mcp-agent-proxy@latest"],
+      "env": {
+        "MASTRA_SERVERS": "http://localhost:4111 http://localhost:2024",
+        "MCP_SERVER_PORT": "3001"
+      }
+    }
+  }
+}

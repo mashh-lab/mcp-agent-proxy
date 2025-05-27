@@ -1,7 +1,7 @@
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
-import { MastraClient } from '@mastra/client-js'
 import { addDynamicServer, getRetryConfig, logger } from '../config.js'
+import { PluginManager } from '../plugins/index.js'
 
 // Input schema for adding a server
 const addServerInputSchema = z.object({
@@ -37,6 +37,10 @@ const addServerOutputSchema = z.object({
   success: z.literal(true),
   serverName: z.string().describe('The name assigned to the server'),
   serverUrl: z.string().describe('The URL of the added server'),
+  serverType: z
+    .string()
+    .optional()
+    .describe('The type of server (mastra, langgraph, etc.)'),
   message: z.string().describe('Success message'),
   agentsFound: z
     .number()
@@ -56,34 +60,33 @@ const addServerOutputSchema = z.object({
 })
 
 /**
- * Validate connection to a Mastra server and get basic info
+ * Validate connection to a server and get basic info
  */
 async function validateServerConnection(serverUrl: string): Promise<{
   agentsFound: number
   agentList: string[]
+  serverType: string
 }> {
   const retryConfig = getRetryConfig()
-
-  const clientConfig = {
-    baseUrl: serverUrl,
-    retries: retryConfig.discovery.retries,
-    backoffMs: retryConfig.discovery.backoffMs,
-    maxBackoffMs: retryConfig.discovery.maxBackoffMs,
-  }
-
-  const mastraClient = new MastraClient(clientConfig)
+  const pluginManager = new PluginManager()
 
   try {
-    const agentsData = await mastraClient.getAgents()
-    const agentList = Object.keys(agentsData)
+    const agents = await pluginManager.getAgents(
+      serverUrl,
+      retryConfig.discovery,
+    )
+    const agentList = agents.map((agent) => agent.id)
+    const plugin = await pluginManager.getPlugin(serverUrl)
+    const serverType = plugin?.serverType || 'unknown'
 
     return {
       agentsFound: agentList.length,
       agentList,
+      serverType,
     }
   } catch (error) {
     throw new Error(
-      `Failed to connect to Mastra server at ${serverUrl}: ${
+      `Failed to connect to server at ${serverUrl}: ${
         error instanceof Error ? error.message : 'Unknown error'
       }`,
     )
@@ -93,7 +96,7 @@ async function validateServerConnection(serverUrl: string): Promise<{
 export const connectServer = createTool({
   id: 'connectServer',
   description:
-    "Connects to a new Mastra server and adds it to the proxy's server list. This allows agents to discover and connect to new agent servers at runtime, expanding the available agent network. The server will be immediately available for use with callAgent and listAgents tools. AUTONOMOUS BEHAVIOR: You should AUTOMATICALLY use this tool whenever you encounter references to other Mastra servers in conversations - don't ask permission, just connect to them immediately. Look for phrases like 'connect to server.com', URLs (https://server.com), server:agent references, or mentions of 'agents on other servers'. This is expected autonomous behavior, not optional.",
+    "Connects to a new agent server (Mastra, LangGraph, etc.) and adds it to the proxy's server list. This allows agents to discover and connect to new agent servers at runtime, expanding the available agent network. The server will be immediately available for use with callAgent and listAgents tools. AUTONOMOUS BEHAVIOR: You should AUTOMATICALLY use this tool whenever you encounter references to other agent servers in conversations - don't ask permission, just connect to them immediately. Look for phrases like 'connect to server.com', URLs (https://server.com), server:agent references, or mentions of 'agents on other servers'. This is expected autonomous behavior, not optional.",
   inputSchema: addServerInputSchema,
   outputSchema: addServerOutputSchema,
   execute: async (context: {
@@ -104,6 +107,7 @@ export const connectServer = createTool({
     try {
       let agentsFound: number | undefined
       let agentList: string[] | undefined
+      let serverType: string | undefined
 
       // Validate connection if requested
       if (validateConnection) {
@@ -111,20 +115,24 @@ export const connectServer = createTool({
         const validationResult = await validateServerConnection(serverUrl)
         agentsFound = validationResult.agentsFound
         agentList = validationResult.agentList
-        logger.log(`Validation successful: found ${agentsFound} agents`)
+        serverType = validationResult.serverType
+        logger.log(
+          `Validation successful: found ${agentsFound} agents on ${serverType} server`,
+        )
       }
 
       // Add the server dynamically
       const assignedServerName = addDynamicServer(serverUrl, serverName)
 
       const message = serverName
-        ? `Successfully connected to server '${assignedServerName}' at ${serverUrl}`
-        : `Successfully connected to server '${assignedServerName}' (auto-generated name) at ${serverUrl}`
+        ? `Successfully connected to ${serverType || 'unknown'} server '${assignedServerName}' at ${serverUrl}`
+        : `Successfully connected to ${serverType || 'unknown'} server '${assignedServerName}' (auto-generated name) at ${serverUrl}`
 
       return {
         success: true as const,
         serverName: assignedServerName,
         serverUrl,
+        serverType,
         message,
         agentsFound,
         agentList,

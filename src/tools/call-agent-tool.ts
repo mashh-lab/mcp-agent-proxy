@@ -1,7 +1,7 @@
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
-import { MastraClient } from '@mastra/client-js'
 import { loadServerMappings, getRetryConfig, logger } from '../config.js'
+import { PluginManager } from '../plugins/index.js'
 
 // Input schema with support for fully qualified agent IDs
 const agentProxyInputSchema = z.object({
@@ -39,6 +39,7 @@ const agentProxyOutputSchema = z.object({
   agentIdUsed: z.string(), // Shows the actual agent ID used (without server prefix)
   fullyQualifiedId: z.string(), // Shows the full server:agentId format
   resolutionMethod: z.string(), // Shows how the server was resolved
+  serverType: z.string(), // Shows the type of server (mastra, langgraph, etc.)
 })
 
 /**
@@ -50,20 +51,16 @@ async function findAgentServers(
 ): Promise<Map<string, string>> {
   const foundServers = new Map<string, string>() // serverName -> serverUrl
   const retryConfig = getRetryConfig()
+  const pluginManager = new PluginManager()
 
   for (const [serverName, serverUrl] of serverMap.entries()) {
     try {
-      const clientConfig = {
-        baseUrl: serverUrl,
-        retries: retryConfig.discovery.retries,
-        backoffMs: retryConfig.discovery.backoffMs,
-        maxBackoffMs: retryConfig.discovery.maxBackoffMs,
-      }
+      const agents = await pluginManager.getAgents(
+        serverUrl,
+        retryConfig.discovery,
+      )
 
-      const mastraClient = new MastraClient(clientConfig)
-      const agentsData = await mastraClient.getAgents()
-
-      if (agentsData && Object.keys(agentsData).includes(agentId)) {
+      if (agents.some((agent) => agent.id === agentId)) {
         foundServers.set(serverName, serverUrl)
       }
     } catch {
@@ -106,7 +103,9 @@ export const callAgent = createTool({
 
       if (targetAgentId.includes(':')) {
         // Handle fully qualified ID (server:agentId)
-        const [serverName, agentId] = targetAgentId.split(':', 2)
+        const colonIndex = targetAgentId.indexOf(':')
+        const serverName = targetAgentId.substring(0, colonIndex)
+        const agentId = targetAgentId.substring(colonIndex + 1)
         actualAgentId = agentId
         fullyQualifiedId = targetAgentId
         resolutionMethod = 'explicit_qualification'
@@ -174,103 +173,26 @@ export const callAgent = createTool({
       }
 
       const retryConfig = getRetryConfig()
+      const pluginManager = new PluginManager()
 
-      const clientConfig = {
-        baseUrl: serverToUse,
-        retries: retryConfig.interaction.retries,
-        backoffMs: retryConfig.interaction.backoffMs,
-        maxBackoffMs: retryConfig.interaction.maxBackoffMs,
-      }
-
-      const mastraClient = new MastraClient(clientConfig)
-      const agent = mastraClient.getAgent(actualAgentId)
-
-      let responseData: unknown
-      const interactionParams = {
+      const agentCallParams = {
+        agentId: actualAgentId,
+        interactionType,
         messages,
-        ...(threadId && { threadId }),
-        ...(resourceId && { resourceId }),
-        ...agentOptions,
+        threadId,
+        resourceId,
+        agentOptions,
       }
 
-      if (interactionType === 'generate') {
-        responseData = await agent.generate(interactionParams)
-      } else if (interactionType === 'stream') {
-        // Proper streaming implementation - collect chunks as they arrive
-        const chunks: Array<{
-          content: unknown
-          timestamp: string
-          index: number
-        }> = []
+      const responseData = await pluginManager.callAgent(
+        serverToUse,
+        agentCallParams,
+        retryConfig.interaction,
+      )
 
-        let chunkIndex = 0
-        const startTime = new Date()
-
-        try {
-          // Get the stream from the agent
-          const streamResponse = await agent.stream(interactionParams)
-
-          // Process the data stream using Mastra's API
-          await streamResponse.processDataStream({
-            onTextPart: (textPart: string) => {
-              chunks.push({
-                content: textPart,
-                timestamp: new Date().toISOString(),
-                index: chunkIndex++,
-              })
-            },
-            onDataPart: (dataPart: unknown) => {
-              chunks.push({
-                content: dataPart,
-                timestamp: new Date().toISOString(),
-                index: chunkIndex++,
-              })
-            },
-            onErrorPart: (errorPart: unknown) => {
-              chunks.push({
-                content: { error: errorPart },
-                timestamp: new Date().toISOString(),
-                index: chunkIndex++,
-              })
-            },
-          })
-
-          const endTime = new Date()
-          const totalDuration = endTime.getTime() - startTime.getTime()
-
-          responseData = {
-            type: 'collected_stream',
-            chunks,
-            summary: {
-              totalChunks: chunks.length,
-              startTime: startTime.toISOString(),
-              endTime: endTime.toISOString(),
-              durationMs: totalDuration,
-              note: 'Stream was collected in real-time with timestamps. Each chunk was processed as it arrived from the agent.',
-            },
-          }
-        } catch (streamError) {
-          // If streaming fails, collect what we have so far
-          const endTime = new Date()
-          responseData = {
-            type: 'partial_stream',
-            chunks,
-            summary: {
-              totalChunks: chunks.length,
-              startTime: startTime.toISOString(),
-              endTime: endTime.toISOString(),
-              durationMs: endTime.getTime() - startTime.getTime(),
-              error:
-                streamError instanceof Error
-                  ? streamError.message
-                  : 'Unknown streaming error',
-              note: 'Stream was partially collected before encountering an error.',
-            },
-          }
-        }
-      } else {
-        throw new Error(`Invalid interaction type: ${interactionType}`)
-      }
+      // Get the server type from the plugin manager
+      const plugin = await pluginManager.getPlugin(serverToUse)
+      const serverType = plugin?.serverType || 'unknown'
 
       return {
         success: true as const,
@@ -280,6 +202,7 @@ export const callAgent = createTool({
         agentIdUsed: actualAgentId,
         fullyQualifiedId,
         resolutionMethod,
+        serverType,
       }
     } catch (error: unknown) {
       logger.error(

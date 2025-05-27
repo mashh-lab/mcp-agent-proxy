@@ -1,11 +1,11 @@
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
-import { MastraClient } from '@mastra/client-js'
 import {
   loadServerMappings,
   getRetryConfig,
   getDynamicServers,
 } from '../config.js'
+import { PluginManager } from '../plugins/index.js'
 
 /**
  * Generate servers from configurable server mappings
@@ -23,60 +23,48 @@ function getServersFromConfig() {
 }
 
 /**
- * Get agent information from all configured Mastra servers
+ * Get agent information from all configured servers (Mastra, LangGraph, etc.)
  * This function can be reused outside of the MCP tool context
  */
 export async function getMastraAgentsInfo() {
   const serversToCheck = getServersFromConfig()
   const retryConfig = getRetryConfig()
+  const pluginManager = new PluginManager()
 
   const serverAgents = []
   const agentIdMap = new Map<string, string[]>() // agentId -> [serverNames]
   let totalAgents = 0
   let onlineServers = 0
 
-  // Check each server
+  // Check each server using the plugin manager
   for (const server of serversToCheck) {
     try {
-      const clientConfig = {
-        baseUrl: server.url,
-        retries: retryConfig.listing.retries,
-        backoffMs: retryConfig.listing.backoffMs,
-        maxBackoffMs: retryConfig.listing.maxBackoffMs,
+      const serverStatus = await pluginManager.getServerStatus(
+        server.name,
+        server.url,
+        retryConfig.listing,
+        server.isDynamic,
+      )
+
+      // Track agent conflicts
+      for (const agent of serverStatus.agents) {
+        if (!agentIdMap.has(agent.id)) {
+          agentIdMap.set(agent.id, [])
+        }
+        agentIdMap.get(agent.id)!.push(server.name)
       }
 
-      const mastraClient = new MastraClient(clientConfig)
-      const agentsData = await mastraClient.getAgents()
+      serverAgents.push(serverStatus)
 
-      const agents = Object.keys(agentsData).map((agentId) => {
-        // Track agent conflicts
-        if (!agentIdMap.has(agentId)) {
-          agentIdMap.set(agentId, [])
-        }
-        agentIdMap.get(agentId)!.push(server.name)
-
-        return {
-          id: agentId,
-          name: agentsData[agentId]?.name || agentId,
-          fullyQualifiedId: `${server.name}:${agentId}`,
-        }
-      })
-
-      serverAgents.push({
-        serverName: server.name,
-        serverUrl: server.url,
-        serverDescription: server.description,
-        agents,
-        status: 'online' as const,
-        isDynamic: server.isDynamic,
-      })
-
-      totalAgents += agents.length
-      onlineServers++
+      if (serverStatus.status === 'online') {
+        totalAgents += serverStatus.agents.length
+        onlineServers++
+      }
     } catch (error: unknown) {
       serverAgents.push({
         serverName: server.name,
         serverUrl: server.url,
+        serverType: 'unknown',
         serverDescription: server.description,
         agents: [],
         status: 'error' as const,

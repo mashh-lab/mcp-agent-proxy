@@ -60,13 +60,17 @@
     "mcp",
     "agent-proxy",
     "mastra",
+    "langgraph",
     "proxy-server",
-    "model-context-protocol"
+    "model-context-protocol",
+    "multi-agent",
+    "agent-orchestration"
   ],
   "author": "mashh-lab",
   "license": "MIT",
   "packageManager": "pnpm@10.11.0",
   "dependencies": {
+    "@langchain/langgraph-sdk": "^0.0.78",
     "@mastra/client-js": "^0.10.0",
     "@mastra/core": "^0.10.0",
     "@mastra/mcp": "^0.10.0",
