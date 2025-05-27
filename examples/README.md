@@ -4,7 +4,7 @@ Ready-to-use MCP configurations for different scenarios.
 
 ## Basic Configurations
 
-### [`minimal-config.json`](minimal-config.json)
+### [`mcp.json`](mcp.json)
 
 Zero setup - just add to your MCP client and go.
 
@@ -12,37 +12,7 @@ Zero setup - just add to your MCP client and go.
 
 Connect to multiple local Mastra servers running on different ports.
 
-### [`mcp-config.json`](mcp-config.json)
-
-Standard single-server configuration with environment variables.
-
-## Cloud Deployments
-
-### [`cloud-config.json`](cloud-config.json)
-
-Connect to any cloud-deployed Mastra server.
-
-### [`vercel-config.json`](vercel-config.json)
-
-Specific configuration for Vercel deployments.
-
-### [`vercel-localhost-config.json`](vercel-localhost-config.json)
-
-Hybrid setup: Vercel production + local development.
-
-### [`vercel-multi-env-config.json`](vercel-multi-env-config.json)
-
-Multi-environment setup: production + staging + local.
-
-### [`cloud-localhost-config.json`](cloud-localhost-config.json)
-
-Generic cloud + local development setup.
-
 ## Advanced Configurations
-
-### [`network-effect-config.json`](network-effect-config.json)
-
-Recursive agent networks - agents that can access other agent networks.
 
 ### [`mastra-server-with-mcp.js`](mastra-server-with-mcp.js)
 

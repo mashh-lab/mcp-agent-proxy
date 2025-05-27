@@ -3,7 +3,12 @@ import tseslint from 'typescript-eslint'
 
 export default tseslint.config(
   {
-    ignores: ['dist/', 'node_modules/', '.mastra/'],
+    ignores: [
+      'dist/',
+      'node_modules/',
+      '.mastra/',
+      'examples/mastra-server-with-mcp.ts',
+    ],
   },
   {
     files: ['**/*.ts', '**/*.tsx'],

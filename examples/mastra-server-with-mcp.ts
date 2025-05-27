@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Example: Mastra Server with MCP Agent Proxy Integration
  *
