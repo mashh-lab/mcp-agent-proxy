@@ -17,16 +17,13 @@ Add this to your MCP client's configuration:
   "mcpServers": {
     "mcpAgentProxy": {
       "command": "npx",
-      "args": ["@mashh/mcp-agent-proxy@latest"],
-      "env": {
-        "AGENT_SERVERS": "http://localhost:4111"
-      }
+      "args": ["@mashh/mcp-agent-proxy@latest"]
     }
   }
 }
 ```
 
-**That's it!** The proxy connects to your specified agent servers and exposes all agents as MCP tools. It automatically detects whether the server is running Mastra or LangGraph and adapts accordingly.
+**That's it!** The proxy lets your MCP client connect to different agent servers and exposes agent interactions as MCP tools. It automatically detects agent server types and adapts accordingly.
 
 https://github.com/user-attachments/assets/9eaf1d36-298f-430f-b9e8-37e921cce2d1
 
