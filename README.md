@@ -28,7 +28,7 @@ Add this to your MCP client's configuration:
 
 **That's it!** The proxy connects to your specified agent servers and exposes all agents as MCP tools. It automatically detects whether the server is running Mastra or LangGraph and adapts accordingly.
 
-https://github.com/user-attachments/assets/e816c0cb-48e5-471b-8ff4-9107bd6e8bb6
+https://github.com/user-attachments/assets/9eaf1d36-298f-430f-b9e8-37e921cce2d1
 
 ## What This Does
 
