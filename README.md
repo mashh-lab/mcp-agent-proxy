@@ -19,7 +19,7 @@ Add this to your MCP client's configuration:
   "mcpServers": {
     "mcpAgentProxy": {
       "command": "npx",
-      "args": ["@mashh/mcp-agent-proxy"]
+      "args": ["@mashh/mcp-agent-proxy@latest"]
     }
   }
 }
@@ -104,19 +104,25 @@ One configuration line unlocks entire ecosystems of AI capabilities.
 **Basic Agent Call:**
 
 ```
-User: "Can you call the weatherAgent to get the current weather in New York City?"
+Can you call the weatherAgent to get the current weather in New York City?
+```
+
+**Network Exploration**
+
+```
+Explore the agents you're connected to
 ```
 
 **Smart Conflict Resolution:**
 
 ```
-User: "I need to use the weatherAgent from server1 specifically, not the default one."
+I need to use the weatherAgent from server1 specifically, not the default one
 ```
 
 **Dynamic Network Expansion:**
 
 ```
-User: "Connect to the ML specialists at https://ml-specialists.vercel.app and then use their modelTrainer agent."
+Connect to the ML specialists at https://ml-specialists.vercel.app and then use their modelTrainer agent
 ```
 
 ## Environment Variables
