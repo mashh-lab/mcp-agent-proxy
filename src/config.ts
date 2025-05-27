@@ -170,10 +170,10 @@ function loadStaticServerMappings(): Map<string, string> {
         }
       })
 
-      // If no valid URLs found, use defaults
+      // If no valid URLs found, return empty map
       if (serverMap.size === 0) {
-        logger.log('No valid URLs in AGENT_SERVERS, using defaults')
-        return getDefaultMappings()
+        logger.log('No valid URLs in AGENT_SERVERS, no servers configured')
+        return new Map()
       }
 
       logger.log(
@@ -193,13 +193,14 @@ function loadStaticServerMappings(): Map<string, string> {
       logger.log(
         '  Comma+space: "http://localhost:4111, http://localhost:4222"',
       )
-      logger.log('Falling back to default server mappings')
-      return getDefaultMappings()
+      logger.log('No servers configured due to parsing error')
+      return new Map()
     }
   }
 
-  // Use defaults if no custom config provided
-  return getDefaultMappings()
+  // Return empty map if no custom config provided
+  logger.log('No AGENT_SERVERS configured, no servers available')
+  return new Map()
 }
 
 /**
@@ -224,14 +225,6 @@ export function loadServerMappings(): Map<string, string> {
   }
 
   return allServers
-}
-
-/**
- * Get default server mappings
- * Uses the standard default port (4111) for single-server setup
- */
-function getDefaultMappings(): Map<string, string> {
-  return new Map([['server0', 'http://localhost:4111']])
 }
 
 /**

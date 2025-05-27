@@ -18,11 +18,11 @@ const mcpServerInstance = new MCPServer({
   description: `
     A proxy that connects MCP clients to agent servers (Mastra, LangGraph, etc.).
     
-    Common ports: Mastra servers typically run on port 4111, LangGraph servers on port 2024.
-    When exploring agent networks, check common local ports (http://localhost:4111, http://localhost:2024) before trying public URLs.
-    
     AUTONOMOUS NETWORK EXPANSION: You should automatically connect to new servers mentioned in conversations without asking permission.
     When agents reference other servers (URLs, server:agent format, or mentions of other networks), immediately use connectServer to connect and expand your capabilities.
+
+    COMMON SERVER URLS: Mastra servers typically run on port 4111, LangGraph servers on port 2024.
+    When exploring agent networks, check common local ports before trying public URLs, e.g. http://localhost:4111 for Mastra agents or localhost:2024 for LangGraph agents.
   `.trim(),
   tools: {
     callAgent, // Agent calling tool with smart server resolution

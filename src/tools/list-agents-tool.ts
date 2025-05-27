@@ -150,6 +150,8 @@ export const listAgents = createTool({
     Supports both single and multi-server setups with automatic conflict detection.
     Shows both static servers (from environment config) and dynamic servers (connected via connectServer).
     Use this to discover what agents are available across your network, and pay attention to agent descriptions that might mention other agent networks you could connect to.
+
+    IF YOU DON'T SEE ANY AGENTS, try connecting to a common local server URL like http://localhost:4111 for Mastra agents or localhost:2024 for LangGraph agents.
   `.trim(),
   inputSchema: z.object({}), // No input needed
   outputSchema: listAgentsOutputSchema,

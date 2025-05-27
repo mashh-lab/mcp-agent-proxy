@@ -6,11 +6,11 @@ Advanced configuration options for the MCP Mastra Agent Proxy.
 
 ### Core Variables
 
-| Variable          | Default                 | Description                       |
-| ----------------- | ----------------------- | --------------------------------- |
-| `AGENT_SERVERS`   | `http://localhost:4111` | Space/comma-separated server URLs |
-| `MCP_SERVER_PORT` | `3001`                  | Proxy server port                 |
-| `MCP_TRANSPORT`   | `http`                  | Transport method (stdio/http)     |
+| Variable          | Default  | Description                       |
+| ----------------- | -------- | --------------------------------- |
+| `AGENT_SERVERS`   | _(none)_ | Space/comma-separated server URLs |
+| `MCP_SERVER_PORT` | `3001`   | Proxy server port                 |
+| `MCP_TRANSPORT`   | `http`   | Transport method (stdio/http)     |
 
 ### Advanced Variables
 

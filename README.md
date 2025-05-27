@@ -17,13 +17,16 @@ Add this to your MCP client's configuration:
   "mcpServers": {
     "mcpAgentProxy": {
       "command": "npx",
-      "args": ["@mashh/mcp-agent-proxy@latest"]
+      "args": ["@mashh/mcp-agent-proxy@latest"],
+      "env": {
+        "AGENT_SERVERS": "http://localhost:4111"
+      }
     }
   }
 }
 ```
 
-**That's it!** The proxy automatically connects to `http://localhost:4111` and exposes all agents as MCP tools. It automatically detects whether the server is running Mastra or LangGraph and adapts accordingly.
+**That's it!** The proxy connects to your specified agent servers and exposes all agents as MCP tools. It automatically detects whether the server is running Mastra or LangGraph and adapts accordingly.
 
 https://github.com/user-attachments/assets/e816c0cb-48e5-471b-8ff4-9107bd6e8bb6
 
@@ -133,11 +136,11 @@ Connect to the ML specialists at https://ml-specialists.vercel.app and then use 
 
 ## Environment Variables
 
-| Variable          | Default                 | Description                                                       |
-| ----------------- | ----------------------- | ----------------------------------------------------------------- |
-| `AGENT_SERVERS`   | `http://localhost:4111` | Space/comma-separated server URLs (supports Mastra and LangGraph) |
-| `MCP_SERVER_PORT` | `3001`                  | Proxy server port                                                 |
-| `MCP_TRANSPORT`   | `http`                  | Transport method (stdio/http)                                     |
+| Variable          | Default  | Description                                                       |
+| ----------------- | -------- | ----------------------------------------------------------------- |
+| `AGENT_SERVERS`   | _(none)_ | Space/comma-separated server URLs (supports Mastra and LangGraph) |
+| `MCP_SERVER_PORT` | `3001`   | Proxy server port                                                 |
+| `MCP_TRANSPORT`   | `http`   | Transport method (stdio/http)                                     |
 
 ## Examples & Advanced Usage
 

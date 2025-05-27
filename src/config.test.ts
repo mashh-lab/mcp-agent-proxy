@@ -247,12 +247,12 @@ describe('config', () => {
       it('should add a new server with auto-generated name', () => {
         const serverName = addDynamicServer('http://test.example.com')
 
-        expect(serverName).toBe('server1') // server0 is the default static server
-        expect(getDynamicServers().get('server1')).toBe(
+        expect(serverName).toBe('server0') // No default static server anymore
+        expect(getDynamicServers().get('server0')).toBe(
           'http://test.example.com',
         )
         expect(console.log).toHaveBeenCalledWith(
-          'Connected to server: server1 -> http://test.example.com',
+          'Connected to server: server0 -> http://test.example.com',
         )
       })
 
@@ -290,9 +290,9 @@ describe('config', () => {
         const server2 = addDynamicServer('http://server2.example.com')
         const server3 = addDynamicServer('http://server3.example.com')
 
-        expect(server1).toBe('server1') // server0 is the default static server
-        expect(server2).toBe('server2')
-        expect(server3).toBe('server3')
+        expect(server1).toBe('server0') // No default static server anymore
+        expect(server2).toBe('server1')
+        expect(server3).toBe('server2')
       })
 
       it('should throw error for invalid URL', () => {
@@ -321,7 +321,7 @@ describe('config', () => {
 
         urls.forEach((url, index) => {
           const serverName = addDynamicServer(url)
-          const expectedName = `server${index + 1}` // server0 is the default static server
+          const expectedName = `server${index}` // No default static server anymore
           expect(serverName).toBe(expectedName)
           expect(getDynamicServers().get(expectedName)).toBe(url)
         })
@@ -428,19 +428,18 @@ describe('config', () => {
         clearDynamicServers()
 
         const serverName = addDynamicServer('http://server2.example.com')
-        expect(serverName).toBe('server1') // server0 is still the default static server
+        expect(serverName).toBe('server0') // No default static server anymore
         expect(getDynamicServers().size).toBe(1)
       })
     })
   })
 
   describe('loadServerMappings', () => {
-    it('should return default mappings when no environment config and no dynamic servers', () => {
+    it('should return empty mappings when no environment config and no dynamic servers', () => {
       delete process.env.AGENT_SERVERS
 
       const mappings = loadServerMappings()
-      expect(mappings.size).toBe(1)
-      expect(mappings.get('server0')).toBe('http://localhost:4111')
+      expect(mappings.size).toBe(0)
     })
 
     it('should parse space-separated server URLs from environment', () => {
@@ -509,16 +508,14 @@ describe('config', () => {
       process.env.AGENT_SERVERS = ''
 
       const mappings = loadServerMappings()
-      expect(mappings.size).toBe(1)
-      expect(mappings.get('server0')).toBe('http://localhost:4111') // Should use defaults
+      expect(mappings.size).toBe(0)
     })
 
     it('should handle whitespace-only AGENT_SERVERS environment variable', () => {
       process.env.AGENT_SERVERS = '   \t\n   '
 
       const mappings = loadServerMappings()
-      expect(mappings.size).toBe(1)
-      expect(mappings.get('server0')).toBe('http://localhost:4111') // Should use defaults
+      expect(mappings.size).toBe(0)
     })
 
     it('should filter out empty URLs from environment config', () => {
@@ -674,7 +671,7 @@ describe('config', () => {
 
       const servers = getDynamicServers()
       expect(servers.size).toBe(100)
-      expect(servers.get('server100')).toBe('http://server99.example.com') // server1-server100 for 100 servers
+      expect(servers.get('server99')).toBe('http://server99.example.com') // server0-server99 for 100 servers
     })
 
     it('should handle server names with special characters', () => {
@@ -705,7 +702,7 @@ describe('config', () => {
 
       const serverNames = urls.map((url) => addDynamicServer(url))
 
-      expect(serverNames).toEqual(['server1', 'server2', 'server3']) // server0 is the default static server
+      expect(serverNames).toEqual(['server0', 'server1', 'server2']) // No default static server anymore
       expect(getDynamicServers().size).toBe(3)
     })
 
@@ -730,9 +727,8 @@ describe('config', () => {
 
       const mappings = loadServerMappings()
 
-      // Should fall back to defaults when parsing fails
-      expect(mappings.size).toBe(1)
-      expect(mappings.get('server0')).toBe('http://localhost:4111')
+      // Should return empty map when parsing fails
+      expect(mappings.size).toBe(0)
       expect(console.error).toHaveBeenCalledWith(
         'Failed to parse AGENT_SERVERS:',
         expect.any(Error),
@@ -748,7 +744,7 @@ describe('config', () => {
         '  Comma+space: "http://localhost:4111, http://localhost:4222"',
       )
       expect(console.log).toHaveBeenCalledWith(
-        'Falling back to default server mappings',
+        'No servers configured due to parsing error',
       )
 
       // Restore the original split method
