@@ -7,7 +7,7 @@ const removeServerInputSchema = z.object({
   serverName: z
     .string()
     .min(1)
-    .describe('The name of the dynamically learned server to forget'),
+    .describe('The name of the dynamically connected server to disconnect'),
 })
 
 // Output schema
@@ -17,13 +17,13 @@ const removeServerOutputSchema = z.object({
   message: z.string().describe('Success message'),
   remainingDynamicServers: z
     .array(z.string())
-    .describe('List of remaining dynamically learned server names'),
+    .describe('List of remaining dynamically connected server names'),
 })
 
-export const forgetMastraServerTool = createTool({
-  id: 'forgetMastraServer',
+export const disconnectServer = createTool({
+  id: 'disconnectServer',
   description:
-    "Forgets about a dynamically learned Mastra server and removes it from the proxy's server list. Only servers that were learned via the learnMastraServer tool can be forgotten - servers configured via MASTRA_SERVERS environment variable cannot be removed.",
+    "Disconnects from a dynamically connected Mastra server and removes it from the proxy's server list. Only servers that were connected via the connectServer tool can be disconnected - servers configured via MASTRA_SERVERS environment variable cannot be removed.",
   inputSchema: removeServerInputSchema,
   outputSchema: removeServerOutputSchema,
   execute: async (context: {
@@ -36,8 +36,8 @@ export const forgetMastraServerTool = createTool({
       const dynamicServers = getDynamicServers()
       if (!dynamicServers.has(serverName)) {
         throw new Error(
-          `Server '${serverName}' not found in dynamically learned servers. ` +
-            `Available learned servers: ${Array.from(dynamicServers.keys()).join(', ') || 'none'}`,
+          `Server '${serverName}' not found in dynamically connected servers. ` +
+            `Available connected servers: ${Array.from(dynamicServers.keys()).join(', ') || 'none'}`,
         )
       }
 
@@ -55,7 +55,7 @@ export const forgetMastraServerTool = createTool({
       return {
         success: true as const,
         serverName,
-        message: `Successfully forgot server '${serverName}' from learned server list`,
+        message: `Successfully disconnected from server '${serverName}'`,
         remainingDynamicServers: remainingServerNames,
       }
     } catch (error: unknown) {

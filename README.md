@@ -31,10 +31,10 @@ _Quick MCP config -> instant agent access_
 
 **The entire proxy exposes just 4 MCP tools:**
 
-- `listMastraAgents` - Discover what's available across all configured servers
-- `callMastraAgent` - Call any agent anywhere, gracefully handling conflicting agent names across multiple servers
-- `learnMastraServer` - Dynamically learn about new Mastra servers at runtime
-- `forgetMastraServer` - Remove dynamically learned servers from the proxy
+- `listAgents` - Discover what's available across all configured servers
+- `callAgent` - Call any agent anywhere, gracefully handling conflicting agent names across multiple servers
+- `connectServer` - Dynamically connect to new Mastra servers at runtime
+- `disconnectServer` - Remove dynamically connected servers from the proxy
 
 **That's it.** No complex protocols. No rigid schemas. No predefined workflows.
 
@@ -43,7 +43,7 @@ This **simplicity** is the secret sauce:
 - **Agents figure it out** - They can discover, explore, and adapt to any agent network
 - **Zero constraints** - No artificial limitations on how agents interact
 - **Emergent behavior** - Complex workflows arise naturally from simple primitives
-- **Autonomous discovery** - Agents proactively learn about new servers mentioned in conversations, expanding their network without explicit commands
+- **Autonomous discovery** - Agents proactively connect to new servers mentioned in conversations, expanding their network without explicit commands
 - **Future-proof** - Works with agents that don't exist yet
 
 Instead of building a complex A2A protocol, we built **A2A primitives** and let the agents do what they do best: figure out how to use them creatively.
@@ -351,7 +351,7 @@ SSE Endpoint: http://localhost:3001/mcp/sse
 Message Endpoint: http://localhost:3001/mcp/message
 Health Check: http://localhost:3001/health
 Status Endpoint: http://localhost:3001/status
-Available tools: callMastraAgent, listMastraAgents
+Available tools: callAgent, listAgents
 ```
 
 ### 2. Health and Status Endpoints
@@ -454,7 +454,7 @@ CI=true MCP_SKIP_SERVER_TESTS=true pnpm check:oneshot  # Skips server, validates
 
 ### 3. Available MCP Tools
 
-#### `callMastraAgent`
+#### `callAgent`
 
 Proxies requests to a target Mastra agent with intelligent server resolution.
 
@@ -498,7 +498,7 @@ Proxies requests to a target Mastra agent with intelligent server resolution.
 }
 ```
 
-#### `listMastraAgents`
+#### `listAgents`
 
 Lists available agents across all configured Mastra servers with conflict detection.
 
@@ -512,7 +512,7 @@ Lists available agents across all configured Mastra servers with conflict detect
     serverName: string // Server identifier (server0, server1, etc.)
     serverUrl: string // Server URL
     status: 'online' | 'offline' | 'error'
-    isDynamic: boolean // Whether server was learned via learnMastraServer
+    isDynamic: boolean // Whether server was connected via connectServer
     agents: Array<{
       id: string // Agent ID
       name?: string // Optional agent name
@@ -522,7 +522,7 @@ Lists available agents across all configured Mastra servers with conflict detect
   summary: {
     totalServers: number
     staticServers: number // Servers from MASTRA_SERVERS environment
-    dynamicServers: number // Servers learned via learnMastraServer
+    dynamicServers: number // Servers connected via connectServer
     onlineServers: number
     totalAgents: number
     agentConflicts: Array<{
@@ -534,15 +534,15 @@ Lists available agents across all configured Mastra servers with conflict detect
 }
 ```
 
-#### `learnMastraServer`
+#### `connectServer`
 
-Dynamically learns about a new Mastra server and adds it to the proxy's server list at runtime.
+Dynamically connects to a new Mastra server and adds it to the proxy's server list at runtime.
 
 **Input Schema:**
 
 ```typescript
 {
-  serverUrl: string;           // URL of the Mastra server to learn about
+  serverUrl: string;           // URL of the Mastra server to connect to
   serverName?: string;         // Optional custom name (auto-generated if omitted)
   validateConnection?: boolean; // Whether to validate connection (default: true)
 }
@@ -562,15 +562,15 @@ Dynamically learns about a new Mastra server and adds it to the proxy's server l
 }
 ```
 
-#### `forgetMastraServer`
+#### `disconnectServer`
 
-Removes a dynamically learned Mastra server from the proxy's server list.
+Removes a dynamically connected Mastra server from the proxy's server list.
 
 **Input Schema:**
 
 ```typescript
 {
-  serverName: string // Name of the learned server to forget
+  serverName: string // Name of the connected server to disconnect
 }
 ```
 
@@ -581,46 +581,46 @@ Removes a dynamically learned Mastra server from the proxy's server list.
   success: true
   serverName: string          // The name of the removed server
   message: string            // Success message
-  remainingDynamicServers: string[] // List of remaining learned server names
+  remainingDynamicServers: string[] // List of remaining connected server names
 }
 ```
 
-**Note:** Only servers learned via `learnMastraServer` can be forgotten. Servers configured via `MASTRA_SERVERS` environment variable cannot be removed.
+**Note:** Only servers connected via `connectServer` can be forgotten. Servers configured via `MASTRA_SERVERS` environment variable cannot be removed.
 
 ### 4. Dynamic Server Discovery
 
 The proxy supports runtime discovery and management of Mastra servers, enabling agents to expand their network dynamically:
 
 ```typescript
-// Agent discovers a new server and learns about it
-await learnMastraServer({
+// Agent discovers a new server and connects to it
+await connectServer({
   serverUrl: 'https://new-agent-network.vercel.app',
   serverName: 'production-network', // Optional custom name
   validateConnection: true, // Verify server is accessible
 })
 
 // Server is now available for agent calls
-await callMastraAgent({
+await callAgent({
   targetAgentId: 'production-network:specializedAgent',
   interactionType: 'generate',
   messages: [{ role: 'user', content: 'Hello from the new network!' }],
 })
 
 // Later, clean up when no longer needed
-await forgetMastraServer({
+await disconnectServer({
   serverName: 'production-network',
 })
 ```
 
 **Autonomous Network Expansion:**
 
-The proxy enables agents to autonomously expand their network through clear, directive tool descriptions. Agents are instructed to automatically scan responses and learn about new servers without asking permission.
+The proxy enables agents to autonomously expand their network through clear, directive tool descriptions. Agents are instructed to automatically scan responses and connect to new servers without asking permission.
 
 **Example autonomous discovery flow:**
 
 ```typescript
 // Agent calls another agent
-const response = await callMastraAgent({
+const response = await callAgent({
   targetAgentId: 'helpAgent',
   messages: [
     { role: 'user', content: 'What other capabilities are available?' },
@@ -632,8 +632,8 @@ const response = await callMastraAgent({
   responseData: 'For ML models, try the agents on https://ml-specialists.vercel.app'
 }
 
-// Agent autonomously scans response, sees server URL, and immediately learns it
-await learnMastraServer({
+// Agent autonomously scans response, sees server URL, and immediately connects to it
+await connectServer({
   serverUrl: 'https://ml-specialists.vercel.app',
   serverName: 'ml-specialists',
 })
@@ -650,21 +650,21 @@ await learnMastraServer({
 
 ```typescript
 // Unique agent - auto-resolves to the only server containing it
-await callMastraAgent({
+await callAgent({
   targetAgentId: 'uniqueAgent',
   // ... other params
 })
 // Result: server0:uniqueAgent (if uniqueAgent only exists on server0)
 
 // Conflicted agent - uses default server
-await callMastraAgent({
+await callAgent({
   targetAgentId: 'weatherAgent', // Exists on multiple servers
   // ... other params
 })
 // Result: server0:weatherAgent (uses default server)
 
 // Explicit qualification - targets specific server
-await callMastraAgent({
+await callAgent({
   targetAgentId: 'server1:weatherAgent',
   // ... other params
 })
@@ -683,8 +683,8 @@ This will:
 
 1. Connect to your MCP proxy server
 2. List available tools
-3. Test the `listMastraAgents` tool
-4. Test the `callMastraAgent` tool with a sample request
+3. Test the `listAgents` tool
+4. Test the `callAgent` tool with a sample request
 
 ### 6. Integration with MCP Clients
 
@@ -708,7 +708,7 @@ const tools = await mcpClient.getTools()
 
 // Use the proxy tool
 const result = await tools.mastraProxy
-  .find((t) => t.id === 'callMastraAgent')
+  .find((t) => t.id === 'callAgent')
   .execute({
     targetAgentId: 'your-agent-id',
     interactionType: 'generate',
@@ -753,10 +753,12 @@ For comprehensive MCP client configuration examples covering all installation me
 ```
 src/
 ├── tools/
-│   ├── agentProxyTool.ts      # Core proxy tool implementation
-│   └── listMastraAgentsTool.ts # Agent discovery tool
-├── mcp-server.ts              # Main MCP server setup
-└── config.ts                  # Configuration management
+│   ├── call-agent-tool.ts          # Core agent calling tool implementation
+│   ├── list-agents-tool.ts         # Agent discovery tool
+│   ├── connect-server-tool.ts     # Dynamic server connection tool
+│   └── disconnect-server-tool.ts  # Dynamic server disconnection tool
+├── mcp-server.ts                  # Main MCP server setup
+└── config.ts                      # Configuration management
 ```
 
 ### Building
