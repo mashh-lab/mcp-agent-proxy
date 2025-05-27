@@ -199,10 +199,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 Here's a complete conversation showing the MCP Agent Proxy in action:
 
-![Usage Example 0](images/usage-0.png)
-![Usage Example 1](images/usage-1.png)
-![Usage Example 2](images/usage-2.png)
-![Usage Example 3](images/usage-3.png)
+![MCP Agent Proxy Usage Example](images/combined-usage.png)
 
 ---
 
