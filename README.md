@@ -195,6 +195,15 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 MIT License - see [LICENSE](LICENSE) file for details.
 
+## Example Usage
+
+Here's a complete conversation showing the MCP Agent Proxy in action:
+
+![Usage Example 0](images/usage-0.png)
+![Usage Example 1](images/usage-1.png)
+![Usage Example 2](images/usage-2.png)
+![Usage Example 3](images/usage-3.png)
+
 ---
 
 <div align="center">
