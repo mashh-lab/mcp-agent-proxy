@@ -35,9 +35,6 @@ jobs:
       - name: Check formatting
         run: pnpm format:check
 
-      - name: Run unit tests
-        run: pnpm test
-
       - name: Run tests with coverage
         run: pnpm test:coverage
 
