@@ -1,7 +1,7 @@
 import { createTool } from '@mastra/core/tools'
 import { z } from 'zod'
-import { MastraClient } from '@mastra/client-js'
 import { loadServerMappings, getRetryConfig, logger } from '../config.js'
+import { PluginManager } from '../plugins/index.js'
 
 /**
  * Smart agent resolution: finds which server(s) contain the given agent ID
@@ -12,20 +12,16 @@ async function findAgentServers(
 ): Promise<Map<string, string>> {
   const foundServers = new Map<string, string>() // serverName -> serverUrl
   const retryConfig = getRetryConfig()
+  const pluginManager = new PluginManager()
 
   for (const [serverName, serverUrl] of serverMap.entries()) {
     try {
-      const clientConfig = {
-        baseUrl: serverUrl,
-        retries: retryConfig.discovery.retries,
-        backoffMs: retryConfig.discovery.backoffMs,
-        maxBackoffMs: retryConfig.discovery.maxBackoffMs,
-      }
+      const agents = await pluginManager.getAgents(
+        serverUrl,
+        retryConfig.discovery,
+      )
 
-      const mastraClient = new MastraClient(clientConfig)
-      const agentsData = await mastraClient.getAgents()
-
-      if (agentsData && Object.keys(agentsData).includes(agentId)) {
+      if (agents.some((agent) => agent.id === agentId)) {
         foundServers.set(serverName, serverUrl)
       }
     } catch {
@@ -56,6 +52,7 @@ const describeAgentOutputSchema = z.object({
       'All available agent data including name, instructions, and other metadata',
     ),
   resolutionMethod: z.string(),
+  serverType: z.string(),
 })
 
 export const describeAgent = createTool({
@@ -82,7 +79,9 @@ export const describeAgent = createTool({
 
       if (agentId.includes(':')) {
         // Handle fully qualified ID (server:agentId)
-        const [serverNamePart, agentIdPart] = agentId.split(':', 2)
+        const colonIndex = agentId.indexOf(':')
+        const serverNamePart = agentId.substring(0, colonIndex)
+        const agentIdPart = agentId.substring(colonIndex + 1)
         actualAgentId = agentIdPart
         fullyQualifiedId = agentId
         serverName = serverNamePart
@@ -154,19 +153,18 @@ export const describeAgent = createTool({
       }
 
       const retryConfig = getRetryConfig()
+      const pluginManager = new PluginManager()
 
-      const clientConfig = {
-        baseUrl: serverToUse,
-        retries: retryConfig.interaction.retries,
-        backoffMs: retryConfig.interaction.backoffMs,
-        maxBackoffMs: retryConfig.interaction.maxBackoffMs,
-      }
+      // Get detailed agent information using the plugin manager
+      const agentData = await pluginManager.getAgentDescription(
+        serverToUse,
+        actualAgentId,
+        retryConfig.interaction,
+      )
 
-      const mastraClient = new MastraClient(clientConfig)
-
-      // Get detailed agent information using the agent's details method
-      const agent = mastraClient.getAgent(actualAgentId)
-      const agentData = await agent.details()
+      // Get the server type from the plugin manager
+      const plugin = await pluginManager.getPlugin(serverToUse)
+      const serverType = plugin?.serverType || 'unknown'
 
       return {
         success: true as const,
@@ -179,6 +177,7 @@ export const describeAgent = createTool({
           ...agentData,
         },
         resolutionMethod,
+        serverType,
       }
     } catch (error: unknown) {
       logger.error(`Error getting agent description for '${agentId}':`, error)

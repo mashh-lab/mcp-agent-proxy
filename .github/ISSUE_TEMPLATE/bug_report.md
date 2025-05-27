@@ -48,7 +48,7 @@ Please share relevant parts of your configuration (remove sensitive information)
 **Environment variables:**
 
 ```env
-MASTRA_SERVERS=http://localhost:4111
+AGENT_SERVERS=http://localhost:4111
 # ... other relevant env vars
 ```
 

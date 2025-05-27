@@ -4,11 +4,9 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![CI](https://github.com/mashh-lab/mcp-agent-proxy/actions/workflows/ci.yml/badge.svg)](https://github.com/mashh-lab/mcp-agent-proxy/actions)
 
-**Connect any MCP client to any Mastra agent server - creating an "Internet of Agents" through simple, composable primitives.**
+**Connect any MCP client to any agent server - creating an "Internet of Agents" through simple, composable primitives.**
 
-> Built for/with [Mastra](https://github.com/mastra-ai/mastra) ❤️
-
-> Support for other Agent servers coming soon! Contribute? 😉
+> Supports both [Mastra](https://github.com/mastra-ai/mastra) ❤️ and [LangGraph](https://github.com/langchain-ai/langgraph) 🦜🕸️ servers! 🎉
 
 ## Quick Start
 
@@ -25,7 +23,7 @@ Add this to your MCP client's configuration:
 }
 ```
 
-**That's it!** The proxy automatically connects to `http://localhost:4111` and exposes all agents as MCP tools.
+**That's it!** The proxy automatically connects to `http://localhost:4111` and exposes all agents as MCP tools. It automatically detects whether the server is running Mastra or LangGraph and adapts accordingly.
 
 https://github.com/user-attachments/assets/e816c0cb-48e5-471b-8ff4-9107bd6e8bb6
 
@@ -38,22 +36,28 @@ Instead of building complex protocols, we provide **5 simple tools** that let ag
 | `listAgents`       | Discover available agents across all servers            |
 | `describeAgent`    | Get detailed agent capabilities for intelligent routing |
 | `callAgent`        | Execute any agent with smart conflict resolution        |
-| `connectServer`    | Dynamically add new Mastra servers at runtime           |
+| `connectServer`    | Dynamically add new agent servers at runtime            |
 | `disconnectServer` | Remove dynamically connected servers                    |
+
+### Supported Server Types
+
+- **Mastra**: Support for local and remote Mastra servers
+- **LangGraph**: Support for local and remote LangGraph instances
+- **Extensible**: Plugin architecture makes it easy to add support for other agent frameworks
 
 ### The Network Effect
 
-**Mastra servers can be MCP clients themselves**, creating recursive agent networks:
+**Agent servers can be MCP clients themselves**, creating recursive agent networks:
 
 ```
-Your MCP Client → MCP Proxy → Mastra Server → Agents -> MCP Proxy -> Other Agent Servers → 🚀 Agents
+Your MCP Client → MCP Proxy → Agent Server (Mastra/LangGraph) → Agents -> MCP Proxy -> Other Agent Servers → 🚀 Agents
 ```
 
 One configuration line unlocks entire ecosystems of AI capabilities.
 
 ## Common Configurations
 
-### Multiple Servers
+### Multiple Servers (Mixed Types)
 
 ```json
 {
@@ -62,14 +66,14 @@ One configuration line unlocks entire ecosystems of AI capabilities.
       "command": "npx",
       "args": ["@mashh/mcp-agent-proxy"],
       "env": {
-        "MASTRA_SERVERS": "http://localhost:4111 http://localhost:4222"
+        "AGENT_SERVERS": "http://localhost:4111 http://localhost:2024"
       }
     }
   }
 }
 ```
 
-### Cloud + Local
+### Cloud + Local (Mixed Mastra and LangGraph)
 
 ```json
 {
@@ -78,7 +82,7 @@ One configuration line unlocks entire ecosystems of AI capabilities.
       "command": "npx",
       "args": ["@mashh/mcp-agent-proxy"],
       "env": {
-        "MASTRA_SERVERS": "https://prod.vercel.app http://localhost:4111"
+        "AGENT_SERVERS": "https://my-mastra.vercel.app http://localhost:2024"
       }
     }
   }
@@ -94,7 +98,7 @@ One configuration line unlocks entire ecosystems of AI capabilities.
       "command": "node",
       "args": ["/path/to/mcp-agent-proxy/dist/mcp-server.js"],
       "env": {
-        "MASTRA_SERVERS": "http://localhost:4111"
+        "AGENT_SERVERS": "http://localhost:4111"
       }
     }
   }
@@ -129,11 +133,11 @@ Connect to the ML specialists at https://ml-specialists.vercel.app and then use 
 
 ## Environment Variables
 
-| Variable          | Default                 | Description                       |
-| ----------------- | ----------------------- | --------------------------------- |
-| `MASTRA_SERVERS`  | `http://localhost:4111` | Space/comma-separated server URLs |
-| `MCP_SERVER_PORT` | `3001`                  | Proxy server port                 |
-| `MCP_TRANSPORT`   | `http`                  | Transport method (stdio/http)     |
+| Variable          | Default                 | Description                                                            |
+| ----------------- | ----------------------- | ---------------------------------------------------------------------- |
+| `AGENT_SERVERS`   | `http://localhost:4111` | Space/comma-separated server URLs (supports both Mastra and LangGraph) |
+| `MCP_SERVER_PORT` | `3001`                  | Proxy server port                                                      |
+| `MCP_TRANSPORT`   | `http`                  | Transport method (stdio/http)                                          |
 
 ## Examples & Advanced Usage
 
@@ -164,8 +168,10 @@ npx @mashh/mcp-agent-proxy@latest
 
 **Connection Issues:**
 
-- Ensure Mastra servers are running and accessible
+- Ensure agent servers are running and accessible
 - Check firewall settings and server URLs
+- For LangGraph: Default port is usually 2024 (`langgraph dev`)
+- For Mastra: Default port is usually 4111
 
 **Debug Mode:**
 

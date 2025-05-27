@@ -59,10 +59,9 @@ export function getRetryConfig() {
 }
 
 /**
- * Connect to a server and add it to the runtime server list
- * @param serverUrl - The URL of the Mastra server to learn about
- * @param serverName - Optional custom name for the server. If not provided, auto-generates one.
- * @returns The server name that was assigned
+ * Learn about a server by attempting to connect and get basic info
+ * @param serverUrl - The URL of the agent server to learn about
+ * @returns Basic server information or throws if unreachable
  */
 export function addDynamicServer(
   serverUrl: string,
@@ -152,7 +151,7 @@ export function clearDynamicServers(): void {
  */
 function loadStaticServerMappings(): Map<string, string> {
   // Check if custom server configuration is provided
-  const serversConfig = process.env.MASTRA_SERVERS
+  const serversConfig = process.env.AGENT_SERVERS
 
   if (serversConfig) {
     try {
@@ -173,7 +172,7 @@ function loadStaticServerMappings(): Map<string, string> {
 
       // If no valid URLs found, use defaults
       if (serverMap.size === 0) {
-        logger.log('No valid URLs in MASTRA_SERVERS, using defaults')
+        logger.log('No valid URLs in AGENT_SERVERS, using defaults')
         return getDefaultMappings()
       }
 
@@ -183,7 +182,7 @@ function loadStaticServerMappings(): Map<string, string> {
       )
       return serverMap
     } catch (error) {
-      logger.error('Failed to parse MASTRA_SERVERS:', error)
+      logger.error('Failed to parse AGENT_SERVERS:', error)
       logger.log('Supported formats:')
       logger.log(
         '  Space separated: "http://localhost:4111 http://localhost:4222"',
@@ -229,7 +228,7 @@ export function loadServerMappings(): Map<string, string> {
 
 /**
  * Get default server mappings
- * Uses the standard Mastra default port (4111) for single-server setup
+ * Uses the standard default port (4111) for single-server setup
  */
 function getDefaultMappings(): Map<string, string> {
   return new Map([['server0', 'http://localhost:4111']])
