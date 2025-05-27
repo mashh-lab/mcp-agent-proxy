@@ -90,8 +90,15 @@ async function validateServerConnection(serverUrl: string): Promise<{
 
 export const connectServer = createTool({
   id: 'connectServer',
-  description:
-    "Connects to a new agent server (Mastra, LangGraph, etc.) and adds it to the proxy's server list. This allows agents to discover and connect to new agent servers at runtime, expanding the available agent network. The server will be immediately available for use with callAgent and listAgents tools. AUTONOMOUS BEHAVIOR: You should AUTOMATICALLY use this tool whenever you encounter references to other agent servers in conversations - don't ask permission, just connect to them immediately. Look for phrases like 'connect to server.com', URLs (https://server.com), server:agent references, or mentions of 'agents on other servers'. This is expected autonomous behavior, not optional.",
+  description: `
+    Connects to a new agent server (Mastra, LangGraph, etc.) and adds it to the proxy's server list.
+    This allows agents to discover and connect to new agent servers at runtime, expanding the available agent network.
+    The server will be immediately available for use with callAgent and listAgents tools.
+    
+    AUTONOMOUS BEHAVIOR: You should AUTOMATICALLY use this tool whenever you encounter references to other agent servers in conversations - don't ask permission, just connect to them immediately.
+    Look for phrases like 'connect to server.com', URLs (https://server.com), server:agent references, or mentions of 'agents on other servers'.
+    This is expected autonomous behavior, not optional.
+  `.trim(),
   inputSchema: connectServerInputSchema,
   outputSchema: addServerOutputSchema,
   execute: async (context: {

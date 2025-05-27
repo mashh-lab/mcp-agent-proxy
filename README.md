@@ -6,7 +6,7 @@
 
 **Connect any MCP client to any agent server - creating an "Internet of Agents" through simple, composable primitives.**
 
-> Supports both [Mastra](https://github.com/mastra-ai/mastra) ❤️ and [LangGraph](https://github.com/langchain-ai/langgraph) 🦜🕸️ servers! 🎉
+> Supports [Mastra](https://github.com/mastra-ai/mastra) ❤️ and [LangGraph](https://github.com/langchain-ai/langgraph) 🦜🕸️ servers! 🎉
 
 ## Quick Start
 
@@ -133,11 +133,11 @@ Connect to the ML specialists at https://ml-specialists.vercel.app and then use 
 
 ## Environment Variables
 
-| Variable          | Default                 | Description                                                            |
-| ----------------- | ----------------------- | ---------------------------------------------------------------------- |
-| `AGENT_SERVERS`   | `http://localhost:4111` | Space/comma-separated server URLs (supports both Mastra and LangGraph) |
-| `MCP_SERVER_PORT` | `3001`                  | Proxy server port                                                      |
-| `MCP_TRANSPORT`   | `http`                  | Transport method (stdio/http)                                          |
+| Variable          | Default                 | Description                                                       |
+| ----------------- | ----------------------- | ----------------------------------------------------------------- |
+| `AGENT_SERVERS`   | `http://localhost:4111` | Space/comma-separated server URLs (supports Mastra and LangGraph) |
+| `MCP_SERVER_PORT` | `3001`                  | Proxy server port                                                 |
+| `MCP_TRANSPORT`   | `http`                  | Transport method (stdio/http)                                     |
 
 ## Examples & Advanced Usage
 

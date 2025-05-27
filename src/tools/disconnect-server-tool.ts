@@ -22,8 +22,10 @@ const removeServerOutputSchema = z.object({
 
 export const disconnectServer = createTool({
   id: 'disconnectServer',
-  description:
-    "Disconnects from a dynamically connected agent server and removes it from the proxy's server list. Only servers that were connected via the connectServer tool can be disconnected - servers configured via AGENT_SERVERS environment variable cannot be removed.",
+  description: `
+    Disconnects from a dynamically connected agent server and removes it from the proxy's server list.
+    Only servers that were connected via the connectServer tool can be disconnected - servers configured via AGENT_SERVERS environment variable cannot be removed.
+  `.trim(),
   inputSchema: removeServerInputSchema,
   outputSchema: removeServerOutputSchema,
   execute: async (context: {

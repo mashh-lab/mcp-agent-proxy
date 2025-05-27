@@ -145,8 +145,12 @@ const listAgentsOutputSchema = z.object({
 
 export const listAgents = createTool({
   id: 'listAgents',
-  description:
-    'Lists available agents on all configured agent servers. Supports both single and multi-server setups with automatic conflict detection. Shows both static servers (from environment config) and dynamic servers (connected via connectServer). Use this to discover what agents are available across your network, and pay attention to agent descriptions that might mention other agent networks you could connect to.',
+  description: `
+    Lists available agents on all configured agent servers.
+    Supports both single and multi-server setups with automatic conflict detection.
+    Shows both static servers (from environment config) and dynamic servers (connected via connectServer).
+    Use this to discover what agents are available across your network, and pay attention to agent descriptions that might mention other agent networks you could connect to.
+  `.trim(),
   inputSchema: z.object({}), // No input needed
   outputSchema: listAgentsOutputSchema,
   execute: async () => {

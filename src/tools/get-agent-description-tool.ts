@@ -57,8 +57,11 @@ const describeAgentOutputSchema = z.object({
 
 export const describeAgent = createTool({
   id: 'describeAgent',
-  description:
-    'Gets detailed information about a specific Mastra agent, including its instructions/description. This provides the agent-to-agent capability information that can be used for intelligent routing and collaboration. Use this after discovering agents with listAgents to understand their specific capabilities.',
+  description: `
+    Gets detailed information about a specific Mastra agent, including its instructions/description.
+    This provides the agent-to-agent capability information that can be used for intelligent routing and collaboration.
+    Use this after discovering agents with listAgents to understand their specific capabilities.
+  `.trim(),
   inputSchema: describeAgentInputSchema,
   outputSchema: describeAgentOutputSchema,
   execute: async (context: {
