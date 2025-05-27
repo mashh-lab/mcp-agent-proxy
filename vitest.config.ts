@@ -15,6 +15,10 @@ export default defineConfig({
         '**/*.test.ts',
         '**/*.spec.ts',
         'vitest.config.ts',
+        'eslint.config.js',
+        'examples/**',
+        'src/oneshot-check.js',
+        'src/mcp-server.ts', // Main server file - typically not unit tested
       ],
     },
   },

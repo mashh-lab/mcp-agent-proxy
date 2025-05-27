@@ -143,11 +143,10 @@ Connect to the ML specialists at https://ml-specialists.vercel.app and then use 
 
 Ready-to-use configurations in the [`examples/`](examples/) directory:
 
-- **[`minimal-config.json`](examples/minimal-config.json)** - Zero setup
+- **[`mcp.json`](examples/minimal-config.json)** - Zero setup
 - **[`multi-server-config.json`](examples/multi-server-config.json)** - Multiple local servers
-- **[`cloud-config.json`](examples/cloud-config.json)** - Cloud deployment
-- **[`network-effect-config.json`](examples/network-effect-config.json)** - Recursive networks
-- **[`mastra-server-with-mcp.js`](examples/mastra-server-with-mcp.js)** - Network-aware server
+- **[`vercel-config.json`](examples/vercel-config.json)** - Cloud deployment
+- **[`mastra-server-with-mcp.js`](examples/mastra-server-with-mcp.ts)** - Network-aware server
 
 For advanced configuration options, see [CONFIGURATION.md](CONFIGURATION.md).
 

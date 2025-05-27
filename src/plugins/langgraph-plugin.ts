@@ -44,17 +44,20 @@ export class LangGraphPlugin extends BaseServerPlugin {
       offset: 0,
     })
 
-    return assistants.map((assistant) => {
-      // Use graph_id as the agent ID since that's what we call in LangGraph
-      const agentId = assistant.graph_id || assistant.assistant_id
-      const description = assistant.metadata?.description
-      return {
-        id: agentId,
-        name: assistant.name || agentId,
-        description: typeof description === 'string' ? description : undefined,
-        fullyQualifiedId: `${this.getServerName(serverUrl)}:${agentId}`,
-      }
-    })
+    return assistants
+      .filter((assistant) => assistant != null)
+      .map((assistant) => {
+        // Use graph_id as the agent ID since that's what we call in LangGraph
+        const agentId = assistant.graph_id || assistant.assistant_id
+        const description = assistant.metadata?.description
+        return {
+          id: agentId,
+          name: assistant.name || agentId,
+          description:
+            typeof description === 'string' ? description : undefined,
+          fullyQualifiedId: `${this.getServerName(serverUrl)}:${agentId}`,
+        }
+      })
   }
 
   /**
@@ -97,6 +100,14 @@ export class LangGraphPlugin extends BaseServerPlugin {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _retryConfig: RetryConfig,
   ): Promise<unknown> {
+    // Validate interaction type first
+    if (
+      params.interactionType !== 'generate' &&
+      params.interactionType !== 'stream'
+    ) {
+      throw new Error(`Invalid interaction type: ${params.interactionType}`)
+    }
+
     const client = new Client({ apiUrl: serverUrl })
 
     // Find the assistant ID for the given agent name
@@ -278,8 +289,6 @@ export class LangGraphPlugin extends BaseServerPlugin {
           },
         }
       }
-    } else {
-      throw new Error(`Invalid interaction type: ${params.interactionType}`)
     }
   }
 
@@ -303,20 +312,16 @@ export class LangGraphPlugin extends BaseServerPlugin {
     client: Client,
     agentName: string,
   ): Promise<string | null> {
-    try {
-      const assistants = await client.assistants.search()
-      for (const assistant of assistants) {
-        if (
-          assistant.graph_id === agentName ||
-          assistant.assistant_id === agentName
-        ) {
-          return assistant.assistant_id
-        }
+    const assistants = await client.assistants.search()
+    for (const assistant of assistants) {
+      if (
+        assistant.graph_id === agentName ||
+        assistant.assistant_id === agentName
+      ) {
+        return assistant.assistant_id
       }
-      return null
-    } catch {
-      return null
     }
+    return null
   }
 
   /**

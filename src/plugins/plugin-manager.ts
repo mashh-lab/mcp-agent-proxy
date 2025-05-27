@@ -17,7 +17,19 @@ export class PluginManager {
   private serverTypeCache: Map<string, string> = new Map() // serverUrl -> serverType
 
   constructor() {
-    this.plugins = [new MastraPlugin(), new LangGraphPlugin()]
+    this.plugins = []
+
+    try {
+      this.plugins.push(new MastraPlugin())
+    } catch (error) {
+      logger.error('Failed to initialize MastraPlugin:', error)
+    }
+
+    try {
+      this.plugins.push(new LangGraphPlugin())
+    } catch (error) {
+      logger.error('Failed to initialize LangGraphPlugin:', error)
+    }
   }
 
   /**
@@ -79,7 +91,14 @@ export class PluginManager {
       throw new Error(`No plugin found for server: ${serverUrl}`)
     }
 
-    return await plugin.getAgents(serverUrl, retryConfig)
+    const result = await plugin.getAgents(serverUrl, retryConfig)
+    if (result == null) {
+      throw new Error(
+        `Plugin returned null/undefined for agents from ${serverUrl}`,
+      )
+    }
+
+    return result
   }
 
   /**
@@ -118,12 +137,16 @@ export class PluginManager {
    * Validate connection to a server using the appropriate plugin
    */
   async validateConnection(serverUrl: string): Promise<boolean> {
-    const plugin = await this.getPlugin(serverUrl)
-    if (!plugin) {
+    try {
+      const plugin = await this.getPlugin(serverUrl)
+      if (!plugin) {
+        return false
+      }
+
+      return await plugin.validateConnection(serverUrl)
+    } catch {
       return false
     }
-
-    return await plugin.validateConnection(serverUrl)
   }
 
   /**
