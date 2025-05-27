@@ -27,7 +27,7 @@ Add this to your MCP client's configuration:
 
 **That's it!** The proxy automatically connects to `http://localhost:4111` and exposes all agents as MCP tools.
 
-https://github.com/user-attachments/assets/adc01d85-f3aa-4d80-8a3a-f23e22f90bb3
+https://github.com/user-attachments/assets/e816c0cb-48e5-471b-8ff4-9107bd6e8bb6
 
 ## What This Does
 
