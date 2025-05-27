@@ -393,6 +393,7 @@ MCP Client → MCP Server → Agent Proxy Tool → @mastra/client-js → Mastra 
 - **MCP Server** (`mcp-server.ts`): HTTP/SSE transport layer
 - **Call Agent Tool** (`tools/call-agent-tool.ts`): Core agent calling logic
 - **List Agents Tool** (`tools/list-agents-tool.ts`): Agent discovery
+- **Get Agent Description Tool** (`tools/get-agent-description-tool.ts`): Agent capability inspection
 - **Configuration** (`config.ts`): Environment-based setup
 
 ## Getting Help

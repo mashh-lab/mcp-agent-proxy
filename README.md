@@ -27,11 +27,10 @@ _Quick MCP config -> instant agent access_
 }
 ```
 
-## 🎯 Just 4 Tools. That's it.
-
-**The entire proxy exposes just 4 MCP tools:**
+## 🎯 Just 5 Tools.
 
 - `listAgents` - Discover what's available across all configured servers
+- `getAgentDescription` - Get detailed agent information including instructions for intelligent routing
 - `callAgent` - Call any agent anywhere, gracefully handling conflicting agent names across multiple servers
 - `connectServer` - Dynamically connect to new Mastra servers at runtime
 - `disconnectServer` - Remove dynamically connected servers from the proxy
@@ -351,7 +350,7 @@ SSE Endpoint: http://localhost:3001/mcp/sse
 Message Endpoint: http://localhost:3001/mcp/message
 Health Check: http://localhost:3001/health
 Status Endpoint: http://localhost:3001/status
-Available tools: callAgent, listAgents
+Available tools: callAgent, listAgents, connectServer, disconnectServer, getAgentDescription
 ```
 
 ### 2. Health and Status Endpoints
@@ -516,6 +515,7 @@ Lists available agents across all configured Mastra servers with conflict detect
     agents: Array<{
       id: string // Agent ID
       name?: string // Optional agent name
+      fullyQualifiedId: string // server:agentId format
     }>
     errorMessage?: string // Error details if status is "error"
   }>
@@ -533,6 +533,52 @@ Lists available agents across all configured Mastra servers with conflict detect
   }
 }
 ```
+
+#### `getAgentDescription`
+
+Gets detailed information about a specific Mastra agent, including its instructions/description. This provides the agent-to-agent capability information that can be used for intelligent routing and collaboration.
+
+**Input Schema:**
+
+```typescript
+{
+  agentId: string;        // Agent ID or "server:agentId" for conflicts
+  serverUrl?: string;     // Optional server URL override
+}
+```
+
+**Smart Resolution Behavior:**
+
+- **Plain agent ID** (e.g., `"weatherAgent"`): Automatically finds which server(s) contain the agent
+  - If found on one server: Uses that server automatically
+  - If found on multiple servers: Uses default server (server0) or first available
+  - If not found: Returns helpful error with available servers
+- **Qualified agent ID** (e.g., `"server1:weatherAgent"`): Directly targets the specified server
+- **Server URL override**: Uses provided `serverUrl` parameter
+
+**Output Schema:**
+
+```typescript
+{
+  success: true
+  agentId: string // The actual agent ID used
+  fullyQualifiedId: string // The full server:agentId format
+  serverUsed: string // URL of the server that was used
+  serverName: string // Name of the server that was used
+  agentDetails: Record<string, any> // All available agent data including:
+  // - name: Agent display name
+  // - instructions: Agent capabilities/instructions
+  // - description: Agent description
+  // - Any other metadata from the agent
+  resolutionMethod: string // How the server was resolved
+}
+```
+
+**Usage Pattern:**
+
+1. Use `listAgents` to discover available agents across all servers
+2. Use `getAgentDescription` to get detailed capability information for specific agents of interest
+3. Use the instructions/description for intelligent agent-to-agent routing and collaboration
 
 #### `connectServer`
 
