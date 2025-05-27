@@ -89,16 +89,11 @@ jobs:
             --title "Release ${{ github.ref_name }}" \
             --notes "## Installation
 
-          ### PNPM Package (Recommended)
-          \`\`\`bash
-          pnpm add -g mcp-agent-proxy@${{ github.ref_name }}
-          \`\`\`
-
-          ### NPM Package (Alternative)
+          ### Installation
           \`\`\`bash
           npm install -g mcp-agent-proxy@${{ github.ref_name }}
           \`\`\`
 
-          See [INSTALL.md](INSTALL.md) for detailed installation instructions."
+          See [README.md](README.md) for detailed installation instructions."
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
