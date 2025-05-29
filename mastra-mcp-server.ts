@@ -1083,9 +1083,7 @@ export class MCPServer extends MCPServerBase {
    * @param toolId The ID/name of the tool to retrieve.
    * @returns Tool information (name, description, inputSchema) or undefined if not found.
    */
-  public getToolInfo(
-    toolId: string,
-  ):
+  public getToolInfo(toolId: string):
     | {
         name: string
         description?: string

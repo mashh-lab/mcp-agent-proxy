@@ -213,6 +213,7 @@ class EnhancedMCPServer {
 
   /**
    * Start the server using streamable HTTP transport with proper session management
+   * Implements MCP 2025-03-26 specification compliance
    */
   async startStreamableHTTP({
     url,
@@ -228,64 +229,169 @@ class EnhancedMCPServer {
     options?: StreamableHTTPServerTransportOptions
   }): Promise<void> {
     if (url.pathname === httpPath) {
-      // Check if this is a request with an existing session
-      const sessionId = req.headers['mcp-session-id'] as string
+      // Security: Validate Origin header to prevent DNS rebinding attacks
+      const origin = req.headers.origin
+      if (origin && !this.isValidOrigin(origin)) {
+        res.writeHead(403, { 'Content-Type': 'text/plain' })
+        res.end('Forbidden: Invalid origin')
+        return
+      }
 
-      logger.log(`Incoming request with session ID: ${sessionId}`)
+      const sessionId = req.headers['mcp-session-id'] as string
+      const method = req.method?.toUpperCase()
+
+      logger.log(`${method} request with session ID: ${sessionId}`)
       logger.log(
         `Active sessions: ${Array.from(this.streamableHTTPSessions.keys()).join(', ')}`,
       )
 
-      if (sessionId && this.streamableHTTPSessions.has(sessionId)) {
-        // Reuse existing transport for this session
-        logger.log(`Reusing existing session: ${sessionId}`)
-        const existingSession = this.streamableHTTPSessions.get(sessionId)!
-        try {
-          await existingSession.transport.handleRequest(req, res)
-        } catch (error) {
-          logger.error('Error handling request with existing session:', error)
-          // Clean up broken session
+      // Handle HTTP DELETE - Session termination
+      if (method === 'DELETE') {
+        if (sessionId && this.streamableHTTPSessions.has(sessionId)) {
+          const session = this.streamableHTTPSessions.get(sessionId)!
+          await session.transport.close?.()
+          await session.server.close()
           this.streamableHTTPSessions.delete(sessionId)
-          if (!res.headersSent) {
+          res.writeHead(200, { 'Content-Type': 'text/plain' })
+          res.end('Session terminated')
+          logger.log(`Session terminated via DELETE: ${sessionId}`)
+        } else {
+          res.writeHead(404, { 'Content-Type': 'text/plain' })
+          res.end('Session not found')
+        }
+        return
+      }
+
+      // Handle HTTP GET - Server-initiated SSE stream
+      if (method === 'GET') {
+        const acceptsSSE = req.headers.accept?.includes('text/event-stream')
+        if (!acceptsSSE) {
+          res.writeHead(405, { 'Content-Type': 'text/plain' })
+          res.end('Method Not Allowed: GET requires Accept: text/event-stream')
+          return
+        }
+
+        if (sessionId && this.streamableHTTPSessions.has(sessionId)) {
+          // Reuse existing session for GET
+          const existingSession = this.streamableHTTPSessions.get(sessionId)!
+          try {
+            await existingSession.transport.handleRequest(req, res)
+          } catch (error) {
+            logger.error('Error handling GET with existing session:', error)
             res.writeHead(500, { 'Content-Type': 'text/plain' })
             res.end('Session error')
+          }
+        } else {
+          // Create new session for server-initiated communication
+          const newSessionId = options.sessionIdGenerator
+            ? options.sessionIdGenerator()
+            : randomUUID()
+          logger.log(`Creating new GET session: ${newSessionId}`)
+
+          const transport = new StreamableHTTPServerTransport({
+            ...options,
+            sessionIdGenerator: () => newSessionId,
+          })
+
+          const server = this.createServerInstance()
+          this.streamableHTTPSessions.set(newSessionId, { server, transport })
+
+          try {
+            await server.connect(transport)
+            await transport.handleRequest(req, res)
+          } catch (error) {
+            logger.error('Error in new GET session:', error)
+            this.streamableHTTPSessions.delete(newSessionId)
+            if (!res.headersSent) {
+              res.writeHead(500, { 'Content-Type': 'text/plain' })
+              res.end('Internal Server Error')
+            }
           }
         }
         return
       }
 
-      // Create new transport and session
-      const newSessionId = options.sessionIdGenerator
-        ? options.sessionIdGenerator()
-        : randomUUID()
-      logger.log(`Creating new session: ${newSessionId}`)
-
-      const transport = new StreamableHTTPServerTransport({
-        ...options,
-        sessionIdGenerator: () => newSessionId,
-      })
-
-      const server = this.createServerInstance()
-      this.streamableHTTPSessions.set(newSessionId, { server, transport })
-
-      try {
-        await server.connect(transport)
-        await transport.handleRequest(req, res)
-      } catch (error) {
-        logger.error('Error in new streamable HTTP session:', error)
-        // Clean up failed session
-        this.streamableHTTPSessions.delete(newSessionId)
-        if (!res.headersSent) {
-          res.writeHead(500, { 'Content-Type': 'text/plain' })
-          res.end('Internal Server Error handling MCP request')
+      // Handle HTTP POST - Client-to-server messages
+      if (method === 'POST') {
+        if (sessionId && this.streamableHTTPSessions.has(sessionId)) {
+          // Reuse existing transport for this session
+          logger.log(`Reusing existing session: ${sessionId}`)
+          const existingSession = this.streamableHTTPSessions.get(sessionId)!
+          try {
+            await existingSession.transport.handleRequest(req, res)
+          } catch (error) {
+            logger.error('Error handling request with existing session:', error)
+            // Clean up broken session
+            this.streamableHTTPSessions.delete(sessionId)
+            if (!res.headersSent) {
+              res.writeHead(500, { 'Content-Type': 'text/plain' })
+              res.end('Session error')
+            }
+          }
+          return
         }
+
+        // Create new transport and session
+        const newSessionId = options.sessionIdGenerator
+          ? options.sessionIdGenerator()
+          : randomUUID()
+        logger.log(`Creating new session: ${newSessionId}`)
+
+        const transport = new StreamableHTTPServerTransport({
+          ...options,
+          sessionIdGenerator: () => newSessionId,
+        })
+
+        const server = this.createServerInstance()
+        this.streamableHTTPSessions.set(newSessionId, { server, transport })
+
+        try {
+          await server.connect(transport)
+          await transport.handleRequest(req, res)
+        } catch (error) {
+          logger.error('Error in new streamable HTTP session:', error)
+          // Clean up failed session
+          this.streamableHTTPSessions.delete(newSessionId)
+          if (!res.headersSent) {
+            res.writeHead(500, { 'Content-Type': 'text/plain' })
+            res.end('Internal Server Error handling MCP request')
+          }
+        }
+
+        // Note: We don't clean up sessions on response close because
+        // MCP streamable HTTP sessions should persist across multiple HTTP requests
+        return
       }
 
-      // Note: We don't clean up sessions on response close because
-      // MCP streamable HTTP sessions should persist across multiple HTTP requests
+      // Unsupported method
+      res.writeHead(405, { 'Content-Type': 'text/plain' })
+      res.end('Method Not Allowed')
     } else {
       res.writeHead(404, { 'Content-Type': 'text/plain' })
       res.end('Not Found')
+    }
+  }
+
+  /**
+   * Validate Origin header to prevent DNS rebinding attacks
+   * MCP 2025-03-26 security requirement
+   */
+  private isValidOrigin(origin: string): boolean {
+    try {
+      const originUrl = new URL(origin)
+      // Allow localhost origins and same-origin requests
+      return (
+        originUrl.hostname === 'localhost' ||
+        originUrl.hostname === '127.0.0.1' ||
+        originUrl.hostname === '::1' ||
+        // Add your domain whitelist here for production
+        process.env.MCP_ALLOWED_ORIGINS?.split(',').includes(
+          originUrl.hostname,
+        ) ||
+        false
+      )
+    } catch {
+      return false
     }
   }
 
@@ -334,6 +440,13 @@ class EnhancedMCPServer {
    */
   getToolListInfo() {
     return this.mastraServer.getToolListInfo()
+  }
+
+  /**
+   * Get the number of active streamable HTTP sessions
+   */
+  getActiveSessionCount(): number {
+    return this.streamableHTTPSessions.size
   }
 }
 
@@ -394,6 +507,7 @@ async function startServer() {
             version: '1.0.0',
             timestamp: new Date().toISOString(),
             uptime: process.uptime(),
+            compliance: 'MCP 2025-03-26',
             endpoints: {
               mcp: MCP_PATH, // New streamable HTTP endpoint
               sse: SSE_PATH, // Legacy SSE endpoint
@@ -401,6 +515,16 @@ async function startServer() {
               status: '/status',
             },
             transports: ['stdio', 'streamable-http', 'sse'], // Supported transports
+            security: {
+              localhost_binding: true,
+              origin_validation: true,
+              session_management: true,
+            },
+            supported_methods: {
+              [MCP_PATH]: ['GET', 'POST', 'DELETE'],
+              [SSE_PATH]: ['GET', 'POST'],
+              [MESSAGE_PATH]: ['POST'],
+            },
           }),
         )
         return
@@ -420,12 +544,23 @@ async function startServer() {
               version: '1.0.0',
               timestamp: new Date().toISOString(),
               uptime: process.uptime(),
+              compliance: 'MCP 2025-03-26',
               endpoints: {
                 mcp: MCP_PATH,
                 sse: SSE_PATH,
                 message: MESSAGE_PATH,
               },
               transports: ['stdio', 'streamable-http', 'sse'],
+              security: {
+                localhost_binding: true,
+                origin_validation: true,
+                session_management: true,
+              },
+              supported_methods: {
+                [MCP_PATH]: ['GET', 'POST', 'DELETE'],
+                [SSE_PATH]: ['GET', 'POST'],
+                [MESSAGE_PATH]: ['POST'],
+              },
               agents: agentListResult,
               tools: [
                 'callAgent',
@@ -434,6 +569,7 @@ async function startServer() {
                 'disconnectServer',
                 'describeAgent',
               ],
+              active_sessions: enhancedMcpServer.getActiveSessionCount(),
             }),
           )
         } catch (error) {
@@ -506,8 +642,10 @@ async function startServer() {
       res.end('Not Found')
     })
 
-    httpServer.listen(PORT, () => {
-      logger.log(`Enhanced MCP Server listening on port ${PORT}`)
+    httpServer.listen(PORT, '127.0.0.1', () => {
+      logger.log(
+        `Enhanced MCP Server listening on 127.0.0.1:${PORT} (localhost only for security)`,
+      )
       logger.log(
         `Streamable HTTP Endpoint: http://localhost:${PORT}${MCP_PATH}`,
       )
@@ -518,6 +656,12 @@ async function startServer() {
       logger.log(`Health Check: http://localhost:${PORT}/health`)
       logger.log(`Status Endpoint: http://localhost:${PORT}/status`)
       logger.log('Supported transports: stdio, streamable-http, sse')
+      logger.log('MCP 2025-03-26 compliant features:')
+      logger.log('  ✓ GET/POST/DELETE support on /mcp endpoint')
+      logger.log('  ✓ Session management with Mcp-Session-Id')
+      logger.log('  ✓ Origin header validation for security')
+      logger.log('  ✓ Localhost-only binding (127.0.0.1)')
+      logger.log('  ✓ Session termination via HTTP DELETE')
       logger.log(
         'Available tools: callAgent, listAgents, connectServer, disconnectServer, describeAgent',
       )
