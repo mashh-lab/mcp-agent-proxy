@@ -55,6 +55,19 @@ Your MCP Client → MCP Proxy → Agent Server (Mastra/LangGraph) → Agents -> 
 
 One configuration line unlocks entire ecosystems of AI capabilities.
 
+## MCP Compliance & Features
+
+**✅ Fully MCP 2025-03-26 Compliant**
+
+- Complete implementation of the latest Model Context Protocol specification
+
+**🚀 Multi-Transport Support**
+
+- **Stdio Transport**: Standard MCP client integration (`npx mcp-agent-proxy`)
+- **Streamable HTTP**: Modern HTTP-based transport with session management
+- **Legacy SSE**: Backward compatibility with existing SSE implementations
+- **Automatic Detection**: Seamlessly switches between transports based on client capabilities
+
 ## Common Configurations
 
 ### Multiple Servers (Mixed Types)
@@ -245,8 +258,6 @@ pnpm build           # Build for production
 pnpm lint            # Run ESLint
 pnpm format          # Format code with Prettier
 ```
-
-## MCP Protocol Compliance
 
 ## Contributing
 
