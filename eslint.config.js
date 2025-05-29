@@ -8,6 +8,7 @@ export default tseslint.config(
       'node_modules/',
       '.mastra/',
       'examples/mastra-server-with-mcp.ts',
+      'mastra-mcp-server.ts',
     ],
   },
   {

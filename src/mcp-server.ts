@@ -7,6 +7,7 @@ import type { StreamableHTTPServerTransportOptions } from '@modelcontextprotocol
 import {
   ListToolsRequestSchema,
   CallToolRequestSchema,
+  type CallToolRequest,
 } from '@modelcontextprotocol/sdk/types.js'
 import { randomUUID } from 'node:crypto'
 import http from 'http'
@@ -172,33 +173,36 @@ class EnhancedMCPServer {
     })
 
     // Call tool handler
-    server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
-      try {
-        const result = await this.mastraServer.executeTool(
-          request.params.name,
-          request.params.arguments || {},
-        )
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(result),
-            },
-          ],
-          isError: false,
+    server.setRequestHandler(
+      CallToolRequestSchema,
+      async (request: CallToolRequest) => {
+        try {
+          const result = await this.mastraServer.executeTool(
+            request.params.name,
+            request.params.arguments || {},
+          )
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(result),
+              },
+            ],
+            isError: false,
+          }
+        } catch (error) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Error: ${error instanceof Error ? error.message : String(error)}`,
+              },
+            ],
+            isError: true,
+          }
         }
-      } catch (error) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Error: ${error instanceof Error ? error.message : String(error)}`,
-            },
-          ],
-          isError: true,
-        }
-      }
-    })
+      },
+    )
   }
 
   /**
@@ -398,7 +402,13 @@ class EnhancedMCPServer {
   /**
    * Fallback to Mastra SSE for backward compatibility
    */
-  async startSSE(options: any): Promise<void> {
+  async startSSE(options: {
+    url: URL
+    ssePath: string
+    messagePath: string
+    req: http.IncomingMessage
+    res: http.ServerResponse<http.IncomingMessage>
+  }): Promise<void> {
     return this.mastraServer.startSSE(options)
   }
 
@@ -452,9 +462,6 @@ class EnhancedMCPServer {
 
 // Create enhanced server instance
 const enhancedMcpServer = new EnhancedMCPServer()
-
-// Keep original for backward compatibility
-const mcpServerInstance = enhancedMcpServer
 
 /**
  * Main server startup function
