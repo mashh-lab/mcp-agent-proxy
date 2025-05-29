@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { describeAgent } from './get-agent-description-tool.js'
 import * as config from '../config.js'
 import { PluginManager } from '../plugins/index.js'
+import { VERSION } from '../mcp-server.js'
 
 // Mock the dependencies
 vi.mock('../config.js')
@@ -373,7 +374,7 @@ describe('get-agent-description-tool', () => {
         description: 'A comprehensive test agent with all details',
         fullyQualifiedId: 'localhost:4111:comprehensiveAgent',
         capabilities: ['text-generation', 'analysis'],
-        version: '1.0.0',
+        version: VERSION,
       }
 
       mockPluginManagerInstance.getAgentDescription.mockResolvedValue(
@@ -399,7 +400,7 @@ describe('get-agent-description-tool', () => {
         'text-generation',
         'analysis',
       ])
-      expect(result.agentDetails.version).toBe('1.0.0')
+      expect(result.agentDetails.version).toBe(VERSION)
     })
 
     it('should handle minimal agent details', async () => {

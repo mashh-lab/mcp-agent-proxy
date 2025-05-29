@@ -1,6 +1,6 @@
 import './test-setup.js'
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { startServer } from './mcp-server.js'
+import { startServer, VERSION } from './mcp-server.js'
 
 const TEST_PORT = 3002
 const BASE_URL = `http://localhost:${TEST_PORT}`
@@ -41,7 +41,7 @@ describe('MCP Agent Proxy Server', () => {
       expect(health).toMatchObject({
         status: 'healthy',
         service: 'mcp-agent-proxy',
-        version: '1.0.0',
+        version: VERSION,
         compliance: 'MCP 2025-03-26',
         transports: ['stdio', 'streamable-http', 'sse'],
       })
@@ -91,7 +91,7 @@ describe('MCP Agent Proxy Server', () => {
         params: {
           protocolVersion: '2024-11-05',
           capabilities: { tools: {} },
-          clientInfo: { name: 'test-client', version: '1.0.0' },
+          clientInfo: { name: 'test-client', version: VERSION },
         },
       }
 
@@ -134,7 +134,7 @@ describe('MCP Agent Proxy Server', () => {
           params: {
             protocolVersion: '2024-11-05',
             capabilities: { tools: {} },
-            clientInfo: { name: 'test-client', version: '1.0.0' },
+            clientInfo: { name: 'test-client', version: VERSION },
           },
         }),
       })
@@ -181,7 +181,7 @@ describe('MCP Agent Proxy Server', () => {
           params: {
             protocolVersion: '2024-11-05',
             capabilities: { tools: {} },
-            clientInfo: { name: 'test-client', version: '1.0.0' },
+            clientInfo: { name: 'test-client', version: VERSION },
           },
         }),
       })
@@ -233,7 +233,7 @@ describe('MCP Agent Proxy Server', () => {
           params: {
             protocolVersion: '2024-11-05',
             capabilities: { tools: {} },
-            clientInfo: { name: 'test-client', version: '1.0.0' },
+            clientInfo: { name: 'test-client', version: VERSION },
           },
         }),
       })
@@ -276,7 +276,7 @@ describe('MCP Agent Proxy Server', () => {
           params: {
             protocolVersion: '2024-11-05',
             capabilities: { tools: {} },
-            clientInfo: { name: 'test-client', version: '1.0.0' },
+            clientInfo: { name: 'test-client', version: VERSION },
           },
         }),
       })
@@ -326,7 +326,7 @@ describe('MCP Agent Proxy Server', () => {
           params: {
             protocolVersion: '2024-11-05',
             capabilities: { tools: {} },
-            clientInfo: { name: 'test-client', version: '1.0.0' },
+            clientInfo: { name: 'test-client', version: VERSION },
           },
         }),
       })
@@ -351,7 +351,7 @@ describe('MCP Agent Proxy Server', () => {
           params: {
             protocolVersion: '2024-11-05',
             capabilities: { tools: {} },
-            clientInfo: { name: 'test-client', version: '1.0.0' },
+            clientInfo: { name: 'test-client', version: VERSION },
           },
         }),
       })

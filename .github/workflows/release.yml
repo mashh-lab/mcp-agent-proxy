@@ -84,7 +84,6 @@ jobs:
             --title "Release ${{ github.ref_name }}" \
             --notes "## Installation
 
-          ### Installation
           \`\`\`bash
           npm install -g mcp-agent-proxy@${{ github.ref_name }}
           \`\`\`

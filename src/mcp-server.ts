@@ -19,6 +19,8 @@ import { disconnectServer } from './tools/disconnect-server-tool.js'
 import { describeAgent } from './tools/get-agent-description-tool.js'
 import { getMCPServerPort, getMCPPaths, logger } from './config.js'
 
+export const VERSION = '0.0.13'
+
 /**
  * MCP Agent Proxy Server that supports both stdio and streamable HTTP transports
  * while maintaining backward compatibility with existing SSE transport
@@ -36,7 +38,7 @@ class AgentProxyServer {
     // Initialize the Mastra MCP server for existing functionality
     this.mastraServer = new MCPServer({
       name: 'mcp-agent-proxy',
-      version: '0.0.12',
+      version: VERSION,
       description: `
         A proxy that connects MCP clients to agent servers (Mastra, LangGraph, etc.).
         
@@ -63,7 +65,7 @@ class AgentProxyServer {
     const server = new Server(
       {
         name: 'mcp-agent-proxy',
-        version: '1.0.0',
+        version: VERSION,
       },
       {
         capabilities: {
@@ -511,7 +513,7 @@ async function startServer() {
           JSON.stringify({
             status: 'healthy',
             service: 'mcp-agent-proxy',
-            version: '1.0.0',
+            version: VERSION,
             timestamp: new Date().toISOString(),
             uptime: process.uptime(),
             compliance: 'MCP 2025-03-26',
@@ -548,7 +550,7 @@ async function startServer() {
             JSON.stringify({
               status: 'healthy',
               service: 'mcp-agent-proxy',
-              version: '1.0.0',
+              version: VERSION,
               timestamp: new Date().toISOString(),
               uptime: process.uptime(),
               compliance: 'MCP 2025-03-26',
@@ -585,7 +587,7 @@ async function startServer() {
             JSON.stringify({
               status: 'degraded',
               service: 'mcp-agent-proxy',
-              version: '1.0.0',
+              version: VERSION,
               timestamp: new Date().toISOString(),
               uptime: process.uptime(),
               error: 'Failed to retrieve agent information',
