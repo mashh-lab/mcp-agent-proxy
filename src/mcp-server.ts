@@ -20,10 +20,10 @@ import { describeAgent } from './tools/get-agent-description-tool.js'
 import { getMCPServerPort, getMCPPaths, logger } from './config.js'
 
 /**
- * Enhanced MCP Server that supports both stdio and streamable HTTP transports
+ * MCP Agent Proxy Server that supports both stdio and streamable HTTP transports
  * while maintaining backward compatibility with existing SSE transport
  */
-class EnhancedMCPServer {
+class AgentProxyServer {
   private mastraServer: MCPServer
   private stdioTransport?: StdioServerTransport
   private stdioServer?: Server
@@ -434,7 +434,7 @@ class EnhancedMCPServer {
       }
       await this.mastraServer.close()
     } catch (error) {
-      logger.error('Error closing enhanced MCP server:', error)
+      logger.error('Error closing MCP Agent Proxy:', error)
     }
   }
 
@@ -460,8 +460,8 @@ class EnhancedMCPServer {
   }
 }
 
-// Create enhanced server instance
-const enhancedMcpServer = new EnhancedMCPServer()
+// Create agent proxy server instance
+const agentProxyServer = new AgentProxyServer()
 
 /**
  * Main server startup function
@@ -475,10 +475,10 @@ async function startServer() {
     (!process.stdin.isTTY && !process.argv.includes('--http'))
 
   if (useStdio) {
-    // Use enhanced stdio transport for MCP clients
+    // Use stdio transport for MCP clients
     async function startStdioServer() {
       try {
-        await enhancedMcpServer.startStdio()
+        await agentProxyServer.startStdio()
       } catch (error) {
         logger.error('Failed to start stdio server:', error)
         process.exit(1)
@@ -576,7 +576,7 @@ async function startServer() {
                 'disconnectServer',
                 'describeAgent',
               ],
-              active_sessions: enhancedMcpServer.getActiveSessionCount(),
+              active_sessions: agentProxyServer.getActiveSessionCount(),
             }),
           )
         } catch (error) {
@@ -599,7 +599,7 @@ async function startServer() {
       // New streamable HTTP endpoint (MCP 2025-03-26 spec)
       if (requestUrl.pathname === MCP_PATH) {
         try {
-          await enhancedMcpServer.startStreamableHTTP({
+          await agentProxyServer.startStreamableHTTP({
             url: requestUrl,
             httpPath: MCP_PATH,
             req,
@@ -624,7 +624,7 @@ async function startServer() {
         requestUrl.pathname === MESSAGE_PATH
       ) {
         try {
-          await enhancedMcpServer.startSSE({
+          await agentProxyServer.startSSE({
             url: requestUrl,
             ssePath: SSE_PATH,
             messagePath: MESSAGE_PATH,
@@ -651,7 +651,7 @@ async function startServer() {
 
     httpServer.listen(PORT, '127.0.0.1', () => {
       logger.log(
-        `Enhanced MCP Server listening on 127.0.0.1:${PORT} (localhost only for security)`,
+        `MCP Agent Proxy listening on 127.0.0.1:${PORT} (localhost only for security)`,
       )
       logger.log(
         `Streamable HTTP Endpoint: http://localhost:${PORT}${MCP_PATH}`,
@@ -676,10 +676,10 @@ async function startServer() {
 
     // Graceful shutdown
     const gracefulShutdown = () => {
-      logger.log('\nShutting down enhanced MCP server...')
+      logger.log('\nShutting down MCP Agent Proxy...')
       httpServer.close(async () => {
-        await enhancedMcpServer.close()
-        logger.log('Enhanced MCP server shut down complete.')
+        await agentProxyServer.close()
+        logger.log('MCP Agent Proxy shutdown complete.')
         process.exit(0)
       })
     }
@@ -689,8 +689,8 @@ async function startServer() {
   }
 }
 
-// Export the enhanced server instance and startup function for programmatic use
-export { enhancedMcpServer as mcpServerInstance, startServer }
+// Export the agent proxy server instance and startup function for programmatic use
+export { agentProxyServer as mcpServerInstance, startServer }
 
 // Export config functions for testing and programmatic use
 export {
