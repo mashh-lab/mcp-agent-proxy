@@ -29,7 +29,7 @@
     "url": "https://github.com/mashh-lab/mcp-agent-proxy/issues"
   },
   "scripts": {
-    "build": "tsup src/mcp-server.ts --format esm,cjs --out-dir dist --dts --clean",
+    "build": "tsup src/mcp-server.ts --format esm,cjs --out-dir dist --dts --clean && echo '#!/usr/bin/env node' | cat - dist/mcp-server.js > temp && mv temp dist/mcp-server.js && echo '#!/usr/bin/env node' | cat - dist/mcp-server.cjs > temp && mv temp dist/mcp-server.cjs",
     "start": "pnpm build && node dist/mcp-server.js",
     "dev": "pnpm build && node dist/mcp-server.js",
     "lint": "eslint .",
@@ -74,6 +74,7 @@
     "@mastra/client-js": "^0.10.0",
     "@mastra/core": "^0.10.0",
     "@mastra/mcp": "^0.10.0",
+    "@modelcontextprotocol/sdk": "^1.0.4",
     "dotenv": "^16.3.1",
     "vitest": "^3.1.4",
     "zod": "^3.25.21"
