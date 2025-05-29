@@ -36,7 +36,7 @@ class AgentProxyServer {
     // Initialize the Mastra MCP server for existing functionality
     this.mastraServer = new MCPServer({
       name: 'mcp-agent-proxy',
-      version: '1.0.0',
+      version: '0.0.12',
       description: `
         A proxy that connects MCP clients to agent servers (Mastra, LangGraph, etc.).
         

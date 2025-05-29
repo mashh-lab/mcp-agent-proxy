@@ -4,6 +4,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
+    setupFiles: ['src/test-setup.ts'],
     include: ['src/**/*.{test,spec}.{js,ts}'],
     exclude: ['node_modules', 'dist'],
     coverage: {
@@ -18,7 +19,8 @@ export default defineConfig({
         'eslint.config.js',
         'examples/**',
         'src/oneshot-check.js',
-        'src/mcp-server.ts', // Main server file - typically not unit tested
+        'src/test-setup.ts',
+        // 'src/mcp-server.ts', // Main server file - typically not unit tested
       ],
     },
   },

@@ -178,21 +178,75 @@ npx mcp-agent-proxy@latest
 DEBUG=mastra:* npx mcp-agent-proxy
 ```
 
-## Development
+## Development & Testing
+
+### Validation Workflows
+
+We've implemented comprehensive validation workflows to ensure code quality and MCP protocol compliance:
+
+#### Quick Commands
 
 ```bash
-# Install dependencies
-pnpm install
+# Quick validation (build + test + lint + format)
+pnpm validate:quick
 
-# Start development server
-pnpm dev
+# Full validation (includes integration tests + health checks)
+pnpm validate:full
 
-# Build for production
-pnpm build
-
-# Run tests
-pnpm test
+# CI validation (includes coverage + dead code analysis)
+pnpm validate:ci
 ```
+
+#### Individual Commands
+
+```bash
+# Build and test
+pnpm build
+pnpm test
+pnpm test:integration
+
+# Code quality
+pnpm lint
+pnpm format
+pnpm format:check
+```
+
+#### MCP Protocol Testing
+
+```bash
+# Test MCP protocol compliance
+pnpm mcp:test
+
+# Test security features
+pnpm security:test
+
+# Manual server testing
+pnpm start           # Start server
+pnpm check          # Check running server (requires jq)
+```
+
+#### Test Coverage
+
+- **355 total tests** covering all components
+- **Unit tests** for all tools, plugins, and configuration
+- **Integration tests** for MCP protocol compliance
+- **Security tests** for origin validation and session management
+- **Health checks** for server monitoring
+
+### Available Scripts
+
+Use `pnpm run` to see all available scripts, or use these common ones:
+
+```bash
+pnpm dev             # Build and start development server
+pnpm test            # Run all tests
+pnpm test:watch      # Run tests in watch mode
+pnpm build           # Build for production
+pnpm lint            # Run ESLint
+pnpm format          # Format code with Prettier
+```
+
+## MCP Protocol Compliance
 
 ## Contributing
 

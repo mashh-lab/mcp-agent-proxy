@@ -27,17 +27,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Lint code
-        run: pnpm lint
-
-      - name: Check formatting
-        run: pnpm format:check
-
-      - name: Run tests with coverage
-        run: pnpm test:coverage
-
-      - name: Build project
-        run: pnpm build
+      - name: Run comprehensive validation
+        run: pnpm validate:ci
 
   # Cross-platform compatibility - only build validation
   cross-platform:
@@ -65,5 +56,5 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build and validate
-        run: pnpm build:validate
+      - name: Cross-platform validation
+        run: pnpm validate:quick
