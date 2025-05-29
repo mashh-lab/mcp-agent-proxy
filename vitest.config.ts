@@ -20,7 +20,6 @@ export default defineConfig({
         'examples/**',
         'src/oneshot-check.js',
         'src/test-setup.ts',
-        // 'src/mcp-server.ts', // Main server file - typically not unit tested
       ],
     },
   },

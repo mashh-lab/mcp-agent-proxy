@@ -40,12 +40,10 @@
     "test:watch": "vitest --watch",
     "test:integration": "vitest run src/mcp-server.test.ts",
     "deadcode": "knip",
-    "deadcode:deps": "depcheck",
+    "deadcode:fix": "knip --fix",
     "validate:quick": "echo '🔨 Building...' && pnpm build && echo '✅ Build complete' && echo '🧪 Running tests...' && pnpm test && echo '✅ Tests complete' && echo '🔍 Checking lint...' && pnpm lint && echo '✅ Lint complete' && echo '💎 Checking format...' && pnpm format:check && echo '✅ Format complete'",
     "validate:full": "echo '🔨 Building...' && pnpm build && echo '✅ Build complete' && echo '🧪 Running unit tests...' && pnpm test && echo '✅ Unit tests complete' && echo '🔍 Checking lint...' && pnpm lint && echo '✅ Lint complete' && echo '💎 Checking format...' && pnpm format:check && echo '✅ Format complete' && echo '🧪 Running integration tests...' && pnpm test:integration && echo '✅ Integration tests complete'",
     "validate:ci": "pnpm validate:full && echo '📊 Generating coverage...' && pnpm test:coverage && echo '✅ Coverage complete' && echo '🧹 Checking for dead code...' && pnpm deadcode && echo '✅ Dead code check complete'",
-    "mcp:test": "echo '🔌 Testing MCP Protocol Compliance...' && pnpm build && timeout 30 node dist/mcp-server.js --http &> /dev/null & SERVER_PID=$! && sleep 2 && echo 'Testing initialize...' && curl -s -X POST http://localhost:3001/mcp -H 'Content-Type: application/json' -H 'Accept: text/event-stream' -d '{\"jsonrpc\":\"2.0\",\"id\":\"1\",\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2024-11-05\",\"capabilities\":{\"tools\":{}},\"clientInfo\":{\"name\":\"test-client\",\"version\":\"1.0.0\"}}}' && echo 'Testing tools/list...' && sleep 1 && curl -s -X POST http://localhost:3001/mcp -H 'Content-Type: application/json' -H 'Accept: text/event-stream' -d '{\"jsonrpc\":\"2.0\",\"id\":\"2\",\"method\":\"tools/list\",\"params\":{}}' && kill $SERVER_PID 2>/dev/null || true",
-    "security:test": "echo '🔒 Testing Security Features...' && pnpm build && timeout 30 node dist/mcp-server.js --http &> /dev/null & SERVER_PID=$! && sleep 2 && echo 'Testing invalid origin (should fail)...' && curl -s -w '%{http_code}' -X POST http://localhost:3001/mcp -H 'Origin: https://evil-site.com' -H 'Content-Type: application/json' && echo '' && echo 'Testing valid localhost origin (should succeed)...' && curl -s -w '%{http_code}' -X POST http://localhost:3001/mcp -H 'Origin: http://localhost:3000' -H 'Content-Type: application/json' -H 'Accept: text/event-stream' -d '{\"jsonrpc\":\"2.0\",\"id\":\"1\",\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2024-11-05\",\"capabilities\":{\"tools\":{}},\"clientInfo\":{\"name\":\"test-client\",\"version\":\"1.0.0\"}}}' && echo '' && kill $SERVER_PID 2>/dev/null || true",
     "prepublishOnly": "pnpm validate:quick",
     "prepack": "pnpm build",
     "version": "pnpm build"
@@ -75,15 +73,13 @@
   },
   "devDependencies": {
     "@types/node": "^22.15.21",
-    "@vitest/coverage-v8": "3.1.4",
-    "depcheck": "^1.4.7",
+    "@vitest/coverage-v8": "^3.1.4",
     "eslint": "^9.27.0",
     "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-prettier": "^5.4.0",
     "knip": "^5.57.2",
     "prettier": "^3.5.3",
     "tsup": "^8.0.1",
-    "tsx": "^4.19.4",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.32.1"
   }

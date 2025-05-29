@@ -159,7 +159,6 @@ Ready-to-use configurations in the [`examples/`](examples/) directory:
 - **[`mcp.json`](examples/minimal-config.json)** - Zero setup
 - **[`multi-server-config.json`](examples/multi-server-config.json)** - Multiple local servers
 - **[`vercel-config.json`](examples/vercel-config.json)** - Cloud deployment
-- **[`mastra-server-with-mcp.js`](examples/mastra-server-with-mcp.ts)** - Network-aware server
 
 For advanced configuration options, see [CONFIGURATION.md](CONFIGURATION.md).
 
