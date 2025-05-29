@@ -55,6 +55,19 @@ Your MCP Client → MCP Proxy → Agent Server (Mastra/LangGraph) → Agents -> 
 
 One configuration line unlocks entire ecosystems of AI capabilities.
 
+## MCP Compliance & Features
+
+**✅ Fully MCP 2025-03-26 Compliant**
+
+- Complete implementation of the latest Model Context Protocol specification
+
+**🚀 Multi-Transport Support**
+
+- **Stdio Transport**: Standard MCP client integration (`npx mcp-agent-proxy`)
+- **Streamable HTTP**: Modern HTTP-based transport with session management
+- **Legacy SSE**: Backward compatibility with existing SSE implementations
+- **Automatic Detection**: Seamlessly switches between transports based on client capabilities
+
 ## Common Configurations
 
 ### Multiple Servers (Mixed Types)
@@ -146,7 +159,6 @@ Ready-to-use configurations in the [`examples/`](examples/) directory:
 - **[`mcp.json`](examples/minimal-config.json)** - Zero setup
 - **[`multi-server-config.json`](examples/multi-server-config.json)** - Multiple local servers
 - **[`vercel-config.json`](examples/vercel-config.json)** - Cloud deployment
-- **[`mastra-server-with-mcp.js`](examples/mastra-server-with-mcp.ts)** - Network-aware server
 
 For advanced configuration options, see [CONFIGURATION.md](CONFIGURATION.md).
 
@@ -178,20 +190,72 @@ npx mcp-agent-proxy@latest
 DEBUG=mastra:* npx mcp-agent-proxy
 ```
 
-## Development
+## Development & Testing
+
+### Validation Workflows
+
+We've implemented comprehensive validation workflows to ensure code quality and MCP protocol compliance:
+
+#### Quick Commands
 
 ```bash
-# Install dependencies
-pnpm install
+# Quick validation (build + test + lint + format)
+pnpm validate:quick
 
-# Start development server
-pnpm dev
+# Full validation (includes integration tests + health checks)
+pnpm validate:full
 
-# Build for production
+# CI validation (includes coverage + dead code analysis)
+pnpm validate:ci
+```
+
+#### Individual Commands
+
+```bash
+# Build and test
 pnpm build
-
-# Run tests
 pnpm test
+pnpm test:integration
+
+# Code quality
+pnpm lint
+pnpm format
+pnpm format:check
+```
+
+#### MCP Protocol Testing
+
+```bash
+# Test MCP protocol compliance
+pnpm mcp:test
+
+# Test security features
+pnpm security:test
+
+# Manual server testing
+pnpm start           # Start server
+pnpm check          # Check running server (requires jq)
+```
+
+#### Test Coverage
+
+- **355 total tests** covering all components
+- **Unit tests** for all tools, plugins, and configuration
+- **Integration tests** for MCP protocol compliance
+- **Security tests** for origin validation and session management
+- **Health checks** for server monitoring
+
+### Available Scripts
+
+Use `pnpm run` to see all available scripts, or use these common ones:
+
+```bash
+pnpm dev             # Build and start development server
+pnpm test            # Run all tests
+pnpm test:watch      # Run tests in watch mode
+pnpm build           # Build for production
+pnpm lint            # Run ESLint
+pnpm format          # Format code with Prettier
 ```
 
 ## Contributing
