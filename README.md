@@ -1,6 +1,6 @@
 # MCP Agent Proxy
 
-[![npm version](https://badge.fury.io/js/@mashh%2Fmcp-agent-proxy.svg)](https://badge.fury.io/js/@mashh%2Fmcp-agent-proxy)
+[![npm version](https://badge.fury.io/js/mcp-agent-proxy.svg)](https://badge.fury.io/js/mcp-agent-proxy)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![CI](https://github.com/mashh-lab/mcp-agent-proxy/actions/workflows/ci.yml/badge.svg)](https://github.com/mashh-lab/mcp-agent-proxy/actions)
 

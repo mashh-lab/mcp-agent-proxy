@@ -12,6 +12,7 @@ import {
 import { randomUUID } from 'node:crypto'
 import http from 'http'
 import { URL } from 'url'
+import packageJson from '../package.json' with { type: 'json' }
 import { listAgents, getAgentsInfo } from './tools/list-agents-tool.js'
 import { callAgent } from './tools/call-agent-tool.js'
 import { connectServer } from './tools/connect-server-tool.js'
@@ -19,7 +20,7 @@ import { disconnectServer } from './tools/disconnect-server-tool.js'
 import { describeAgent } from './tools/get-agent-description-tool.js'
 import { getMCPServerPort, getMCPPaths, logger } from './config.js'
 
-export const VERSION = '0.0.13'
+export const VERSION = packageJson.version
 
 /**
  * MCP Agent Proxy Server that supports both stdio and streamable HTTP transports
