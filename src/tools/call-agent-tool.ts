@@ -100,7 +100,7 @@ export const callAgent = createTool({
 
     try {
       // Load configurable server mappings
-      const SERVER_MAP = loadServerMappings()
+      const SERVER_MAP = await loadServerMappings()
 
       // Parse targetAgentId to extract server and agent ID
       let serverToUse: string

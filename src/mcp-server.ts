@@ -436,6 +436,10 @@ class AgentProxyServer {
         this.streamableHTTPSessions.clear()
       }
       await this.mastraServer.close()
+
+      // Close the connection backend
+      const { closeConnectionBackend } = await import('./config.js')
+      await closeConnectionBackend()
     } catch (error) {
       logger.error('Error closing MCP Agent Proxy:', error)
     }
@@ -702,6 +706,7 @@ export {
   getDynamicServers,
   loadServerMappings,
   clearDynamicServers,
+  closeConnectionBackend,
 } from './config.js'
 
 // Only start the server if this file is run directly (not imported)

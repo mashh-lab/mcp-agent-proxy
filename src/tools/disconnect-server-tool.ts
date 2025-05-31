@@ -35,7 +35,7 @@ export const disconnectServer = createTool({
 
     try {
       // Check if the server exists in dynamic servers
-      const dynamicServers = getDynamicServers()
+      const dynamicServers = await getDynamicServers()
       if (!dynamicServers.has(serverName)) {
         throw new Error(
           `Server '${serverName}' not found in dynamically connected servers. ` +
@@ -44,14 +44,14 @@ export const disconnectServer = createTool({
       }
 
       // Remove the server
-      const removed = removeDynamicServer(serverName)
+      const removed = await removeDynamicServer(serverName)
 
       if (!removed) {
         throw new Error(`Failed to remove server '${serverName}'`)
       }
 
       // Get remaining dynamic servers
-      const remainingServers = getDynamicServers()
+      const remainingServers = await getDynamicServers()
       const remainingServerNames = Array.from(remainingServers.keys())
 
       return {

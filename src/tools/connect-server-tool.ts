@@ -124,7 +124,7 @@ export const connectServer = createTool({
       }
 
       // Add the server dynamically
-      const assignedServerName = addDynamicServer(serverUrl, serverName)
+      const assignedServerName = await addDynamicServer(serverUrl, serverName)
 
       const message = serverName
         ? `Successfully connected to ${serverType || 'unknown'} server '${assignedServerName}' at ${serverUrl}`

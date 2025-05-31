@@ -10,9 +10,9 @@ import { PluginManager } from '../plugins/index.js'
 /**
  * Generate servers from configurable server mappings
  */
-function getServersFromConfig() {
-  const serverMappings = loadServerMappings()
-  const dynamicServers = getDynamicServers()
+async function getServersFromConfig() {
+  const serverMappings = await loadServerMappings()
+  const dynamicServers = await getDynamicServers()
 
   return Array.from(serverMappings.entries()).map(([name, url]) => ({
     name,
@@ -27,7 +27,7 @@ function getServersFromConfig() {
  * This function can be reused outside of the MCP tool context
  */
 export async function getAgentsInfo() {
-  const serversToCheck = getServersFromConfig()
+  const serversToCheck = await getServersFromConfig()
   const retryConfig = getRetryConfig()
   const pluginManager = new PluginManager()
 

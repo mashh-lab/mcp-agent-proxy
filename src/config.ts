@@ -1,9 +1,18 @@
 import dotenv from 'dotenv'
+import { ConnectionBackendFactory } from './plugins/connection-backends/index.js'
 
 dotenv.config() // Load environment variables from .env file
 
-// Global connected server storage
-const dynamicServers: Map<string, string> = new Map()
+// Initialize the connection backend based on environment configuration
+let backendInitialized = false
+
+async function ensureBackendInitialized() {
+  if (!backendInitialized) {
+    const config = ConnectionBackendFactory.getConfigFromEnv()
+    await ConnectionBackendFactory.createBackend(config)
+    backendInitialized = true
+  }
+}
 
 export function getMCPServerPort(): number {
   const port = parseInt(process.env.MCP_SERVER_PORT || '3001', 10)
@@ -63,26 +72,14 @@ export function getRetryConfig() {
  * @param serverUrl - The URL of the agent server to learn about
  * @returns Basic server information or throws if unreachable
  */
-export function addDynamicServer(
+export async function addDynamicServer(
   serverUrl: string,
   serverName?: string,
-): string {
-  // Validate URL format
-  try {
-    new URL(serverUrl)
-  } catch {
-    throw new Error(`Invalid server URL: ${serverUrl}`)
-  }
+): Promise<string> {
+  await ensureBackendInitialized()
+  const backend = ConnectionBackendFactory.getInstance()
 
-  // Check if URL already exists
-  for (const [existingName, existingUrl] of dynamicServers.entries()) {
-    if (existingUrl === serverUrl) {
-      logger.log(`Server URL ${serverUrl} already exists as ${existingName}`)
-      return existingName
-    }
-  }
-
-  // Also check static servers from environment
+  // Check if URL already exists in static servers from environment
   const staticServers = loadStaticServerMappings()
   for (const [existingName, existingUrl] of staticServers.entries()) {
     if (existingUrl === serverUrl) {
@@ -93,27 +90,26 @@ export function addDynamicServer(
     }
   }
 
-  // Generate server name if not provided
-  if (!serverName) {
-    const allServers = new Map([...staticServers, ...dynamicServers])
-    let index = allServers.size
-    do {
-      serverName = `server${index}`
-      index++
-    } while (allServers.has(serverName))
-  } else {
-    // Check if custom name conflicts with existing servers
-    const allServers = new Map([...staticServers, ...dynamicServers])
-    if (allServers.has(serverName)) {
-      throw new Error(
-        `Server name '${serverName}' already exists. Choose a different name or omit to auto-generate.`,
-      )
-    }
+  // Check if custom name conflicts with static servers
+  if (serverName && staticServers.has(serverName)) {
+    throw new Error(
+      `Server name '${serverName}' conflicts with static server. Choose a different name or omit to auto-generate.`,
+    )
   }
 
-  dynamicServers.set(serverName, serverUrl)
-  logger.log(`Connected to server: ${serverName} -> ${serverUrl}`)
-  return serverName
+  // Check if URL already exists in dynamic servers before calling addServer
+  const currentServers = await backend.getServers()
+  const isExistingUrl = Array.from(currentServers.values()).includes(serverUrl)
+
+  const assignedName = await backend.addServer(serverUrl, serverName)
+
+  // Only log "Connected to server" if this was a genuinely new server
+  // The backend will handle logging for existing URLs
+  if (!isExistingUrl) {
+    logger.log(`Connected to server: ${assignedName} -> ${serverUrl}`)
+  }
+
+  return assignedName
 }
 
 /**
@@ -121,8 +117,13 @@ export function addDynamicServer(
  * @param serverName - The name of the server to disconnect
  * @returns true if disconnected, false if not found
  */
-export function removeDynamicServer(serverName: string): boolean {
-  const removed = dynamicServers.delete(serverName)
+export async function removeDynamicServer(
+  serverName: string,
+): Promise<boolean> {
+  await ensureBackendInitialized()
+  const backend = ConnectionBackendFactory.getInstance()
+
+  const removed = await backend.removeServer(serverName)
   if (removed) {
     logger.log(`Disconnected from server: ${serverName}`)
   }
@@ -132,16 +133,22 @@ export function removeDynamicServer(serverName: string): boolean {
 /**
  * Get all dynamically connected servers
  */
-export function getDynamicServers(): Map<string, string> {
-  return new Map(dynamicServers)
+export async function getDynamicServers(): Promise<Map<string, string>> {
+  await ensureBackendInitialized()
+  const backend = ConnectionBackendFactory.getInstance()
+  return await backend.getServers()
 }
 
 /**
  * Clear all dynamically connected servers
  */
-export function clearDynamicServers(): void {
-  const count = dynamicServers.size
-  dynamicServers.clear()
+export async function clearDynamicServers(): Promise<void> {
+  await ensureBackendInitialized()
+  const backend = ConnectionBackendFactory.getInstance()
+
+  const currentServers = await backend.getServers()
+  const count = currentServers.size
+  await backend.clearServers()
   logger.log(`Disconnected from ${count} connected servers`)
 }
 
@@ -212,8 +219,12 @@ function loadStaticServerMappings(): Map<string, string> {
  * Auto-generates names: server0, server1, server2, etc.
  * Includes dynamically connected servers with their assigned names.
  */
-export function loadServerMappings(): Map<string, string> {
+export async function loadServerMappings(): Promise<Map<string, string>> {
   const staticServers = loadStaticServerMappings()
+
+  await ensureBackendInitialized()
+  const backend = ConnectionBackendFactory.getInstance()
+  const dynamicServers = await backend.getServers()
 
   // Merge static and dynamic servers
   const allServers = new Map([...staticServers, ...dynamicServers])
@@ -225,6 +236,16 @@ export function loadServerMappings(): Map<string, string> {
   }
 
   return allServers
+}
+
+/**
+ * Close the connection backend (for cleanup)
+ */
+export async function closeConnectionBackend(): Promise<void> {
+  if (backendInitialized) {
+    await ConnectionBackendFactory.closeBackend()
+    backendInitialized = false
+  }
 }
 
 /**
