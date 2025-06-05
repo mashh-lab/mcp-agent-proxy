@@ -49,40 +49,7 @@ function getBackendTestConfig() {
 async function waitForConsistency(
   config: ReturnType<typeof getBackendTestConfig>,
 ) {
-  if (config.postOperationDelay > 0) {
-    await new Promise((resolve) =>
-      setTimeout(resolve, config.postOperationDelay),
-    )
-  }
-}
-
-// Helper to retry operations until they succeed (for eventual consistency)
-async function waitForCondition<T>(
-  operation: () => Promise<T>,
-  condition: (result: T) => boolean,
-  config: ReturnType<typeof getBackendTestConfig>,
-  description: string = 'condition',
-): Promise<T> {
-  let lastResult: T | undefined = undefined
-
-  for (let attempt = 0; attempt < config.retryAttempts; attempt++) {
-    lastResult = await operation()
-
-    if (condition(lastResult)) {
-      return lastResult
-    }
-
-    if (attempt < config.retryAttempts - 1) {
-      console.error(
-        `DEBUG: Waiting for ${description}, attempt ${attempt + 1}/${config.retryAttempts}`,
-      )
-      await new Promise((resolve) => setTimeout(resolve, config.retryDelay))
-    }
-  }
-
-  throw new Error(
-    `Condition '${description}' not met after ${config.retryAttempts} attempts. Last result: ${JSON.stringify(lastResult)}`,
-  )
+  await new Promise((resolve) => setTimeout(resolve, config.postOperationDelay))
 }
 
 describe('config', () => {
@@ -789,6 +756,7 @@ describe('config', () => {
 
         // Check what we actually have
         const servers = await getDynamicServers()
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const ourServers = Array.from(servers.entries()).filter(([_, url]) =>
           url.includes(testId),
         )
@@ -866,6 +834,7 @@ describe('config', () => {
       // For Upstash backend, the individual operations work but may have race conditions
       // Let's check what we actually have and adjust expectations accordingly
       const finalServers = await getDynamicServers()
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const ourServers = Array.from(finalServers.entries()).filter(([_, url]) =>
         url.includes(testId),
       )
@@ -881,6 +850,7 @@ describe('config', () => {
         // Verify all URLs are actually stored with the correct names
         urls.forEach((url) => {
           const foundEntry = ourServers.find(
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             ([_, storedUrl]) => storedUrl === url,
           )
           expect(foundEntry).toBeDefined()

@@ -6,7 +6,8 @@ import { ConnectionBackend, ConnectionBackendConfig } from './types.js'
  * State persists across serverless function invocations
  */
 export class UpstashConnectionBackend implements ConnectionBackend {
-  private redis: any // Will be @upstash/redis Redis instance
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private redis: any // Will be @upstash/redis Redis instance - using any due to dynamic import
   private keyPrefix: string
   private initialized = false
 

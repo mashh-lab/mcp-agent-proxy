@@ -42,7 +42,7 @@ export class ConnectionBackendFactory {
 
       default:
         throw new Error(
-          `Unknown connection backend type: ${(config as any).type}`,
+          `Unknown connection backend type: ${(config as { type: string }).type}`,
         )
     }
 
