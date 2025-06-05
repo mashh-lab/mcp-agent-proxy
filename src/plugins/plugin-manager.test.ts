@@ -1,12 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { PluginManager } from './plugin-manager.js'
-import { MastraPlugin } from './mastra-plugin.js'
-import { LangGraphPlugin } from './langgraph-plugin.js'
+import { MastraPlugin, LangGraphPlugin } from './server/index.js'
 import type { RetryConfig, AgentCallParams } from './base-plugin.js'
 
 // Mock the plugins
-vi.mock('./mastra-plugin.js')
-vi.mock('./langgraph-plugin.js')
+vi.mock('./server/mastra-plugin.js')
+vi.mock('./server/langgraph-plugin.js')
 
 // Mock the logger
 vi.mock('../config.js', () => ({

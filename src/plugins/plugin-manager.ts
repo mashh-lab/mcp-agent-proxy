@@ -5,12 +5,13 @@ import {
   RetryConfig,
   ServerStatus,
 } from './base-plugin.js'
-import { MastraPlugin } from './mastra-plugin.js'
-import { LangGraphPlugin } from './langgraph-plugin.js'
+import { MastraPlugin, LangGraphPlugin } from './server/index.js'
+import { PluginRegistry } from './plugin-registry.js'
 import { logger } from '../config.js'
 
 /**
  * Plugin manager that handles multiple server types transparently
+ * Uses the plugin registry for dynamic plugin management
  */
 export class PluginManager {
   private plugins: BaseServerPlugin[]
@@ -18,7 +19,16 @@ export class PluginManager {
 
   constructor() {
     this.plugins = []
+    // Register plugins immediately
+    this.registerPlugins()
+    // Initialize plugins synchronously for now (async init would require factory pattern)
+    this.initializePluginsSync()
+  }
 
+  /**
+   * Initialize plugins synchronously (for compatibility with existing constructor pattern)
+   */
+  private initializePluginsSync(): void {
     try {
       this.plugins.push(new MastraPlugin())
     } catch (error) {
@@ -30,6 +40,31 @@ export class PluginManager {
     } catch (error) {
       logger.error('Failed to initialize LangGraphPlugin:', error)
     }
+
+    logger.log(
+      `Initialized ${this.plugins.length} plugins: ${this.plugins.map((p) => p.serverType).join(', ')}`,
+    )
+  }
+
+  /**
+   * Register all available plugins
+   */
+  private registerPlugins(): void {
+    // Register Mastra plugin
+    PluginRegistry.register('mastra', {
+      pluginClass: MastraPlugin,
+      dependencies: ['@mastra/client-js'],
+      description: 'Plugin for Mastra agent servers',
+      priority: 10,
+    })
+
+    // Register LangGraph plugin
+    PluginRegistry.register('langgraph', {
+      pluginClass: LangGraphPlugin,
+      dependencies: ['@langchain/langgraph-sdk'],
+      description: 'Plugin for LangGraph agent servers',
+      priority: 10,
+    })
   }
 
   /**

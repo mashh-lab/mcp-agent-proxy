@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { LangGraphPlugin } from './langgraph-plugin.js'
-import type { RetryConfig } from './base-plugin.js'
+import type { RetryConfig } from '../base-plugin.js'
 
 // Mock the LangGraph SDK
 vi.mock('@langchain/langgraph-sdk', () => ({
@@ -399,9 +399,7 @@ describe('LangGraphPlugin', () => {
           'nonExistentAgent',
           retryConfig,
         ),
-      ).rejects.toThrow(
-        "Agent 'nonExistentAgent' not found on LangGraph server",
-      )
+      ).rejects.toThrow("Agent 'nonExistentAgent' not found")
     })
 
     it('should handle search by assistant_id', async () => {
@@ -939,9 +937,7 @@ describe('LangGraphPlugin', () => {
 
       await expect(
         plugin.callAgent('http://localhost:2024', params, retryConfig),
-      ).rejects.toThrow(
-        "Agent 'nonExistentAgent' not found on LangGraph server",
-      )
+      ).rejects.toThrow("Agent 'nonExistentAgent' not found")
     })
   })
 
@@ -1062,9 +1058,7 @@ describe('LangGraphPlugin', () => {
           'nonExistentAgent',
           retryConfig,
         ),
-      ).rejects.toThrow(
-        "Agent 'nonExistentAgent' not found on LangGraph server",
-      )
+      ).rejects.toThrow("Agent 'nonExistentAgent' not found")
     })
 
     it('should handle search errors', async () => {
@@ -1128,7 +1122,7 @@ describe('LangGraphPlugin', () => {
         retryConfig,
       )
 
-      expect(result[0].fullyQualifiedId).toBe('secure.example.com:80:agent1')
+      expect(result[0].fullyQualifiedId).toBe('secure.example.com:443:agent1')
     })
 
     it('should handle invalid URLs', async () => {

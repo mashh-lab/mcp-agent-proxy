@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { MastraPlugin } from './mastra-plugin.js'
-import type { RetryConfig } from './base-plugin.js'
+import type { RetryConfig } from '../base-plugin.js'
 
 // Mock the MastraClient
 vi.mock('@mastra/client-js', () => ({
@@ -295,7 +295,7 @@ describe('MastraPlugin', () => {
           'nonExistentAgent',
           retryConfig,
         ),
-      ).rejects.toThrow("Agent 'nonExistentAgent' not found on Mastra server")
+      ).rejects.toThrow("Agent 'nonExistentAgent' not found")
     })
 
     it('should handle server errors', async () => {
@@ -737,7 +737,7 @@ describe('MastraPlugin', () => {
         retryConfig,
       )
 
-      expect(result[0].fullyQualifiedId).toBe('secure.example.com:80:agent1')
+      expect(result[0].fullyQualifiedId).toBe('secure.example.com:443:agent1')
     })
 
     it('should handle invalid URLs', async () => {

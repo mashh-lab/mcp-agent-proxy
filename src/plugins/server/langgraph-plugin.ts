@@ -4,7 +4,10 @@ import {
   AgentInfo,
   AgentCallParams,
   RetryConfig,
-} from './base-plugin.js'
+} from '../base-plugin.js'
+import { UrlUtils } from '../utils/url-utils.js'
+import { StreamingUtils, StreamChunk } from '../utils/streaming-utils.js'
+import { ErrorUtils } from '../utils/error-utils.js'
 
 /**
  * Plugin for LangGraph agent servers
@@ -22,7 +25,13 @@ export class LangGraphPlugin extends BaseServerPlugin {
       // Try to search assistants - this is the LangGraph-specific endpoint
       await client.assistants.search({ limit: 1 })
       return true
-    } catch {
+    } catch (error) {
+      // Log connection failures for debugging
+      if (error instanceof Error) {
+        console.debug(
+          `LangGraph connection failed for ${serverUrl}: ${error.message}`,
+        )
+      }
       return false
     }
   }
@@ -55,7 +64,7 @@ export class LangGraphPlugin extends BaseServerPlugin {
           name: assistant.name || agentId,
           description:
             typeof description === 'string' ? description : undefined,
-          fullyQualifiedId: `${this.getServerName(serverUrl)}:${agentId}`,
+          fullyQualifiedId: `${UrlUtils.getServerName(serverUrl)}:${agentId}`,
         }
       })
   }
@@ -76,7 +85,7 @@ export class LangGraphPlugin extends BaseServerPlugin {
     const assistantId = await this.findAssistantId(client, agentId)
 
     if (!assistantId) {
-      throw new Error(`Agent '${agentId}' not found on LangGraph server`)
+      throw ErrorUtils.agentNotFound(agentId, this.serverType, serverUrl)
     }
 
     const assistant = await client.assistants.get(assistantId)
@@ -86,7 +95,7 @@ export class LangGraphPlugin extends BaseServerPlugin {
       id: agentId,
       name: assistant.name || agentId,
       description: typeof description === 'string' ? description : undefined,
-      fullyQualifiedId: `${this.getServerName(serverUrl)}:${agentId}`,
+      fullyQualifiedId: `${UrlUtils.getServerName(serverUrl)}:${agentId}`,
     }
   }
 
@@ -202,11 +211,7 @@ export class LangGraphPlugin extends BaseServerPlugin {
       throw new Error('Timeout waiting for response')
     } else if (params.interactionType === 'stream') {
       // Streaming implementation
-      const chunks: Array<{
-        content: unknown
-        timestamp: string
-        index: number
-      }> = []
+      const chunks: StreamChunk[] = []
 
       let chunkIndex = 0
       const startTime = new Date()
@@ -243,11 +248,7 @@ export class LangGraphPlugin extends BaseServerPlugin {
                 if (newContent.length > responseContent.length) {
                   // Add only the new part
                   const newPart = newContent.slice(responseContent.length)
-                  chunks.push({
-                    content: newPart,
-                    timestamp: new Date().toISOString(),
-                    index: chunkIndex++,
-                  })
+                  chunks.push(StreamingUtils.createChunk(newPart, chunkIndex++))
                   responseContent = newContent
                 }
                 break
@@ -257,37 +258,28 @@ export class LangGraphPlugin extends BaseServerPlugin {
         }
 
         const endTime = new Date()
-        const totalDuration = endTime.getTime() - startTime.getTime()
 
-        return {
-          type: 'collected_stream',
+        return StreamingUtils.createStreamResponse(
+          'collected_stream',
           chunks,
-          summary: {
-            totalChunks: chunks.length,
-            startTime: startTime.toISOString(),
-            endTime: endTime.toISOString(),
-            durationMs: totalDuration,
-            note: 'Stream was collected in real-time with timestamps. Each chunk was processed as it arrived from the agent.',
-          },
-        }
+          startTime,
+          endTime,
+        )
       } catch (streamError) {
         // If streaming fails, collect what we have so far
         const endTime = new Date()
-        return {
-          type: 'partial_stream',
+        const errorMessage =
+          streamError instanceof Error
+            ? streamError.message
+            : 'Unknown streaming error'
+
+        return StreamingUtils.createStreamResponse(
+          'partial_stream',
           chunks,
-          summary: {
-            totalChunks: chunks.length,
-            startTime: startTime.toISOString(),
-            endTime: endTime.toISOString(),
-            durationMs: endTime.getTime() - startTime.getTime(),
-            error:
-              streamError instanceof Error
-                ? streamError.message
-                : 'Unknown streaming error',
-            note: 'Stream was partially collected before encountering an error.',
-          },
-        }
+          startTime,
+          endTime,
+          errorMessage,
+        )
       }
     }
   }
@@ -300,7 +292,13 @@ export class LangGraphPlugin extends BaseServerPlugin {
       const client = new Client({ apiUrl: serverUrl })
       await client.assistants.search({ limit: 1 })
       return true
-    } catch {
+    } catch (error) {
+      // Log connection failures for debugging
+      if (error instanceof Error) {
+        console.debug(
+          `LangGraph connection failed for ${serverUrl}: ${error.message}`,
+        )
+      }
       return false
     }
   }
@@ -322,19 +320,5 @@ export class LangGraphPlugin extends BaseServerPlugin {
       }
     }
     return null
-  }
-
-  /**
-   * Helper to extract server name from URL for qualified IDs
-   */
-  private getServerName(serverUrl: string): string {
-    // This is a simplified approach - in practice, this would be resolved
-    // from the server mappings in the config
-    try {
-      const url = new URL(serverUrl)
-      return `${url.hostname}:${url.port || '80'}`
-    } catch {
-      return 'unknown'
-    }
   }
 }

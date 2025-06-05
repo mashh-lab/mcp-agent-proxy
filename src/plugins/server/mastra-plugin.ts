@@ -4,7 +4,11 @@ import {
   AgentInfo,
   AgentCallParams,
   RetryConfig,
-} from './base-plugin.js'
+} from '../base-plugin.js'
+import { UrlUtils } from '../utils/url-utils.js'
+import { StreamingUtils, StreamChunk } from '../utils/streaming-utils.js'
+import { RetryUtils } from '../utils/retry-utils.js'
+import { ErrorUtils } from '../utils/error-utils.js'
 
 /**
  * Plugin for Mastra agent servers
@@ -27,7 +31,13 @@ export class MastraPlugin extends BaseServerPlugin {
       // Try to get agents - this is the Mastra-specific endpoint
       await client.getAgents()
       return true
-    } catch {
+    } catch (error) {
+      // Log connection failures for debugging
+      if (error instanceof Error) {
+        console.debug(
+          `Mastra connection failed for ${serverUrl}: ${error.message}`,
+        )
+      }
       return false
     }
   }
@@ -39,12 +49,12 @@ export class MastraPlugin extends BaseServerPlugin {
     serverUrl: string,
     retryConfig: RetryConfig,
   ): Promise<AgentInfo[]> {
-    const client = new MastraClient({
-      baseUrl: serverUrl,
-      retries: retryConfig.retries,
-      backoffMs: retryConfig.backoffMs,
-      maxBackoffMs: retryConfig.maxBackoffMs,
-    })
+    const clientConfig = RetryUtils.applyRetryConfig(
+      { baseUrl: serverUrl },
+      retryConfig,
+      true, // Mastra supports retry config
+    )
+    const client = new MastraClient(clientConfig)
 
     const agentsData = await client.getAgents()
 
@@ -52,7 +62,7 @@ export class MastraPlugin extends BaseServerPlugin {
       id: agentId,
       name: agentsData[agentId]?.name || agentId,
       description: undefined, // Mastra agents don't have description in getAgents() response
-      fullyQualifiedId: `${this.getServerName(serverUrl)}:${agentId}`,
+      fullyQualifiedId: `${UrlUtils.getServerName(serverUrl)}:${agentId}`,
     }))
   }
 
@@ -64,25 +74,25 @@ export class MastraPlugin extends BaseServerPlugin {
     agentId: string,
     retryConfig: RetryConfig,
   ): Promise<AgentInfo> {
-    const client = new MastraClient({
-      baseUrl: serverUrl,
-      retries: retryConfig.retries,
-      backoffMs: retryConfig.backoffMs,
-      maxBackoffMs: retryConfig.maxBackoffMs,
-    })
+    const clientConfig = RetryUtils.applyRetryConfig(
+      { baseUrl: serverUrl },
+      retryConfig,
+      true, // Mastra supports retry config
+    )
+    const client = new MastraClient(clientConfig)
 
     const agentsData = await client.getAgents()
     const agentData = agentsData[agentId]
 
     if (!agentData) {
-      throw new Error(`Agent '${agentId}' not found on Mastra server`)
+      throw ErrorUtils.agentNotFound(agentId, this.serverType, serverUrl)
     }
 
     return {
       id: agentId,
       name: agentData.name || agentId,
       description: undefined, // Mastra agents don't have description in getAgents() response
-      fullyQualifiedId: `${this.getServerName(serverUrl)}:${agentId}`,
+      fullyQualifiedId: `${UrlUtils.getServerName(serverUrl)}:${agentId}`,
     }
   }
 
@@ -94,12 +104,12 @@ export class MastraPlugin extends BaseServerPlugin {
     params: AgentCallParams,
     retryConfig: RetryConfig,
   ): Promise<unknown> {
-    const client = new MastraClient({
-      baseUrl: serverUrl,
-      retries: retryConfig.retries,
-      backoffMs: retryConfig.backoffMs,
-      maxBackoffMs: retryConfig.maxBackoffMs,
-    })
+    const clientConfig = RetryUtils.applyRetryConfig(
+      { baseUrl: serverUrl },
+      retryConfig,
+      true, // Mastra supports retry config
+    )
+    const client = new MastraClient(clientConfig)
 
     const agent = client.getAgent(params.agentId)
 
@@ -114,11 +124,7 @@ export class MastraPlugin extends BaseServerPlugin {
       return await agent.generate(interactionParams)
     } else if (params.interactionType === 'stream') {
       // Proper streaming implementation - collect chunks as they arrive
-      const chunks: Array<{
-        content: unknown
-        timestamp: string
-        index: number
-      }> = []
+      const chunks: StreamChunk[] = []
 
       let chunkIndex = 0
       const startTime = new Date()
@@ -130,60 +136,41 @@ export class MastraPlugin extends BaseServerPlugin {
         // Process the data stream using Mastra's API
         await streamResponse.processDataStream({
           onTextPart: (textPart: string) => {
-            chunks.push({
-              content: textPart,
-              timestamp: new Date().toISOString(),
-              index: chunkIndex++,
-            })
+            chunks.push(StreamingUtils.createChunk(textPart, chunkIndex++))
           },
           onDataPart: (dataPart: unknown) => {
-            chunks.push({
-              content: dataPart,
-              timestamp: new Date().toISOString(),
-              index: chunkIndex++,
-            })
+            chunks.push(StreamingUtils.createChunk(dataPart, chunkIndex++))
           },
           onErrorPart: (errorPart: unknown) => {
-            chunks.push({
-              content: { error: errorPart },
-              timestamp: new Date().toISOString(),
-              index: chunkIndex++,
-            })
+            chunks.push(
+              StreamingUtils.createChunk({ error: errorPart }, chunkIndex++),
+            )
           },
         })
 
         const endTime = new Date()
-        const totalDuration = endTime.getTime() - startTime.getTime()
 
-        return {
-          type: 'collected_stream',
+        return StreamingUtils.createStreamResponse(
+          'collected_stream',
           chunks,
-          summary: {
-            totalChunks: chunks.length,
-            startTime: startTime.toISOString(),
-            endTime: endTime.toISOString(),
-            durationMs: totalDuration,
-            note: 'Stream was collected in real-time with timestamps. Each chunk was processed as it arrived from the agent.',
-          },
-        }
+          startTime,
+          endTime,
+        )
       } catch (streamError) {
         // If streaming fails, collect what we have so far
         const endTime = new Date()
-        return {
-          type: 'partial_stream',
+        const errorMessage =
+          streamError instanceof Error
+            ? streamError.message
+            : 'Unknown streaming error'
+
+        return StreamingUtils.createStreamResponse(
+          'partial_stream',
           chunks,
-          summary: {
-            totalChunks: chunks.length,
-            startTime: startTime.toISOString(),
-            endTime: endTime.toISOString(),
-            durationMs: endTime.getTime() - startTime.getTime(),
-            error:
-              streamError instanceof Error
-                ? streamError.message
-                : 'Unknown streaming error',
-            note: 'Stream was partially collected before encountering an error.',
-          },
-        }
+          startTime,
+          endTime,
+          errorMessage,
+        )
       }
     } else {
       throw new Error(`Invalid interaction type: ${params.interactionType}`)
@@ -204,22 +191,14 @@ export class MastraPlugin extends BaseServerPlugin {
 
       await client.getAgents()
       return true
-    } catch {
+    } catch (error) {
+      // Log connection failures for debugging
+      if (error instanceof Error) {
+        console.debug(
+          `Mastra connection failed for ${serverUrl}: ${error.message}`,
+        )
+      }
       return false
-    }
-  }
-
-  /**
-   * Helper to extract server name from URL for qualified IDs
-   */
-  private getServerName(serverUrl: string): string {
-    // This is a simplified approach - in practice, this would be resolved
-    // from the server mappings in the config
-    try {
-      const url = new URL(serverUrl)
-      return `${url.hostname}:${url.port || '80'}`
-    } catch {
-      return 'unknown'
     }
   }
 }

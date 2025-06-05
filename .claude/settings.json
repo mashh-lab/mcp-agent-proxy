@@ -1,0 +1,63 @@
+{
+  "autocomplete": {
+    "enabled": true,
+    "autoAccept": true,
+    "delay": 0
+  },
+  "codeActions": {
+    "enabled": true,
+    "autoApply": true
+  },
+  "diagnostics": {
+    "enabled": true,
+    "autoFix": true,
+    "severity": "hint"
+  },
+  "edits": {
+    "confirmBeforeApplying": false,
+    "autoFormat": true,
+    "autoSave": true
+  },
+  "tools": {
+    "confirmBeforeRunning": false,
+    "autoRetry": true,
+    "maxRetries": 3
+  },
+  "assistant": {
+    "proactive": true,
+    "autoComplete": true,
+    "suggestNext": true,
+    "explainDecisions": false
+  },
+  "testing": {
+    "autoRun": true,
+    "runOnSave": true,
+    "fixFailures": true
+  },
+  "build": {
+    "autoRun": true,
+    "fixErrors": true,
+    "optimizeImports": true
+  },
+  "git": {
+    "autoStage": false,
+    "autoCommit": false,
+    "commitMessage": "auto"
+  },
+  "refactoring": {
+    "autoApply": true,
+    "extractFunctions": true,
+    "removeDeadCode": true,
+    "optimizeImports": true
+  },
+  "debugging": {
+    "autoFix": true,
+    "explainErrors": true,
+    "suggestFixes": true
+  },
+  "performance": {
+    "parallelTools": true,
+    "batchOperations": true,
+    "cacheResults": true
+  }
+}
